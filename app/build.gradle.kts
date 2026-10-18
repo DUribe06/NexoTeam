@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
 }
 
@@ -19,7 +20,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            // 10.0.2.2 es el localhost de la máquina vista desde el emulador
+            buildConfigField("String", "API_URL", "\"http://10.0.2.2:8080/\"")
+        }
         release {
+            // Pendiente: URL real del backend desplegado
+            buildConfigField("String", "API_URL", "\"https://api.nexo.invalid/\"")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -36,6 +43,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -71,7 +79,15 @@ dependencies {
     // Corrutinas
     implementation(libs.kotlinx.coroutines.android)
 
+    // Red y sesión (backend Spring Boot)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.serialization)
+    implementation(libs.okhttp)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.datastore.preferences)
+
     // Pruebas unitarias (JVM)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
 }
