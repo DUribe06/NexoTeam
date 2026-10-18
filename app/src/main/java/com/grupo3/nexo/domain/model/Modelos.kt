@@ -10,12 +10,18 @@ enum class Rol(val etiqueta: String) {
     TUTOR("Tutor")
 }
 
+/**
+ * Ciclo de vida de una solicitud (RF5, RF6). La sesión nace al pasar a [ACEPTADA] y tiene su propio
+ * estado ([EstadoSesion]): FINALIZADA equivale a una sesión COMPLETADA.
+ */
 enum class EstadoSolicitud(val etiqueta: String) {
     PENDIENTE("Pendiente"),
     ACEPTADA("Aceptada"),
     RECHAZADA("Rechazada"),
     FINALIZADA("Finalizada"),
-    CANCELADA("Cancelada")
+    CANCELADA("Cancelada"),
+    /** El tutor no respondió en el plazo de 24 h (RF5). */
+    EXPIRADA("Expirada")
 }
 
 /** Ciclo de vida de una sesión de tutoría (RF10). */

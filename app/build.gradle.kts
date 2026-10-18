@@ -70,4 +70,8 @@ dependencies {
 
     // Corrutinas
     implementation(libs.kotlinx.coroutines.android)
+
+    // Pruebas unitarias (JVM)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

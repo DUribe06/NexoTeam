@@ -29,7 +29,7 @@ class ObtenerMisSolicitudesUseCase @Inject constructor(
 ) {
     private val orden = listOf(
         EstadoSolicitud.PENDIENTE, EstadoSolicitud.ACEPTADA, EstadoSolicitud.FINALIZADA,
-        EstadoSolicitud.RECHAZADA, EstadoSolicitud.CANCELADA
+        EstadoSolicitud.RECHAZADA, EstadoSolicitud.CANCELADA, EstadoSolicitud.EXPIRADA
     )
 
     operator fun invoke(): Flow<List<Solicitud>> =
@@ -53,7 +53,7 @@ class ActualizarSolicitudUseCase @Inject constructor(
         repositorio.actualizarEstado(id, estado, motivo?.trim())
         when (estado) {
             EstadoSolicitud.ACEPTADA -> sesiones.programar(anterior, comoTutor = anterior.tutorId == auth.usuarioActual.value.id)
-            EstadoSolicitud.CANCELADA, EstadoSolicitud.RECHAZADA -> sesiones.cancelarDe(id)
+            EstadoSolicitud.CANCELADA, EstadoSolicitud.RECHAZADA, EstadoSolicitud.EXPIRADA -> sesiones.cancelarDe(id)
             else -> Unit
         }
     }
