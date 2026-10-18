@@ -298,6 +298,7 @@ private fun plural(e: EstadoSolicitud): String = when (e) {
     EstadoSolicitud.RECHAZADA -> "Rechazadas"
     EstadoSolicitud.FINALIZADA -> "Finalizadas"
     EstadoSolicitud.CANCELADA -> "Canceladas"
+    EstadoSolicitud.EXPIRADA -> "Expiradas"
 }
 
 @Composable

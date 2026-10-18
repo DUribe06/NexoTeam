@@ -630,6 +630,7 @@ fun InsigniaEstado(estado: EstadoSolicitud, modifier: Modifier = Modifier) {
         EstadoSolicitud.RECHAZADA -> Rojo to Rojo
         EstadoSolicitud.FINALIZADA -> TextoSecundario to TextoSecundario
         EstadoSolicitud.CANCELADA -> GrisEstado to GrisEstado.copy(alpha = 0.6f)
+        EstadoSolicitud.EXPIRADA -> GrisEstado to GrisEstado.copy(alpha = 0.6f)
     }
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         Box(Modifier.size(7.dp).background(punto, CircleShape))
