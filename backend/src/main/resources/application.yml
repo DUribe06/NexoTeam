@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: nexo-backend
+  datasource:
+    url: ${NEXO_DB_URL:jdbc:postgresql://localhost:5432/nexo}
+    username: ${NEXO_DB_USUARIO:nexo}
+    password: ${NEXO_DB_CLAVE:}
+  jpa:
+    hibernate:
+      # El esquema lo gestiona Flyway; Hibernate solo lo valida
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+server:
+  port: ${PORT:8080}
