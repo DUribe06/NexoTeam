@@ -1,0 +1,21 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+app/build/
+.kotlin/
+*.apk
+*.aab
+
+# Material personal del equipo: no se sube (documentos, plan, capturas y herramientas)
+/docs/
+/frontend/
+/.claude/
+/.impeccable/
+/skills-lock.json
+/PRODUCT.md

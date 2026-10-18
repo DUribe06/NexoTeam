@@ -1,0 +1,73 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.hilt)
+}
+
+android {
+    namespace = "com.grupo3.nexo"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.grupo3.nexo"
+        minSdk = 26
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0.0"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+    buildFeatures {
+        compose = true
+    }
+}
+
+// Hilt genera código con kapt: evita errores de tipos sin resolver
+kapt {
+    correctErrorTypes = true
+}
+
+dependencies {
+    // Núcleo Android
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.activity.compose)
+
+    // Jetpack Compose (BOM gestiona versiones)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.extended)
+    debugImplementation(libs.androidx.ui.tooling)
+
+    // Navegación
+    implementation(libs.androidx.navigation.compose)
+
+    // Inyección de dependencias (Hilt)
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
+
+    // Corrutinas
+    implementation(libs.kotlinx.coroutines.android)
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema base claro (lienzo "Bosque"): evita destellos al iniciar y no muestra ActionBar.
+         El tema visual real lo define Jetpack Compose (ui/theme). -->
+    <style name="Theme.Nexo" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/fondo</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/fondo</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
