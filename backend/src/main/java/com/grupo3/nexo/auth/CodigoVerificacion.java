@@ -35,15 +35,30 @@ public class CodigoVerificacion {
     @Column(name = "cerrado_en")
     private Instant cerradoEn;
 
+    @Column(name = "creado_en")
+    private Instant creadoEn;
+
     protected CodigoVerificacion() {
     }
 
-    public CodigoVerificacion(UUID usuarioId, PropositoCodigo proposito, String codigoHash, Instant venceEn) {
+    public CodigoVerificacion(UUID usuarioId, PropositoCodigo proposito, String codigoHash, Instant venceEn, Instant creadoEn) {
         this.id = UUID.randomUUID();
         this.usuarioId = usuarioId;
         this.proposito = proposito;
         this.codigoHash = codigoHash;
         this.venceEn = venceEn;
+        this.creadoEn = creadoEn;
+    }
+
+    public void registrarIntentoFallido() {
+        intentos++;
+    }
+
+    /** Se cierra al usarse, al vencer, al agotar los intentos o al pedir uno nuevo: un código sirve una sola vez. */
+    public void cerrar(Instant ahora) {
+        if (cerradoEn == null) {
+            cerradoEn = ahora;
+        }
     }
 
     public UUID getId() { return id; }
@@ -53,4 +68,5 @@ public class CodigoVerificacion {
     public int getIntentos() { return intentos; }
     public Instant getVenceEn() { return venceEn; }
     public Instant getCerradoEn() { return cerradoEn; }
+    public Instant getCreadoEn() { return creadoEn; }
 }

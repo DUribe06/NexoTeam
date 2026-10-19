@@ -1,5 +1,6 @@
 package com.grupo3.nexo.usuarios;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
@@ -85,6 +86,33 @@ public class Usuario {
         u.terminosVersion = terminosVersion;
         u.terminosAceptadosEn = ahora;
         return u;
+    }
+
+    public boolean estaBloqueado(Instant ahora) {
+        return bloqueadoHasta != null && ahora.isBefore(bloqueadoHasta);
+    }
+
+    /** Suma un intento fallido; al llegar al máximo bloquea la cuenta y reinicia el contador. Devuelve si quedó bloqueada. */
+    public boolean registrarLoginFallido(Instant ahora, int maximoIntentos, Duration bloqueo) {
+        intentosFallidos++;
+        if (intentosFallidos >= maximoIntentos) {
+            bloqueadoHasta = ahora.plus(bloqueo);
+            intentosFallidos = 0;
+            return true;
+        }
+        return false;
+    }
+
+    public void registrarLoginExitoso() {
+        intentosFallidos = 0;
+        bloqueadoHasta = null;
+    }
+
+    /** El dueño del correo demostró serlo con el código de 6 dígitos. */
+    public void marcarCorreoVerificado() {
+        if (estadoCuenta == EstadoCuenta.PENDIENTE_VERIFICACION_CORREO) {
+            estadoCuenta = EstadoCuenta.ACTIVA;
+        }
     }
 
     public UUID getId() { return id; }

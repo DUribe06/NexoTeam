@@ -22,3 +22,9 @@ nexo:
     modo: consola
     # Consulta DNS (registro MX) para comprobar que el dominio recibe correo
     verificar-mx: true
+  jwt:
+    # Obligatorio: mínimo 32 caracteres, desde la variable de entorno NEXO_JWT_SECRETO. No hay valor por defecto a propósito.
+    secreto: ${NEXO_JWT_SECRETO}
+  login:
+    maximo-intentos: 5
+    minutos-de-bloqueo: 15

@@ -20,7 +20,11 @@ public class ManejadorErrores {
 
     @ExceptionHandler(ErrorNegocio.class)
     ResponseEntity<ErrorApi> negocio(ErrorNegocio e) {
-        return ResponseEntity.status(e.getEstado()).body(new ErrorApi(e.getCodigo(), e.getMessage(), e.getDetalles()));
+        ResponseEntity.BodyBuilder respuesta = ResponseEntity.status(e.getEstado());
+        if (e.getReintentarEnSegundos() != null) {
+            respuesta.header("Retry-After", String.valueOf(e.getReintentarEnSegundos()));
+        }
+        return respuesta.body(new ErrorApi(e.getCodigo(), e.getMessage(), e.getDetalles()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

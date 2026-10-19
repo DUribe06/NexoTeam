@@ -15,3 +15,5 @@ nexo:
   correo:
     modo: consola
     verificar-mx: false
+  jwt:
+    secreto: secreto-solo-para-pruebas-de-nexo-0123456789
