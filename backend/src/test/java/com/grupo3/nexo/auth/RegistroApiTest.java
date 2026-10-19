@@ -228,9 +228,9 @@ class RegistroApiTest {
     }
 
     @Test
-    void elRegistroEsPublicoPeroNoLoDemasDeAuth() throws Exception {
+    void elRegistroEsPublicoPeroNoLoQueExigeSesion() throws Exception {
         registrar(estudiante("publico@ejemplo.com")).andExpect(status().isCreated());
-        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content("{}"))
+        mvc.perform(post("/api/auth/cerrar-sesion").contentType(MediaType.APPLICATION_JSON).content("{}"))
             .andExpect(status().isUnauthorized());
     }
 }
