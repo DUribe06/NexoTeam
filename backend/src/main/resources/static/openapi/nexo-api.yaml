@@ -1,0 +1,501 @@
+openapi: 3.0.3
+info:
+  title: API de Nexo
+  version: 0.1.0
+  description: |
+    Contrato entre la app Android y el backend (Spring Boot + PostgreSQL).
+    Este archivo es la fuente de verdad: primero se acuerda aquí y luego se implementa.
+
+    Alcance de esta versión: cuentas (Fase 1) — RF1 registro, RF2 inicio de sesión y RF16 recuperación
+    de contraseña, con la verificación del correo por código de 6 dígitos (decisión D2).
+
+    Convenciones:
+    - JSON en UTF-8; nombres de campos en español y camelCase.
+    - Errores con el esquema `Error` y un `codigo` estable que la app usa para decidir qué mostrar.
+    - Autenticación con JWT en `Authorization: Bearer <tokenAcceso>`.
+    - Los correos se normalizan a minúsculas y sin espacios en el servidor.
+servers:
+  - url: http://10.0.2.2:8080
+    description: Desarrollo (visto desde el emulador de Android)
+tags:
+  - name: Salud
+  - name: Autenticación
+    description: Registro, verificación del correo, sesión y recuperación de contraseña
+
+paths:
+  /api/salud:
+    get:
+      tags: [Salud]
+      summary: Comprueba que el servicio está arriba
+      security: []
+      responses:
+        "200":
+          description: Servicio activo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Salud"
+
+  /api/auth/registro:
+    post:
+      tags: [Autenticación]
+      summary: Crea una cuenta (RF1)
+      description: |
+        Crea la cuenta en estado `PENDIENTE_VERIFICACION_CORREO` y envía al correo un código de 6 dígitos.
+        Se rechaza el correo si su dominio no recibe correo (sin registro MX) o es desechable.
+        Los tutores quedan además `PENDIENTE` de verificación académica por el administrador (RF12).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudRegistro"
+      responses:
+        "201":
+          description: Cuenta creada; falta confirmar el correo con el código
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespuestaRegistro"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "409":
+          description: Ya existe una cuenta con ese correo (`CORREO_DUPLICADO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Correo no aceptado (`CORREO_SIN_MX`, `CORREO_DESECHABLE`) o contraseña débil (`CONTRASENA_DEBIL`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/DemasiadasSolicitudes"
+
+  /api/auth/verificar-correo:
+    post:
+      tags: [Autenticación]
+      summary: Confirma el correo con el código de 6 dígitos
+      description: |
+        El código vence a los 15 minutos, sirve una sola vez y admite 5 intentos; al agotarlos hay que pedir otro.
+        Si es correcto, la cuenta queda verificada y se inicia sesión directamente.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudVerificarCorreo"
+      responses:
+        "200":
+          description: Correo verificado; sesión iniciada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sesion"
+        "400":
+          description: Código incorrecto, vencido o con intentos agotados (`CODIGO_INVALIDO`, `CODIGO_VENCIDO`, `CODIGO_INTENTOS_AGOTADOS`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: No hay una cuenta pendiente de verificación con ese correo (`CUENTA_NO_ENCONTRADA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/reenviar-codigo:
+    post:
+      tags: [Autenticación]
+      summary: Reenvía el código de verificación
+      description: Espera de 60 s entre envíos y máximo 5 por hora por correo y por IP. Invalida el código anterior.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCorreo"
+      responses:
+        "204":
+          description: "Código enviado (o cuenta inexistente: no se revela)"
+        "429":
+          $ref: "#/components/responses/DemasiadasSolicitudes"
+
+  /api/auth/login:
+    post:
+      tags: [Autenticación]
+      summary: Inicia sesión (RF2)
+      description: |
+        Tras 5 intentos fallidos consecutivos la cuenta se bloquea temporalmente (`CUENTA_BLOQUEADA`).
+        Una cuenta con el correo sin verificar no puede iniciar sesión (`CORREO_NO_VERIFICADO`).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudLogin"
+      responses:
+        "200":
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sesion"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          description: Credenciales incorrectas (`CREDENCIALES_INVALIDAS`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: El correo aún no se ha verificado (`CORREO_NO_VERIFICADO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "423":
+          description: Cuenta bloqueada temporalmente por intentos fallidos (`CUENTA_BLOQUEADA`); `detalles` indica cuándo se desbloquea
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/refrescar:
+    post:
+      tags: [Autenticación]
+      summary: Obtiene un nuevo token de acceso
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudRefrescar"
+      responses:
+        "200":
+          description: Tokens renovados (el de refresco anterior deja de servir)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sesion"
+        "401":
+          description: Token de refresco inválido o vencido (`TOKEN_INVALIDO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/cerrar-sesion:
+    post:
+      tags: [Autenticación]
+      summary: Cierra la sesión e invalida el token de refresco
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudRefrescar"
+      responses:
+        "204":
+          description: Sesión cerrada
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
+  /api/auth/recuperar:
+    post:
+      tags: [Autenticación]
+      summary: Pide un código para restablecer la contraseña (RF16)
+      description: |
+        Siempre responde 204, exista o no la cuenta, para no revelar qué correos están registrados.
+        Usa el mismo mecanismo y los mismos límites que la verificación del correo.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCorreo"
+      responses:
+        "204":
+          description: Si la cuenta existe, se envió un código al correo
+        "429":
+          $ref: "#/components/responses/DemasiadasSolicitudes"
+
+  /api/auth/restablecer:
+    post:
+      tags: [Autenticación]
+      summary: Cambia la contraseña con el código recibido (RF16)
+      description: Cierra todas las sesiones abiertas de la cuenta.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudRestablecer"
+      responses:
+        "204":
+          description: Contraseña actualizada
+        "400":
+          description: Código incorrecto, vencido o con intentos agotados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Contraseña débil (`CONTRASENA_DEBIL`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    DatosInvalidos:
+      description: Faltan campos o tienen formato incorrecto (`DATOS_INVALIDOS`); `detalles` lista cada campo con su problema
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NoAutenticado:
+      description: Falta el token o no es válido (`NO_AUTENTICADO`)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    DemasiadasSolicitudes:
+      description: Se superó el límite de envíos o intentos (`DEMASIADAS_SOLICITUDES`); la cabecera `Retry-After` indica los segundos de espera
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Salud:
+      type: object
+      required: [estado, servicio]
+      properties:
+        estado:
+          type: string
+          example: ok
+        servicio:
+          type: string
+          example: nexo-backend
+
+    Rol:
+      type: string
+      enum: [ESTUDIANTE, TUTOR]
+
+    Modalidad:
+      type: string
+      enum: [PRESENCIAL, VIRTUAL]
+
+    EstadoCuenta:
+      type: string
+      description: |
+        `PENDIENTE_VERIFICACION_CORREO`: falta el código de 6 dígitos.
+        `ACTIVA`: puede iniciar sesión.
+        `SUSPENDIDA`: bloqueada por el administrador (RF12).
+      enum: [PENDIENTE_VERIFICACION_CORREO, ACTIVA, SUSPENDIDA]
+
+    EstadoVerificacionTutor:
+      type: string
+      description: Verificación académica del tutor por el administrador (RF12). Solo aplica a tutores.
+      enum: [PENDIENTE, VERIFICADO, RECHAZADO]
+
+    DatosTutor:
+      type: object
+      required: [materias, modalidades]
+      properties:
+        materias:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          example: [Cálculo I, Programación]
+        modalidades:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Modalidad"
+
+    SolicitudRegistro:
+      type: object
+      required: [nombre, correo, contrasena, rol, documentoIdentidad, aceptaTerminos, versionTerminos]
+      properties:
+        nombre:
+          type: string
+          minLength: 2
+          maxLength: 100
+        correo:
+          type: string
+          format: email
+          maxLength: 254
+        contrasena:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+        rol:
+          $ref: "#/components/schemas/Rol"
+        documentoIdentidad:
+          type: string
+          maxLength: 20
+        aceptaTerminos:
+          type: boolean
+          description: Debe ser `true`; consentimiento de tratamiento de datos (Ley 1581 de 2012)
+        versionTerminos:
+          type: string
+          description: Versión del texto de términos y política de datos que el usuario aceptó
+          example: "2026-10-18"
+        datosTutor:
+          allOf:
+            - $ref: "#/components/schemas/DatosTutor"
+          description: Obligatorio si `rol` es `TUTOR`
+
+    RespuestaRegistro:
+      type: object
+      required: [usuarioId, correo, estadoCuenta]
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        correo:
+          type: string
+          format: email
+        estadoCuenta:
+          $ref: "#/components/schemas/EstadoCuenta"
+        codigoVenceEnSegundos:
+          type: integer
+          example: 900
+
+    SolicitudVerificarCorreo:
+      type: object
+      required: [correo, codigo]
+      properties:
+        correo:
+          type: string
+          format: email
+        codigo:
+          type: string
+          pattern: "^[0-9]{6}$"
+          example: "482913"
+
+    SolicitudCorreo:
+      type: object
+      required: [correo]
+      properties:
+        correo:
+          type: string
+          format: email
+
+    SolicitudLogin:
+      type: object
+      required: [correo, contrasena]
+      properties:
+        correo:
+          type: string
+          format: email
+        contrasena:
+          type: string
+          format: password
+
+    SolicitudRefrescar:
+      type: object
+      required: [tokenRefresco]
+      properties:
+        tokenRefresco:
+          type: string
+
+    SolicitudRestablecer:
+      type: object
+      required: [correo, codigo, nuevaContrasena]
+      properties:
+        correo:
+          type: string
+          format: email
+        codigo:
+          type: string
+          pattern: "^[0-9]{6}$"
+        nuevaContrasena:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+
+    Usuario:
+      type: object
+      required: [id, nombre, correo, rol, estadoCuenta]
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+        correo:
+          type: string
+          format: email
+        rol:
+          $ref: "#/components/schemas/Rol"
+        estadoCuenta:
+          $ref: "#/components/schemas/EstadoCuenta"
+        estadoVerificacionTutor:
+          $ref: "#/components/schemas/EstadoVerificacionTutor"
+
+    Sesion:
+      type: object
+      required: [tokenAcceso, tokenRefresco, expiraEnSegundos, usuario]
+      properties:
+        tokenAcceso:
+          type: string
+        tokenRefresco:
+          type: string
+        expiraEnSegundos:
+          type: integer
+          description: Vigencia del token de acceso
+          example: 900
+        usuario:
+          $ref: "#/components/schemas/Usuario"
+
+    Error:
+      type: object
+      required: [codigo, mensaje]
+      properties:
+        codigo:
+          type: string
+          description: Identificador estable del error, pensado para que la app decida qué mostrar
+          example: CREDENCIALES_INVALIDAS
+        mensaje:
+          type: string
+          description: Texto legible en español
+        detalles:
+          type: array
+          items:
+            type: object
+            required: [campo, problema]
+            properties:
+              campo:
+                type: string
+              problema:
+                type: string
