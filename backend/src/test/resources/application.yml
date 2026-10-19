@@ -3,3 +3,15 @@ spring:
     url: jdbc:h2:mem:nexo;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
     username: sa
     password:
+  jpa:
+    hibernate:
+      # Valida que las entidades coincidan con las migraciones de Flyway
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+nexo:
+  correo:
+    modo: consola
+    verificar-mx: false
