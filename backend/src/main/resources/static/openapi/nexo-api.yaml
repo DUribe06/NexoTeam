@@ -157,7 +157,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "403":
-          description: El correo aún no se ha verificado (`CORREO_NO_VERIFICADO`)
+          description: "El correo aún no se ha verificado (`CORREO_NO_VERIFICADO`) o la cuenta está suspendida (`CUENTA_SUSPENDIDA`)"
           content:
             application/json:
               schema:

@@ -10,13 +10,21 @@ public class ErrorNegocio extends RuntimeException {
     private final HttpStatus estado;
     private final String codigo;
     private final List<ErrorApi.Detalle> detalles;
+    /** Si no es null, se envía en la cabecera Retry-After (segundos). */
+    private final Integer reintentarEnSegundos;
 
     public ErrorNegocio(HttpStatus estado, String codigo, String mensaje) {
         this(estado, codigo, mensaje, List.of());
     }
 
     public ErrorNegocio(HttpStatus estado, String codigo, String mensaje, List<ErrorApi.Detalle> detalles) {
+        this(estado, codigo, mensaje, detalles, null);
+    }
+
+    public ErrorNegocio(HttpStatus estado, String codigo, String mensaje, List<ErrorApi.Detalle> detalles,
+                        Integer reintentarEnSegundos) {
         super(mensaje);
+        this.reintentarEnSegundos = reintentarEnSegundos;
         this.estado = estado;
         this.codigo = codigo;
         this.detalles = detalles;
@@ -30,4 +38,5 @@ public class ErrorNegocio extends RuntimeException {
     public HttpStatus getEstado() { return estado; }
     public String getCodigo() { return codigo; }
     public List<ErrorApi.Detalle> getDetalles() { return detalles; }
+    public Integer getReintentarEnSegundos() { return reintentarEnSegundos; }
 }
