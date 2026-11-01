@@ -79,6 +79,57 @@ fun CabeceraBosque(
     }
 }
 
+/**
+ * Cabecera baja de las pantallas secundarias: la foto del Inicio bajo el velo, el título en blanco
+ * y la misma onda que corta la foto. Con `alVolver` lleva la flecha a la izquierda.
+ */
+@Composable
+fun CabeceraSeccion(
+    titulo: String,
+    modifier: Modifier = Modifier,
+    subtitulo: String? = null,
+    alVolver: (() -> Unit)? = null,
+    acciones: @Composable RowScope.() -> Unit = {}
+) {
+    Box(modifier) {
+        CabeceraBosque(conFoto = true, alturaOnda = 24.dp) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = if (alVolver != null) 8.dp else 20.dp, end = 12.dp, top = 14.dp, bottom = 4.dp)
+            ) {
+                if (alVolver != null) {
+                    BotonIcono(Icons.AutoMirrored.Rounded.ArrowBack, "Volver", alVolver, sobreOscuro = true)
+                    Spacer(Modifier.width(4.dp))
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        titulo,
+                        color = Color.White,
+                        style = MaterialTheme.typography.headlineMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.semantics { heading() }
+                    )
+                    if (subtitulo != null) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(subtitulo, color = Color.White.copy(alpha = 0.88f), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                acciones()
+            }
+        }
+        Onda(
+            Fondo,
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(32.dp)
+        )
+    }
+}
+
 /** Título de las pestañas principales: grande, como "Enlace directo", con subtítulo en salvia. */
 @Composable
 fun TituloPantalla(

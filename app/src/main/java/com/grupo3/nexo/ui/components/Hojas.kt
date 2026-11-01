@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.ui.theme.Bosque
+import com.grupo3.nexo.ui.theme.FormaControl
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Menta
 import com.grupo3.nexo.ui.theme.Rojo

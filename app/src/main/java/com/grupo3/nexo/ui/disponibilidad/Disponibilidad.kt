@@ -48,11 +48,12 @@ import com.grupo3.nexo.domain.model.HoraDisponible
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.usecase.DefinirHoraUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerDisponibilidadUseCase
-import com.grupo3.nexo.ui.components.BarraSuperior
+import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.descripcion
 import com.grupo3.nexo.ui.components.icono
+import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.theme.Bosque
@@ -116,7 +117,7 @@ fun PantallaDisponibilidad(
     val diasActivos = dias.count { d -> d.horas.any { it.seleccionada } }
 
     Column(Modifier.fillMaxSize()) {
-        BarraSuperior("Mi disponibilidad", alVolver)
+        CabeceraSeccion("Mi disponibilidad", alVolver = alVolver)
 
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -223,27 +224,34 @@ fun PantallaDisponibilidad(
 private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
     val activa = hora.seleccionada
     val colorTexto by animateColorAsState(if (activa) Color.White else BosqueMedio.copy(alpha = 0.8f), label = "textoHora")
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = Modifier
-            .height(40.dp)
+            .areaTactilSinCambiarMedida()
+            .height(48.dp)
             .pulsable(rol = Role.Button, etiqueta = "Editar ${hora.hora}", alClicar = alClicar)
-            .then(
-                if (activa) Modifier.background(BosqueMedio, RoundedCornerShape(8.dp))
-                else Modifier
-                    .background(Color.White, RoundedCornerShape(8.dp))
-                    .border(1.dp, Bosque.copy(alpha = 0.16f), RoundedCornerShape(8.dp))
-            )
-            .semantics(mergeDescendants = true) {
-                contentDescription = "${hora.hora}, ${if (activa) hora.modalidades.descripcion() else "no disponible"}"
-            }
-            .padding(start = 14.dp, end = if (activa) 10.dp else 14.dp)
     ) {
-        Text(hora.hora, color = colorTexto, style = MaterialTheme.typography.titleSmall.merge(CifrasTabulares))
-        if (activa) {
-            Spacer(Modifier.width(6.dp))
-            Modalidad.entries.filter { it in hora.modalidades }.forEach {
-                Icon(it.icono, contentDescription = null, tint = Menta, modifier = Modifier.size(15.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .height(40.dp)
+                .then(
+                    if (activa) Modifier.background(BosqueMedio, RoundedCornerShape(8.dp))
+                    else Modifier
+                        .background(Color.White, RoundedCornerShape(8.dp))
+                        .border(1.dp, Bosque.copy(alpha = 0.16f), RoundedCornerShape(8.dp))
+                )
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "${hora.hora}, ${if (activa) hora.modalidades.descripcion() else "no disponible"}"
+                }
+                .padding(start = 14.dp, end = if (activa) 10.dp else 14.dp)
+        ) {
+            Text(hora.hora, color = colorTexto, style = MaterialTheme.typography.titleSmall.merge(CifrasTabulares))
+            if (activa) {
+                Spacer(Modifier.width(6.dp))
+                Modalidad.entries.filter { it in hora.modalidades }.forEach {
+                    Icon(it.icono, contentDescription = null, tint = Menta, modifier = Modifier.size(15.dp))
+                }
             }
         }
     }

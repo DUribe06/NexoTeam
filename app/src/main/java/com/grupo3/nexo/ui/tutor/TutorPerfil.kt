@@ -90,6 +90,7 @@ import com.grupo3.nexo.ui.components.RotuloGrupo
 import com.grupo3.nexo.ui.components.TextoLinea
 import com.grupo3.nexo.ui.components.VeloBarraEstado
 import com.grupo3.nexo.ui.components.aparicion
+import com.grupo3.nexo.ui.components.PLAZO_RESPUESTA
 import com.grupo3.nexo.ui.components.formatoPrecio
 import com.grupo3.nexo.ui.components.formatoValoracion
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
@@ -175,7 +176,7 @@ class TutorPerfilViewModel @Inject constructor(
         val t = estado.value.tutor ?: return
         viewModelScope.launch {
             enviarSolicitud(t.id, t.nombre, datos.materia, datos.tema, datos.fecha, datos.hora, datos.modalidad, datos.mensaje)
-            aviso.value = "Solicitud enviada. ${t.nombre.substringBefore(' ')} tiene 24 h para responder."
+            aviso.value = "Solicitud enviada. ${t.nombre.substringBefore(' ')} tiene $PLAZO_RESPUESTA para responder."
         }
     }
 
@@ -701,7 +702,7 @@ private fun HojaSolicitud(
             modifier = Modifier.fillMaxWidth()
         )
         Text(
-            "${tutor.nombre.substringBefore(' ')} tiene 24 horas para aceptar o rechazar. Si acepta, se habilita el chat.",
+            "${tutor.nombre.substringBefore(' ')} tiene $PLAZO_RESPUESTA para aceptar o rechazar. Si acepta, se habilita el chat.",
             color = TextoTercero,
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,

@@ -37,6 +37,22 @@ class ObtenerProximasSesionesUseCase @Inject constructor(
     }
 }
 
+/**
+ * Sesión a la que se refiere una conversación (RF8, RF9): la próxima agendada con esa persona; si la
+ * conversación ya terminó, la última sesión que ocurrió, aunque haya otra futura.
+ */
+class ObtenerSesionDeConversacionUseCase @Inject constructor() {
+    operator fun invoke(sesiones: List<Sesion>, contraparteId: String, soloLectura: Boolean): Sesion? {
+        val delChat = sesiones.filter { it.contraparteId == contraparteId }
+        fun masReciente(lista: List<Sesion>) = lista.maxByOrNull { claveFecha(it.fecha, it.hora) }
+        return if (soloLectura) {
+            masReciente(delChat.filterNot { it.proxima })
+        } else {
+            delChat.filter { it.proxima }.minByOrNull { claveFecha(it.fecha, it.hora) } ?: masReciente(delChat)
+        }
+    }
+}
+
 /** Historial del modo actual: sesiones que ya ocurrieron o se cancelaron (RF10). */
 class ObtenerHistorialUseCase @Inject constructor(
     private val delModo: ObtenerSesionesDelModoUseCase

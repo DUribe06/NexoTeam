@@ -15,7 +15,6 @@ import com.grupo3.nexo.domain.model.EstadoSesion.COMPLETADA
 import com.grupo3.nexo.domain.model.EstadoSesion.NO_ASISTIO
 import com.grupo3.nexo.domain.model.EstadoSesion.PROGRAMADA
 import com.grupo3.nexo.domain.model.EstadoSolicitud
-import com.grupo3.nexo.domain.model.EstadoVerificacion
 import com.grupo3.nexo.domain.model.FranjaTutor
 import com.grupo3.nexo.domain.model.HoraDisponible
 import com.grupo3.nexo.domain.model.Mensaje
@@ -51,8 +50,7 @@ object MockData {
         rol = Rol.ESTUDIANTE,
         universidad = UIS,
         carrera = "Ingeniería de Sistemas",
-        // Diego también enseña: su cuenta de tutor ya fue validada (RF12)
-        verificacion = EstadoVerificacion.VERIFICADO,
+        // Diego también enseña: su perfil de tutor se muestra con bio y materias
         bio = "Estudiante de sistemas de sexto semestre. Explico cálculo y programación con ejercicios cortos y mucha práctica.",
         materias = listOf("Cálculo I", "Programación")
     )
@@ -213,7 +211,10 @@ object MockData {
         Chat("t5", "Pablo Sánchez", "Mi portafolio va avanzando 🎉", "7 oct", 0, true, 0xFF2E4A62, 0xFF6585A0, soloLectura = true),
         // Conversaciones con estudiantes, en modo tutor
         Chat("e4", "Andrea Prado", "Gracias, nos vemos por Meet.", "9:12", 1, true, 0xFF5B4A8A, 0xFF8E7FC0, comoTutor = true),
-        Chat("e6", "Renzo Cruz", "¡Gracias por la sesión!", "14 oct", 0, false, 0xFF7A4B2A, 0xFFB98256, soloLectura = true, comoTutor = true)
+        Chat("e6", "Renzo Cruz", "¡Gracias por la sesión!", "14 oct", 0, false, 0xFF7A4B2A, 0xFFB98256, soloLectura = true, comoTutor = true),
+        // Sesiones terminadas sin calificar: desde aquí se puede calificar a la otra parte (RF9)
+        Chat("e2", "Jorge Luna", "Ya entendí la recursión, gracias.", "25 sept", 0, false, 0xFF4A6B2F, 0xFF86A866, soloLectura = true, comoTutor = true),
+        Chat("t4", "María López", "Gracias por la clase, ¡nos vemos!", "30 sept", 0, false, 0xFF8C3B2E, 0xFFC7714F, soloLectura = true)
     )
 
     val mensajes = listOf(
@@ -231,7 +232,9 @@ object MockData {
         Mensaje("m12", "e4", "Hola Diego, acepté la hora del lunes. ¿Usamos Meet?", "9:05", false),
         Mensaje("m13", "e4", "Sí, te envío el enlace un rato antes.", "9:10", true),
         Mensaje("m14", "e4", "Gracias, nos vemos por Meet.", "9:12", false),
-        Mensaje("m15", "e6", "¡Gracias por la sesión!", "14 oct", false)
+        Mensaje("m15", "e6", "¡Gracias por la sesión!", "14 oct", false),
+        Mensaje("m16", "e2", "Ya entendí la recursión, gracias.", "25 sept", false),
+        Mensaje("m17", "t4", "Gracias por la clase, ¡nos vemos!", "30 sept", true)
     )
 
     /** Sesiones de Diego en sus dos modos: futuras (PROGRAMADA) y pasadas (historial, RF10). */

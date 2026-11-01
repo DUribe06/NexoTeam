@@ -1,6 +1,5 @@
 package com.grupo3.nexo.ui.inicio
 
-import android.provider.Settings
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -12,10 +11,10 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,27 +22,33 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.PathOperation
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -51,102 +56,79 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.compose.ui.unit.sp
 import com.grupo3.nexo.R
 import com.grupo3.nexo.ui.theme.BosqueProfundo
+import com.grupo3.nexo.ui.theme.EtiquetaMiga
+import com.grupo3.nexo.ui.theme.LogoAzulPower
+import com.grupo3.nexo.ui.theme.LogoMiga
+import com.grupo3.nexo.ui.theme.LogoMigaSombra
+import com.grupo3.nexo.ui.theme.TextoMigaClaro
+import com.grupo3.nexo.ui.theme.TituloLogo
+import com.grupo3.nexo.ui.theme.leerAnimacionesReducidas
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.math.PI
-import kotlin.math.asin
+import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.floor
+import kotlin.math.hypot
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.pow
+import kotlin.math.roundToInt
 import kotlin.math.sin
-import kotlin.math.sqrt
 import kotlin.random.Random
 
 /*
- * "El logo se come el nombre": al tocar el logo de la cabecera, la insignia se abre como Pac-Man, da un
- * mordisco al aire, las letras de "Nexo" se ponen azules y tiemblan, y se las come una a una a mordiscos
- * (tres bocados a la N y a la o, dos a la e y la x). Las migas caen sobre el saludo y resbalan por sus
- * letras. Luego sale por la derecha y reaparece por la izquierda. Al tocarlo otra vez, escupe las letras.
+ * "El logo se come un poder": al tocar el logo de la cabecera aparece un poder entre la insignia y el
+ * nombre. La insignia se lo come con la boca en cuña, las letras se ponen azules, les sale la falda de
+ * fantasma y huyen en línea recta. El logo se come la N y la e (sus fantasmas pálidos vuelven a casa y se
+ * rearman). Al acabarse el poder la x y la o parpadean, se dan la vuelta y lo persiguen: el logo huye a su
+ * sitio y se sacude del susto. El nombre vuelve completo por sí solo.
  *
- * Todo se calcula con una sola línea de tiempo (como la maqueta en GSAP): cada propiedad es una "pista"
- * con tramos, y un único reloj recorre la línea; las lecturas ocurren en las fases de dibujo, así que
- * la animación no recompone la pantalla en cada cuadro.
+ * La escena se calcula entera al tocar, como una tabla de cuadros a 120 por segundo (posiciones en píxeles
+ * ya medidas sobre la cabecera real). Un único reloj recorre la tabla y las lecturas ocurren en las fases
+ * de dibujo, así que la animación no recompone la pantalla en cada cuadro.
  */
 
 /* ==================== Curvas ==================== */
 
-internal typealias Curva = (Float) -> Float
+private fun salidaCubica(u: Float) = 1 - (1 - u).pow(3)
+private fun entradaSalidaCubica(u: Float) = if (u < .5f) 4 * u * u * u else 1 - (-2 * u + 2).pow(3) / 2
+private fun retroceso(u: Float): Float { val s = 1.7f; val v = u - 1; return 1 + (s + 1) * v * v * v + s * v * v }
+private fun temblor(t: Float, i: Int, f: Float) = sin(t * f + i * 7.3f) * cos(t * f * .61f + i * 2.1f)
 
-private val lineal: Curva = { it }
-private val p1In: Curva = { it * it }
-private val p2In: Curva = { it * it * it }
-private val p2Out: Curva = { 1 - (1 - it).pow(3) }
-private val p3Out: Curva = { 1 - (1 - it).pow(4) }
-private val p4In: Curva = { it.pow(5) }
-private val senoInOut: Curva = { -(cos(PI.toFloat() * it) - 1) / 2 }
-private fun backOut(s: Float = 1.7f): Curva = { t -> val u = t - 1; 1 + (s + 1) * u * u * u + s * u * u }
-private fun elasticOut(a: Float = 1f, p: Float = .4f): Curva = { t ->
-    if (t == 0f || t == 1f) t else {
-        val s = p / (2 * PI.toFloat()) * asin(1 / a)
-        a * 2f.pow(-10 * t) * sin((t - s) * 2 * PI.toFloat() / p) + 1
-    }
-}
+/* ==================== Datos de la escena ==================== */
 
-/* ==================== Motor de pistas ==================== */
-
-internal class Tramo(val t0: Float, val dur: Float, val desde: Float, val hasta: Float, val curva: Curva)
-
-internal class Pista(private val base: Float) {
-    private val tramos = mutableListOf<Tramo>()
-    fun valor(t: Float): Float {
-        var v = base
-        for (s in tramos) {
-            if (t < s.t0) break
-            val p = if (s.dur <= 0f) 1f else ((t - s.t0) / s.dur).coerceIn(0f, 1f)
-            v = s.desde + (s.hasta - s.desde) * s.curva(p)
-        }
-        return v
-    }
-    fun a(t0: Float, dur: Float, hasta: Float, curva: Curva = p2Out): Pista {
-        tramos += Tramo(t0, dur, valor(t0), hasta, curva); tramos.sortBy { it.t0 }; return this
-    }
-    fun mas(t0: Float, dur: Float, delta: Float, curva: Curva = p2Out) = a(t0, dur, valor(t0) + delta, curva)
-    fun fija(t0: Float, v: Float) = a(t0, 0f, v, lineal)
-    fun ida(t0: Float, dur: Float, hasta: Float, curva: Curva = senoInOut): Pista {
-        val v0 = valor(t0); a(t0, dur, hasta, curva); return a(t0 + dur, dur, v0, curva)
-    }
-}
-
-internal class Letra {
-    val x = Pista(0f); val y = Pista(0f); val giro = Pista(0f); val ex = Pista(1f); val ey = Pista(1f)
-    val esc = Pista(1f); val alfa = Pista(1f); val azul = Pista(0f)
-    val mordida = Array(3) { Pista(0f) }
-    var vuelo: Vuelo? = null
-}
-
-/** Trayecto curvo de una letra al ser escupida (de la boca a su sitio). */
-internal class Vuelo(val t0: Float, val dur: Float, val desde: Offset, val control: Offset, val curva: Curva)
-
-internal class Miga(val t0: Float, val tam: Float, val puntos: FloatArray, val giro: Float, val galleta: Boolean = true)
+internal class Miga(val t0: Float, val tam: Float, val puntos: FloatArray, val giro: Float)
 internal class Pop(val t0: Float, val texto: String, val x: Float, val y: Float)
 
-internal class Linea {
-    val logoX = Pista(0f); val logoY = Pista(0f); val logoEx = Pista(1f); val logoEy = Pista(1f)
-    val logoEsc = Pista(1f); val logoGiro = Pista(0f); val sacudon = Pista(0f); val abre = Pista(0f)
-    val letras = List(4) { Letra() }
+private const val PASO = 1f / 120f
+
+/* Disposición de cada cuadro de la tabla */
+private const val LOGO = 0        // x, y (centro, en píxeles de pantalla), giro, escala X (con el signo del lado), escala Y, boca
+private const val LETRAS = 6      // 4 letras × (x, y, giro, escala, opacidad, azul, falda)
+private const val POR_LETRA = 7
+private const val PODER = 34      // x, y, escala
+private const val ANCHO_CUADRO = 37
+
+/** Escena calculada: la tabla de cuadros más lo que se ve fuera de las letras y la insignia. */
+internal class Linea(val cuadros: Int, val datos: FloatArray) {
+    val final: Float get() = cuadros * PASO
+    var anilloT = -1f
     @Volatile var migas: List<Miga> = emptyList()
     /** Migas por simular: se calculan en segundo plano para no frenar el primer cuadro. */
     val porSimular = mutableListOf<() -> Miga>()
     val pops = mutableListOf<Pop>()
-    var chompIni = -1f; var chompFin = -1f; var chompPer = .13f
-    /** Instantes de cada bocado: ahí cierra la mandíbula y vibra el teléfono. */
+    /** Instantes de cada bocado: ahí vibra el teléfono. */
     val golpes = mutableListOf<Float>()
-    var final = 1f
+    fun base(t: Float) = (t / PASO).toInt().coerceIn(0, cuadros - 1) * ANCHO_CUADRO
 }
 
 /* ==================== Geometría ==================== */
@@ -155,12 +137,13 @@ internal class Linea {
 class GeometriaComelon {
     internal var cabecera = Offset.Zero
     internal var altoCabecera = 0f
+    internal var anchoPantalla = 0f
     internal var logo = Rect.Zero
     internal val letras = Array(4) { Rect.Zero }
     internal val saludo = mutableListOf<Pair<Offset, TextLayoutResult>>()
     internal fun rel(c: LayoutCoordinates): Rect {
         val p = c.positionInRoot()
-        return Rect(p, androidx.compose.ui.geometry.Size(c.size.width.toFloat(), c.size.height.toFloat()))
+        return Rect(p, Size(c.size.width.toFloat(), c.size.height.toFloat()))
     }
 }
 
@@ -169,8 +152,9 @@ class EstadoComelon internal constructor() {
     internal val geo = GeometriaComelon()
     internal val reloj = Animatable(0f)
     internal var linea by mutableStateOf<Linea?>(null)
-    internal var oculto by mutableStateOf(false)
     internal var animando by mutableStateOf(false)
+    /** Se marca al tocar, antes de que arranque el reloj, para ignorar un segundo toque. */
+    internal var enCurso = false
     internal val ahora: Float get() = reloj.value
 }
 
@@ -190,10 +174,172 @@ fun saludoComelon(e: EstadoComelon, indice: Int): Pair<Modifier, (TextLayoutResu
     return Modifier.onGloballyPositioned { posicion = it.positionInRoot(); guarda() } to { l: TextLayoutResult -> layout = l; guarda() }
 }
 
-/* ==================== Construcción de la coreografía ==================== */
+/* ==================== Simulación de la escena ==================== */
 
-private val PUNTOS = listOf("200", "400", "800", "1600")
-private val BOCADOS = intArrayOf(3, 2, 2, 3)   // N y o con tres bocados; e y x con dos
+private val PUNTOS = listOf("200", "400")
+
+private enum class Modo { N, M, B, CAZA, ECO, REARMA }   // reposo, huye azul, parpadea, persigue, fantasma que vuelve, se rearma
+private enum class Fase { INICIO, CAZA, AVISO, HUIDA, FIN }
+
+private class SimLetra(val i: Int, val hx: Float, val hy: Float, val w: Float, val h: Float) {
+    var x = hx; var y = hy; var giro = 0f; var esc = 1f; var alfa = 1f
+    var modo = Modo.N
+    var comida = -9f; var ox = 0f; var oy = 0f; var dur = -1f; var rearma = 0f; var susto = 0f
+}
+
+private class Golpe(val t: Float, val x: Float, val y: Float, val w: Float, val h: Float)
+
+/**
+ * La escena en unidades de dp (1 dp = 1 unidad) y a 120 cuadros por segundo. Cada paso mueve a todos
+ * los personajes un instante; al final de cada paso se escribe el cuadro en píxeles.
+ */
+private class Sim(val geo: GeometriaComelon, val d: Float) {
+    val casa = geo.logo.center.x / d
+    val cy = geo.logo.center.y / d
+    val letras = List(4) { i -> val r = geo.letras[i]; SimLetra(i, r.center.x / d, r.center.y / d, r.width / d, r.height / d) }
+    /** Hasta dónde huyen: se detienen antes de la campana de la cabecera. */
+    val limite = geo.anchoPantalla / d - 125f
+
+    var lx = casa; var ly = cy; var lf = 1f; var lgiro = 0f; var lp = 0f; var lph = 0f; var lesc = 1f
+    var mueve = false; var bocado = -9f; var sacude = -9f
+    var poderEscala = 0f; var anillo = -1f; var pausa = -9f
+    var fase = Fase.INICIO; var aviso = 0f; var fin = 0f; var hecho = false
+    val comidas = mutableListOf<Golpe>()
+    val golpes = mutableListOf<Float>()
+
+    fun xMax(i: Int) = max(limite - (3 - i) * 24f, letras[i].hx + 24f)
+
+    fun paso(t: Float) {
+        if (t < .44f) preludio(t)
+        if (t >= .44f && fase == Fase.INICIO) fase = Fase.CAZA
+        for (l in letras) {
+            if ((l.modo == Modo.M || l.modo == Modo.B) && fase != Fase.INICIO) huir(l, t, .44f + (3 - l.i) * .04f, 105f, xMax(l.i))
+        }
+        if (fase == Fase.CAZA && t >= .55f && !enPausa(t)) {
+            val obj = letras.firstOrNull { it.modo == Modo.M }
+            if (obj != null && obj.i < 2) {
+                if (mueveLogo(obj.x - 13f, obj.y, 165f) || hypot(lx - obj.x, ly - obj.y) < 15f) come(obj, t)
+            } else { fase = Fase.AVISO; aviso = t }
+        }
+        if (fase == Fase.AVISO) {
+            // Se acaba el poder: el logo se frena y las dos letras que quedan parpadean
+            val x = letras[2]
+            if (hypot(lx - (x.x - 34f), ly - x.y) > 2f) mueveLogo(x.x - 34f, cy, 55f) else mueve = false
+            for (l in letras) if (l.i >= 2) l.modo = Modo.B
+            if (t - aviso > .55f) { fase = Fase.HUIDA; for (l in letras) if (l.i >= 2) l.modo = Modo.CAZA }
+        }
+        if (fase == Fase.HUIDA) {
+            for (l in letras) {
+                if (l.modo != Modo.CAZA) continue
+                l.giro = 3 * sin(t * 9 + l.i)
+                val dx = max(l.hx, lx + 30f) - l.x
+                l.x += dx.coerceIn(-200f * PASO, 200f * PASO)
+                l.y += (l.hy - l.y) * min(1f, PASO * 6)
+                if (lx <= casa + .5f && abs(l.x - l.hx) < .6f) { l.x = l.hx; l.y = l.hy; l.giro = 0f; l.modo = Modo.N }
+            }
+            if (lx > casa + .3f) mueveLogo(casa, cy, 230f)
+            else if (sacude < 0) { lx = casa; lf = 1f; mueve = false; sacude = t; bocado = t }
+            if (letras.all { it.modo == Modo.N } && sacude > 0) { fase = Fase.FIN; fin = t }
+        }
+        animaFantasmas(t)
+        if (sacude > 0) {
+            val e = t - sacude
+            lgiro = if (e < .45f) 11 * sin(e * 45) * (1 - e / .45f) else 0f
+        }
+        if (fase == Fase.FIN && t - fin > .3f) hecho = true
+        if (fase != Fase.HUIDA || sacude < 0) mastica() else lp = max(0f, lp - PASO * 7)
+    }
+
+    /** Aparece el poder entre el logo y la N, el logo se lo come y las letras se asustan. */
+    fun preludio(t: Float) {
+        poderEscala = if (t < .21f) retroceso((t / .09f).coerceIn(0f, 1f)) * (1 + .12f * sin(t * 34)) else 0f
+        if (t >= .06f && t < .21f) { lx = casa + 6f * entradaSalidaCubica((t - .06f) / .15f); mueve = true }
+        else if (t >= .21f && anillo < 0) { anillo = .21f; bocado = .21f; mueve = false; golpes += .21f }
+        lesc = if (t >= .21f && t < .41f) 1 + .14f * sin(PI.toFloat() * (t - .21f) / .20f) else 1f
+        for (l in letras) {
+            if (t >= .24f + l.i * .03f && l.modo == Modo.N) { l.modo = Modo.M; l.susto = t }
+            if (l.modo == Modo.M && t < .44f) {
+                l.x = l.hx + 4f * salidaCubica(((t - l.susto) / .09f).coerceIn(0f, 1f)) + 1.2f * temblor(t, l.i, 70f)
+                l.giro = 6f * temblor(t, l.i, 55f)
+            }
+        }
+    }
+
+    /** Huye en línea recta (con apenas un vaivén) hasta su tope. */
+    fun huir(l: SimLetra, t: Float, t0: Float, vx: Float, xmax: Float) {
+        if (t < t0) return
+        val dt0 = t - t0
+        if (l.x < xmax) l.x = min(xmax, l.x + vx * PASO * (dt0 / .12f).coerceIn(0f, 1f))
+        l.y = l.hy + 1.8f * sin(2 * PI.toFloat() * 1.4f * dt0 + l.i * 1.3f)
+        l.giro = if (l.x >= xmax) 7f * temblor(t, l.i, 60f) else 4f * sin(t * 7 + l.i)
+        if (l.x >= xmax) l.x = xmax + temblor(t, l.i, 80f)
+    }
+
+    fun enPausa(t: Float): Boolean { if (t < pausa) { mueve = false; return true }; return false }
+
+    fun mueveLogo(tx: Float, ty: Float, vel: Float): Boolean {
+        val dx = tx - lx; val dy = ty - ly; val dist = hypot(dx, dy)
+        if (dist < .01f) { mueve = false; return true }
+        val paso = min(dist, vel * PASO)
+        lx += dx / dist * paso; ly += dy / dist * paso; mueve = true
+        if (abs(dx) > .5f) lf = if (dx >= 0) 1f else -1f
+        val ang = (atan2(dy, abs(dx)) * 180f / PI.toFloat() * lf).coerceIn(-40f, 40f)
+        lgiro += (ang - lgiro) * min(1f, PASO * 14)
+        return dist <= paso + .01f
+    }
+
+    /** Abre y cierra la boca mientras camina; quieto, la cierra. */
+    fun mastica() {
+        if (mueve) { lph += PASO * 2 * PI.toFloat() * 4.6f; lp = .5f - .5f * cos(lph) }
+        else { lp = max(0f, lp - PASO * 7); if (lp == 0f) lph = 0f }
+        if (!mueve && fase != Fase.INICIO) lgiro += (0f - lgiro) * min(1f, PASO * 10)
+    }
+
+    /** El logo se come la letra: queda su fantasma, que vuelve a casa. */
+    fun come(l: SimLetra, t: Float) {
+        l.modo = Modo.ECO; l.comida = t; l.ox = l.x; l.oy = l.y
+        comidas += Golpe(t, l.x * d, l.y * d, l.w * d, l.h * d)
+        golpes += t; bocado = t; pausa = t + .12f
+    }
+
+    /** El fantasma pálido y pequeño vuelve flotando a su sitio y ahí se rearma. */
+    fun animaFantasmas(t: Float) {
+        for (l in letras) {
+            val e = t - l.comida
+            if (l.modo == Modo.ECO) {
+                if (e < .12f) { l.alfa = 1f; l.esc = 1f; continue }
+                if (l.dur < 0) l.dur = max(.25f, hypot(l.ox - l.hx, l.oy - l.hy) / 250f)
+                val u = ((e - .12f) / l.dur).coerceIn(0f, 1f)
+                l.x = l.ox + (l.hx - l.ox) * entradaSalidaCubica(u)
+                l.y = l.oy + (l.hy - l.oy) * u - 12f * sin(PI.toFloat() * u)
+                l.giro = 0f; l.alfa = .42f; l.esc = .78f
+                if (u >= 1f) { l.modo = Modo.REARMA; l.rearma = t; l.dur = -1f }
+            }
+            if (l.modo == Modo.REARMA) {
+                val r = ((t - l.rearma) / .32f).coerceIn(0f, 1f)
+                l.esc = .78f + .22f * retroceso(r); l.alfa = .42f + .58f * r; l.x = l.hx; l.y = l.hy
+                if (r >= 1f) { l.modo = Modo.N; l.esc = 1f; l.alfa = 1f }
+            }
+        }
+    }
+
+    /** Escribe el cuadro `n` (instante `t`) en la tabla, ya en píxeles. */
+    fun escribe(datos: FloatArray, n: Int, t: Float) {
+        val b = n * ANCHO_CUADRO
+        val e = t - bocado
+        val k = if (e >= 0f && e < .14f) sin(PI.toFloat() * e / .14f) else 0f
+        datos[b + LOGO] = lx * d; datos[b + LOGO + 1] = ly * d; datos[b + LOGO + 2] = lgiro
+        datos[b + LOGO + 3] = lf * lesc * (1 + .06f * k); datos[b + LOGO + 4] = lesc * (1 - .08f * k); datos[b + LOGO + 5] = lp
+        for (l in letras) {
+            val o = b + LETRAS + l.i * POR_LETRA
+            val azul = when (l.modo) { Modo.M -> 1f; Modo.B -> if (floor(t * 8).toInt() % 2 == 1) 0f else 1f; else -> 0f }
+            val falda = if (l.modo == Modo.M || l.modo == Modo.B || l.modo == Modo.CAZA || l.modo == Modo.ECO) 1f else 0f
+            datos[o] = l.x * d; datos[o + 1] = l.y * d; datos[o + 2] = l.giro; datos[o + 3] = l.esc; datos[o + 4] = l.alfa
+            datos[o + 5] = azul; datos[o + 6] = falda
+        }
+        datos[b + PODER] = (casa + 23f) * d; datos[b + PODER + 1] = cy * d; datos[b + PODER + 2] = poderEscala
+    }
+}
 
 private fun simulaMiga(x0: Float, y0: Float, vx0: Float, vy0: Float, sup: List<FloatArray>, piso: Float, d: Float): FloatArray {
     // sup: [izq, der, y] por letra del saludo. Unidades en px; g y velocidades escaladas por densidad.
@@ -207,7 +353,7 @@ private fun simulaMiga(x0: Float, y0: Float, vx0: Float, vy0: Float, sup: List<F
                 if (vy > 0) for (q in sup) if (nx >= q[0] && nx <= q[1] && y <= q[2] && ny >= q[2]) if (hit == null || q[2] < hit[2]) hit = q
                 if (hit != null) {
                     y = hit[2]; x = nx
-                    if (vy > 160 * d) vy = -vy * .22f else { estado = 1; s = hit; vx = (if (vx >= 0) 1 else -1) * maxOf(kotlin.math.abs(vx) * .6f, 40f * d); vy = 0f }
+                    if (vy > 160 * d) vy = -vy * .22f else { estado = 1; s = hit; vx = (if (vx >= 0) 1 else -1) * maxOf(abs(vx) * .6f, 40f * d); vy = 0f }
                 } else if (ny >= piso) { y = piso; x = nx; if (vy > 160 * d) vy = -vy * .25f else estado = 2 }
                 else { x = nx; y = ny }
             }
@@ -233,178 +379,165 @@ private fun superficies(geo: GeometriaComelon): List<FloatArray> {
     return out
 }
 
-private fun construirComer(geo: GeometriaComelon, d: Float, rnd: Random): Linea {
-    val ln = Linea()
-    val ci = geo.logo.center
-    val c0 = geo.letras[0].center
+private fun construirEscena(geo: GeometriaComelon, d: Float, rnd: Random): Linea {
+    val sim = Sim(geo, d)
+    val maximo = 120 * 7
+    val datos = FloatArray(maximo * ANCHO_CUADRO)
+    var n = 0
+    while (n < maximo && !sim.hecho) {
+        val t = n * PASO
+        sim.paso(t)
+        sim.escribe(datos, n, t)
+        n++
+    }
+    val ln = Linea(n, datos.copyOf(n * ANCHO_CUADRO))
+    ln.anilloT = sim.anillo
+    ln.golpes += sim.golpes.sorted()
+
     val sup = superficies(geo)
     val piso = geo.cabecera.y + geo.altoCabecera - 36 * d
     fun r(a: Float, b: Float) = a + rnd.nextFloat() * (b - a)
-    fun paso(t: Float, x: Float, dur: Float, curva: Curva = senoInOut) { ln.logoX.a(t, dur, x, curva); ln.logoY.ida(t, dur / 2, -3 * d) }
-    fun migas(letra: Rect, t: Float, n: Int) = repeat(n) {
-        val tam = r(2f, 3.4f) * d
-        val x0 = letra.center.x - 12 * d + r(-3f, 3f) * d; val y0 = letra.center.y + r(-3f, 3f) * d
-        val vx = r(-45f, 35f) * d; val vy = r(-70f, -20f) * d; val giro = r(0f, 90f)
-        ln.porSimular += { Miga(t, tam, simulaMiga(x0, y0, vx, vy, sup, piso - tam, d), giro) }
-    }
-    fun miedo(le: Letra, t0: Float, dur: Float) { var t = t0; while (t < t0 + dur) { le.x.a(t, .04f, r(-1.4f, 1.4f) * d + 2 * d, lineal); le.y.a(t, .04f, r(-1f, 1f) * d, lineal); le.giro.a(t, .04f, r(-6f, 6f) + 5, lineal); t += .04f }
-        le.x.a(t, .1f, 0f); le.y.a(t, .1f, 0f); le.giro.a(t, .1f, 0f) }
-
-    // Anticipación y mordisco al aire
-    ln.logoX.a(0f, .12f, -5 * d, p2In); ln.logoEx.a(0f, .12f, .88f, p2In).a(.12f, .1f, 1f)
-    paso(.2f, c0.x - ci.x - 34 * d, .18f)
-    ln.logoEsc.ida(.38f, .08f, 1.12f, p2Out)
-    for (k in 0 until 4) ln.sacudon.a(.38f + k * .03f, .03f, if (k % 2 == 0) 2 * d else 0f, senoInOut)
-    ln.letras.forEachIndexed { i, le -> le.azul.a(.42f + i * .03f, .08f, 1f); miedo(le, .45f, .22f) }
-
-    var t = .62f; var x = 0f
-    ln.letras.forEachIndexed { i, le ->
-        val rect = geo.letras[i]; val xl = rect.center.x - ci.x - 14 * d
-        for (k in 0 until 4) le.azul.a(t - .12f + k * .05f, .04f, if (k % 2 == 0) 0f else 1f, lineal)
-        val nb = BOCADOS[i]; val dur = .26f / nb
-        val marcas = if (nb == 3) listOf(0 to .45f, 2 to .5f, 1 to 1.3f) else listOf(0 to .55f, 1 to 1.3f)
-        marcas.forEachIndexed { j, (k, rad) ->
-            val tb = t + j * (dur + .03f)
-            paso(tb, xl - 6 * d + j * (10 * d / (nb - 1)), dur)
-            val tm = tb + dur * .8f
-            // La boca se abre al acercarse y cierra justo en el bocado
-            ln.abre.a(tb, dur * .5f, 1f, p2Out).a(tm - .05f, .05f, 0f, p2In)
-            ln.golpes += tm
-            le.mordida[k].a(tm, .05f, rad, p4In)
-            le.giro.mas(tm + .04f, .06f, 9f).a(tm + .1f, .32f, 0f, elasticOut(1f, .4f))
-            le.y.mas(tm + .04f, .06f, -2 * d).a(tm + .1f, .32f, 0f, elasticOut(1f, .4f))
-            ln.letras.getOrNull(i + 1)?.let { v -> v.x.ida(tm + .05f, .05f, 1.5f * d) }
-            ln.logoEy.ida(tm, .05f, .9f, p2Out); ln.logoEx.ida(tm, .05f, 1.08f, p2Out)
-            migas(rect, tb + dur * .85f, 3)
+    sim.comidas.forEachIndexed { k, g ->
+        ln.pops += Pop(g.t, PUNTOS[k.coerceAtMost(PUNTOS.lastIndex)], g.x - g.w / 2, g.y - g.h / 2)
+        repeat(3) {
+            val tam = r(2f, 3.4f) * d
+            val x0 = g.x - 12 * d + r(-3f, 3f) * d; val y0 = g.y + r(-3f, 3f) * d
+            val vx = r(-45f, 35f) * d; val vy = r(-70f, -20f) * d; val giro = r(0f, 90f)
+            ln.porSimular += { Miga(g.t + .06f, tam, simulaMiga(x0, y0, vx, vy, sup, piso - tam, d), giro) }
         }
-        val fin = t + nb * (dur + .03f)
-        // Tragada, no borrada: la letra se encoge hacia la boca en vez de desaparecer de golpe
-        le.esc.a(fin - .08f, .08f, .2f, p2In)
-        le.x.a(fin - .08f, .08f, -10 * d, p2In)
-        le.alfa.a(fin - .08f, .08f, 0f, p2In)
-        ln.pops += Pop(fin - .03f, PUNTOS[i], rect.left, rect.top)
-        x = xl + 4 * d; t = fin
     }
-    // Sale por la derecha y reaparece por la izquierda, como en el juego
-    // Se encoge al irse (sin cortarse en pleno aire) y reentra justo desde el borde de la pantalla
-    val borde = -(ci.x + 4 * d)
-    ln.logoX.a(t, .22f, x + 40 * d, p1In).fija(t + .22f, borde).a(t + .23f, .3f, 0f, p2Out)
-    ln.logoEsc.a(t + .08f, .14f, 0f, p1In).fija(t + .22f, 1f)
-    // Mastica solo en la anticipación y en el trayecto; durante los bocados manda `abre`
-    ln.chompIni = .12f; ln.chompFin = .6f
-    ln.abre.a(t, .08f, 1f).a(t + .08f, .08f, 0f).a(t + .23f, .1f, 1f).a(t + .33f, .1f, 0f).a(t + .43f, .1f, 1f).a(t + .53f, .08f, 0f)
-    ln.logoEy.ida(t + .56f, .06f, .85f, p2Out); ln.logoEx.ida(t + .56f, .06f, 1.12f, p2Out)
-    val ts = t + .64f
-    ln.logoGiro.a(ts, .1f, -9f, senoInOut).a(ts + .1f, .1f, 5f, senoInOut).a(ts + .2f, .22f, 0f, elasticOut(1f, .45f))
-    ln.letras.forEach { it.azul.fija(ts, 0f) }
-    // Al volver, la boca se entreabre un instante antes de cerrarse
-    val te = t + .6f
-    ln.abre.a(te, .06f, .55f, p2Out).a(te + .1f, .12f, 0f, p2In)
-    ln.golpes += te
-    ln.final = ts + .42f
     return ln
 }
 
-private fun construirEscupir(geo: GeometriaComelon, d: Float): Linea {
-    val ln = Linea(); val ci = geo.logo.center
-    ln.logoEy.a(0f, .1f, 1.15f).a(.7f, .5f, 1f, elasticOut(1f, .35f))
-    ln.logoEx.a(0f, .1f, .9f).a(.7f, .5f, 1f, elasticOut(1f, .35f))
-    ln.logoGiro.a(0f, .1f, -10f).a(.7f, .5f, 0f, elasticOut(1f, .35f))
-    // La boca se abre casi al tocar y la primera letra sale enseguida: la reacción se siente inmediata
-    ln.abre.a(.02f, .1f, 1f, backOut(2.2f)).a(.63f, .08f, 0f, p2In)
-    ln.letras.forEachIndexed { i, le ->
-        val cl = geo.letras[i].center
-        val at = .09f + i * .1f
-        le.alfa.fija(0f, 0f).fija(at, 1f)
-        val desde = Offset(ci.x - cl.x + 10 * d, ci.y - cl.y)
-        le.vuelo = Vuelo(at, .4f, desde, Offset(desde.x * .5f, (-30f - 5 * i) * d), backOut(1.4f))
-        le.esc.fija(0f, .25f).a(at, .4f, 1f, backOut(1.4f))
-        le.giro.fija(0f, -50f).a(at, .4f, 0f, backOut(1.4f))
-        le.ey.a(at + .34f, .06f, .7f).a(at + .4f, .4f, 1f, elasticOut(1f, .35f))
-        le.ex.a(at + .34f, .06f, 1.25f).a(at + .4f, .4f, 1f, elasticOut(1f, .35f))
-        ln.logoX.ida(at, .05f, -3 * d, p2Out)
+/** Con las animaciones reducidas, las letras solo se atenúan y vuelven: sin movimiento. */
+private fun construirReducida(geo: GeometriaComelon): Linea {
+    val n = (.4f / PASO).toInt()
+    val datos = FloatArray(n * ANCHO_CUADRO)
+    for (k in 0 until n) {
+        val b = k * ANCHO_CUADRO
+        datos[b + LOGO] = geo.logo.center.x; datos[b + LOGO + 1] = geo.logo.center.y
+        datos[b + LOGO + 3] = 1f; datos[b + LOGO + 4] = 1f
+        for (i in 0 until 4) {
+            val o = b + LETRAS + i * POR_LETRA
+            datos[o] = geo.letras[i].center.x; datos[o + 1] = geo.letras[i].center.y; datos[o + 3] = 1f
+            datos[o + 4] = 1f - .75f * sin(PI.toFloat() * k / (n - 1))
+        }
     }
-    ln.final = .09f + .3f + .4f + .4f
-    return ln
+    return Linea(n, datos)
 }
 
+/* ==================== Forma de la insignia con boca ==================== */
 
-/* ==================== Lecturas por cuadro ==================== */
+/**
+ * La insignia en píxeles con la boca abierta a cada paso (a 1/32), cacheada. El cuerpo es el cuadrado
+ * redondeado de 36 dp aplanado en segmentos para que `cornerPathEffect` suavice los labios; la boca es una
+ * cuña de punta redonda que se le resta.
+ */
+private class FormasBoca(private val d: Float) {
+    private val cuerpo = cuerpoRedondeado()
+    private val trazos = arrayOfNulls<Path>(33)
+    private val formas = arrayOfNulls<Shape>(33)
+    val radioLabio = 1.6f * d
 
-private fun chomp(ln: Linea, t: Float): Float {
-    if (ln.chompIni < 0 || t < ln.chompIni || t > ln.chompFin) return 0f
-    val fase = (t - ln.chompIni) / ln.chompPer
-    return (1 - cos(2 * PI.toFloat() * fase)) / 2
+    private fun cuerpoRedondeado(): Path {
+        val lado = 36f * d; val r = 11f * d; val tramos = 10
+        val p = Path()
+        fun arco(cx: Float, cy: Float, desde: Float) {
+            for (k in 0..tramos) {
+                val a = (desde + 90f * k / tramos) * PI.toFloat() / 180f
+                p.lineTo(cx + r * cos(a), cy + r * sin(a))
+            }
+        }
+        p.moveTo(r, 0f)
+        arco(lado - r, r, -90f); arco(lado - r, lado - r, 0f); arco(r, lado - r, 90f); arco(r, r, 180f)
+        p.close()
+        return p
+    }
+
+    private fun cuna(p: Float): Path {
+        val a = 38f * p; val ar = a * PI.toFloat() / 180f
+        val g = 1.1f * d * min(1f, p * 8f)
+        val sa = sin(ar); val ca = cos(ar)
+        val hx = 23f * d; val hy = 18f * d; val largo = 40f * d
+        val x1 = hx - g * sa; val y1 = hy - g * ca; val y2 = hy + g * ca
+        return Path().apply {
+            moveTo(x1, y1); lineTo(x1 + largo * ca, y1 - largo * sa)
+            lineTo(x1 + largo * ca, y2 + largo * sa); lineTo(x1, y2)
+            arcTo(Rect(hx - g, hy - g, hx + g, hy + g), 90f + a, 180f - 2 * a, false)
+            close()
+        }
+    }
+
+    private fun indice(p: Float) = (p.coerceIn(0f, 1f) * 32f).roundToInt()
+
+    fun trazo(p: Float): Path {
+        val q = indice(p)
+        return trazos[q] ?: (if (q == 0) cuerpo else Path.combine(PathOperation.Difference, cuerpo, cuna(q / 32f))).also { trazos[q] = it }
+    }
+
+    /** La misma silueta como forma, para que la sombra siga el recorte de la boca. */
+    fun forma(p: Float): Shape {
+        val q = indice(p)
+        return formas[q] ?: object : Shape {
+            val contorno = trazo(p)
+            override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density) = Outline.Generic(contorno)
+        }.also { formas[q] = it }
+    }
 }
-
-private fun aperturaDe(ln: Linea, t: Float) = maxOf(chomp(ln, t), ln.abre.valor(t))
 
 /* ==================== Marca: logo + letras ==================== */
 
-private val AzulPower = Color(0xFF9CC4FF)
-
 @Composable
 fun MarcaComelon(e: EstadoComelon, modifier: Modifier = Modifier) {
-    val contexto = LocalContext.current
-    val sinAnimaciones = remember { Settings.Global.getFloat(contexto.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f }
+    val reducidas = leerAnimacionesReducidas()
     val densidad = LocalDensity.current.density
+    e.geo.anchoPantalla = LocalConfiguration.current.screenWidthDp * densidad
     val alcance = rememberCoroutineScope()
     val haptica = LocalHapticFeedback.current
     val forma = RoundedCornerShape(11.dp)
-    val estilo = MaterialTheme.typography.titleLarge.copy(fontSize = 19.sp, letterSpacing = (-0.4).sp, color = Color.White)
+    val estilo = TituloLogo.copy(color = Color.White)
 
-    fun alternar() {
-        if (e.animando) return
-        val ocultar = !e.oculto
-        e.oculto = ocultar
+    fun jugar() {
+        if (e.enCurso) return
+        e.enCurso = true
         haptica.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        if (sinAnimaciones) { e.linea = null; return }
-        val ln = if (ocultar) construirComer(e.geo, densidad, Random(7)) else construirEscupir(e.geo, densidad)
-        e.linea = ln; e.animando = true
-        if (ln.porSimular.isNotEmpty()) alcance.launch(kotlinx.coroutines.Dispatchers.Default) {
+        val ln = if (reducidas) construirReducida(e.geo) else construirEscena(e.geo, densidad, Random.Default)
+        if (ln.porSimular.isNotEmpty()) alcance.launch(Dispatchers.Default) {
             ln.migas = ln.porSimular.map { it() }.sortedBy { it.t0 }
         }
-        if (ln.golpes.isNotEmpty()) alcance.launch {
-            var antes = 0f
-            for (g in ln.golpes.sorted()) {
-                kotlinx.coroutines.delay(((g - antes) * 1000).toLong()); antes = g
-                haptica.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-            }
-        }
         alcance.launch {
+            // El reloj vuelve a cero antes de enseñar la escena nueva: sin un cuadro de la anterior
             e.reloj.snapTo(0f)
+            e.linea = ln; e.animando = true
+            // La vibración sale del mismo reloj que la animación: nunca se descuadra del bocado
+            val vibracion = launch {
+                var siguiente = 0
+                snapshotFlow { e.reloj.value }.collect { t ->
+                    while (siguiente < ln.golpes.size && t >= ln.golpes[siguiente]) {
+                        haptica.performHapticFeedback(HapticFeedbackType.TextHandleMove); siguiente++
+                    }
+                }
+            }
             e.reloj.animateTo(ln.final, tween((ln.final * 1000).toInt(), easing = LinearEasing))
-            e.animando = false
+            vibracion.cancel()
+            e.animando = false; e.enCurso = false
         }
     }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .graphicsLayer { translationX = e.linea?.sacudon?.valor(e.ahora) ?: 0f }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                role = Role.Button,
-                onClickLabel = if (e.oculto) "Mostrar el nombre" else "Esconder el nombre"
-            ) { alternar() }
+        modifier = modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            role = Role.Button,
+            onClickLabel = "Jugar con el logo"
+        ) { jugar() }
     ) {
-        // Insignia: en reposo el logo entero; en movimiento, dos mandíbulas con la garganta detrás
         Box(
             Modifier
                 .zIndex(1f)
                 .size(36.dp)
                 .onGloballyPositioned { e.geo.logo = e.geo.rel(it) }
-                .graphicsLayer {
-                    val ln = e.linea; val t = e.ahora
-                    if (ln != null && e.animando) {
-                        translationX = ln.logoX.valor(t); translationY = ln.logoY.valor(t)
-                        val esc = ln.logoEsc.valor(t)
-                        scaleX = esc * ln.logoEx.valor(t); scaleY = esc * ln.logoEy.valor(t)
-                        rotationZ = ln.logoGiro.valor(t)
-                    }
-                    transformOrigin = TransformOrigin(.5f, .55f)
-                }
         ) {
             // Todas las piezas quedan compuestas siempre (solo cambia su opacidad): así el primer toque no
             // tiene que cargarlas y la animación arranca sin tirones.
@@ -415,50 +548,7 @@ fun MarcaComelon(e: EstadoComelon, modifier: Modifier = Modifier) {
                     .shadow(8.dp, forma, ambientColor = BosqueProfundo.copy(alpha = .3f), spotColor = BosqueProfundo.copy(alpha = .45f))
                     .background(Color.White, forma)
             ) { Image(painterResource(R.drawable.logo_nexo), contentDescription = "Nexo", modifier = Modifier.size(24.dp)) }
-            Box(Modifier.size(36.dp).graphicsLayer { alpha = if (e.animando) 1f else .004f }) {
-                // Sombra difusa como la de la insignia en reposo: sin ella las mandíbulas se ven planas
-                Canvas(Modifier.size(36.dp)) {
-                    drawOval(
-                        Brush.radialGradient(listOf(BosqueProfundo.copy(alpha = .42f), Color.Transparent), center = Offset(size.width / 2, size.height * .62f), radius = size.width * .62f),
-                        topLeft = Offset(-size.width * .1f, size.height * .05f), size = androidx.compose.ui.geometry.Size(size.width * 1.2f, size.height * 1.15f)
-                    )
-                }
-                // Garganta recortada dentro de la insignia: el fondo oscuro nunca asoma fuera de la silueta
-                Canvas(Modifier.size(36.dp).graphicsLayer {
-                    val ln = e.linea; val a = if (ln != null) aperturaDe(ln, e.ahora) else 0f
-                    alpha = if (a > .02f) 1f else .004f
-                    // Óvalo, no la forma cuadrada: el fondo de la boca se lee curvo, como una garganta
-                    shape = androidx.compose.foundation.shape.CircleShape; clip = true
-                }) {
-                    val w = size.width; val h = size.height
-                    // Profundidad: más oscura al fondo (izquierda), con un leve brillo bosque hacia los labios
-                    drawRect(Brush.horizontalGradient(listOf(Color(0xFF020B07), Color(0xFF0B3324), Color(0xFF17573C)), startX = w * .15f, endX = w))
-                    // Lengua definida: contorno, surco central y brillo. Gira con la mandíbula de abajo
-                    // (misma bisagra y ángulo), así siempre asoma apoyada sobre el labio inferior.
-                    val ap = e.linea?.let { aperturaDe(it, e.ahora) } ?: 0f
-                    rotate(24f * ap, pivot = Offset(w * .1f, h * .5f)) {
-                        val lengua = androidx.compose.ui.geometry.Rect(w * .3f, h * .3f, w * .96f, h * .7f)
-                        val curva = androidx.compose.ui.geometry.CornerRadius(lengua.height * .5f)
-                        // Contorno más oscuro: separa la lengua del fondo de la garganta
-                        drawRoundRect(Color(0xFF1F8A5B), lengua.topLeft - Offset(w * .02f, h * .02f),
-                            androidx.compose.ui.geometry.Size(lengua.width + w * .04f, lengua.height + h * .04f), curva)
-                        // Cuerpo con luz desde la punta (los labios) hacia el fondo
-                        drawRoundRect(
-                            Brush.horizontalGradient(listOf(Color(0xFF3CCB8B), Color(0xFF7FDDB0), Color(0xFFA8EBCB)), startX = lengua.left, endX = lengua.right),
-                            lengua.topLeft, lengua.size, curva
-                        )
-                        // Surco central
-                        drawLine(Color(0xFF2A9E6A).copy(alpha = .8f), Offset(lengua.left + w * .1f, lengua.center.y - h * .02f),
-                            Offset(lengua.right - w * .12f, lengua.center.y - h * .03f), strokeWidth = w * .03f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                        // Brillo húmedo cerca de la punta
-                        drawOval(Color.White.copy(alpha = .45f), Offset(lengua.right - w * .26f, lengua.top + h * .04f),
-                            androidx.compose.ui.geometry.Size(w * .14f, h * .06f))
-                    }
-                    // Sombra interior bajo el labio de arriba para que la boca tenga volumen
-                    drawRect(Brush.verticalGradient(listOf(Color.Black.copy(alpha = .45f), Color.Transparent), startY = 0f, endY = h * .45f))
-                }
-                listOf(true, false).forEach { arriba -> Mandibula(e, arriba, forma) }
-            }
+            InsigniaConBoca(e, densidad)
         }
         Spacer(Modifier.width(10.dp))
         "Nexo".forEachIndexed { i, ch -> LetraComelon(e, i, ch.toString(), estilo, densidad) }
@@ -466,30 +556,64 @@ fun MarcaComelon(e: EstadoComelon, modifier: Modifier = Modifier) {
     }
 }
 
+/** La insignia en movimiento: el cuadrado blanco con una cuña por boca, sin lengua ni garganta. */
 @Composable
-private fun Mandibula(e: EstadoComelon, arriba: Boolean, forma: RoundedCornerShape) {
+private fun InsigniaConBoca(e: EstadoComelon, d: Float) {
+    val formas = remember(d) { FormasBoca(d) }
+    val pincel = remember(d) {
+        Paint().apply { color = Color.White; isAntiAlias = true; pathEffect = PathEffect.cornerPathEffect(formas.radioLabio) }
+    }
     Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
+        Modifier
             .size(36.dp)
             .graphicsLayer {
-                val ln = e.linea; val a = if (ln != null) aperturaDe(ln, e.ahora) else 0f
-                // Menos giro y bisagra más atrás: la nuca no se abulta al abrir
-                rotationZ = if (arriba) -30f * a else 24f * a
-                transformOrigin = TransformOrigin(.1f, .5f)
-                val labio = 9.dp.toPx() * minOf(1f, a * 3f)
-                shape = if (arriba) RoundedCornerShape(11.dp.toPx(), 11.dp.toPx(), labio, labio) else RoundedCornerShape(labio, labio, 11.dp.toPx(), 11.dp.toPx())
-                clip = true
+                val ln = e.linea
+                val activo = ln != null && e.animando
+                // Compuesta siempre; sin escena casi transparente
+                alpha = if (activo) 1f else .004f
+                if (activo && ln != null) {
+                    val b = ln.base(e.ahora); val c = e.geo.logo.center
+                    translationX = ln.datos[b + LOGO] - c.x; translationY = ln.datos[b + LOGO + 1] - c.y
+                    rotationZ = ln.datos[b + LOGO + 2]
+                    scaleX = ln.datos[b + LOGO + 3]; scaleY = ln.datos[b + LOGO + 4]
+                    shape = formas.forma(ln.datos[b + LOGO + 5])
+                } else shape = formas.forma(0f)
+                // La sombra sigue el recorte de la boca
+                shadowElevation = 8.dp.toPx()
+                ambientShadowColor = BosqueProfundo.copy(alpha = .3f); spotShadowColor = BosqueProfundo.copy(alpha = .45f)
+                clip = false
             }
-            .drawWithContent {
-                // Solo la mitad que le corresponde a esta mandíbula
-                // Las mitades se solapan medio dp: al cerrar no queda la raya del corte
-                val h = size.height / 2; val s = .5f.dp.toPx()
-                val p = Path().apply { addRect(if (arriba) Rect(0f, 0f, size.width, h + s) else Rect(0f, h - s, size.width, size.height)) }
-                clipPath(p) { this@drawWithContent.drawContent() }
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val ln = e.linea
+            val p = if (ln != null && e.animando) ln.datos[ln.base(e.ahora) + LOGO + 5] else 0f
+            drawIntoCanvas { it.drawPath(formas.trazo(p), pincel) }
+        }
+        // El eslabón se achica un poco y se corre hacia atrás al abrir, para que la cuña no lo corte
+        Image(
+            painterResource(R.drawable.logo_nexo), contentDescription = null,
+            modifier = Modifier.size(24.dp).align(Alignment.Center).graphicsLayer {
+                val ln = e.linea
+                val p = if (ln != null && e.animando) ln.datos[ln.base(e.ahora) + LOGO + 5] else 0f
+                translationX = -6.dp.toPx() * p
+                scaleX = 1f - .22f * p; scaleY = 1f - .22f * p
             }
-            .background(Color.White, forma)
-    ) { Image(painterResource(R.drawable.logo_nexo), contentDescription = null, modifier = Modifier.size(24.dp)) }
+        )
+    }
+}
+
+/** Contorno de la falda de fantasma: borde inferior ondulado que se mueve con el tiempo. */
+private fun faldaOndulada(ancho: Float, alto: Float, d: Float, t: Float): Path {
+    val base = alto * .5f + 5.5f * d
+    val p = Path()
+    p.moveTo(-4f * d, -4f * d); p.lineTo(ancho + 4f * d, -4f * d)
+    val tramos = 10
+    for (k in 0..tramos) {
+        val x = (ancho + 3f * d) - (ancho + 6f * d) * k / tramos
+        p.lineTo(x, base - 1.6f * d + 2f * d * sin(x / d * 1.1f + t * 16f))
+    }
+    p.close()
+    return p
 }
 
 @Composable
@@ -501,76 +625,85 @@ private fun LetraComelon(e: EstadoComelon, i: Int, texto: String, estilo: TextSt
         modifier = Modifier
             .onGloballyPositioned { e.geo.letras[i] = e.geo.rel(it) }
             .graphicsLayer {
-                val ln = e.linea; val t = e.ahora
                 compositingStrategy = CompositingStrategy.Offscreen
-                if (ln == null || !e.animando) { alpha = if (e.oculto) .004f else 1f; return@graphicsLayer }
-                val le = ln.letras[i]
-                val v = le.vuelo
-                if (v != null && t >= v.t0) {
-                    val p = v.curva(((t - v.t0) / v.dur).coerceIn(0f, 1f)); val u = 1 - p
-                    translationX = u * u * v.desde.x + 2 * u * p * v.control.x
-                    translationY = u * u * v.desde.y + 2 * u * p * v.control.y
-                } else { translationX = le.x.valor(t); translationY = le.y.valor(t) }
-                rotationZ = le.giro.valor(t)
-                val esc = le.esc.valor(t)
-                scaleX = esc * le.ex.valor(t); scaleY = esc * le.ey.valor(t)
-                alpha = le.alfa.valor(t)
+                val ln = e.linea
+                if (ln == null || !e.animando) { alpha = 1f; return@graphicsLayer }
+                val o = ln.base(e.ahora) + LETRAS + i * POR_LETRA; val c = e.geo.letras[i].center
+                translationX = ln.datos[o] - c.x; translationY = ln.datos[o + 1] - c.y
+                rotationZ = ln.datos[o + 2]
+                scaleX = ln.datos[o + 3]; scaleY = ln.datos[o + 3]
+                alpha = ln.datos[o + 4]
             }
             .drawWithContent {
-                drawContent()
-                // Precalentado: operaciones imperceptibles para que el primer mordisco no compile nada nuevo
-                drawCircle(Color.Black, 1f, Offset(-4f, -4f), blendMode = BlendMode.Clear)
-                drawRect(AzulPower.copy(alpha = .003f), size = androidx.compose.ui.geometry.Size(1f, 1f), blendMode = BlendMode.SrcAtop)
-                val ln = e.linea ?: return@drawWithContent
-                if (!e.animando) return@drawWithContent
-                val le = ln.letras[i]; val t = e.ahora
-                // Mordidas: círculos que borran un pedazo desde el lado por donde llega el logo
-                val base = sqrt((size.width * size.width + size.height * size.height) / 2)
-                val centros = listOf(Offset(-.18f, .38f), Offset(-.08f, .92f), Offset(-.04f, .02f))
-                for (k in 0 until 3) {
-                    val rr = le.mordida[k].valor(t)
-                    if (rr > 0f) drawCircle(Color.Black, rr * base, Offset(centros[k].x * size.width, centros[k].y * size.height), blendMode = BlendMode.Clear)
+                val ln = e.linea
+                if (ln == null || !e.animando) {
+                    drawContent()
+                    // Precalentado: operaciones imperceptibles para que el primer toque no compile nada nuevo
+                    drawCircle(Color.Black, 1f, Offset(-4f, -4f), blendMode = BlendMode.Clear)
+                    drawRect(LogoAzulPower.copy(alpha = .003f), size = Size(1f, 1f), blendMode = BlendMode.SrcAtop)
+                    return@drawWithContent
                 }
-                // Tinte azul del power-up
-                val az = le.azul.valor(t)
-                if (az > 0f) drawRect(AzulPower.copy(alpha = az), blendMode = BlendMode.SrcAtop)
+                val t = e.ahora; val o = ln.base(t) + LETRAS + i * POR_LETRA
+                // Falda de fantasma: recorta el borde de abajo de la letra en una onda
+                if (ln.datos[o + 6] > .5f) clipPath(faldaOndulada(size.width, size.height, d, t)) { this@drawWithContent.drawContent() }
+                else drawContent()
+                // Tinte azul del poder
+                val az = ln.datos[o + 5]
+                if (az > 0f) drawRect(LogoAzulPower.copy(alpha = az), blendMode = BlendMode.SrcAtop)
             }
     )
 }
 
-/* ==================== Capa de migas y puntos ==================== */
+/* ==================== Capa de poder, migas y puntos ==================== */
 
 @Composable
 fun CapaMigasComelon(e: EstadoComelon, modifier: Modifier = Modifier) {
     val medidor = rememberTextMeasurer()
-    val estiloPop = TextStyle(color = Color(0xFF8FE0B8), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+    val estiloPop = EtiquetaMiga.copy(color = TextoMigaClaro)
     remember(medidor) { PUNTOS.forEach { medidor.measure(it, estiloPop) } }
     Canvas(modifier) {
         val ln = e.linea ?: return@Canvas
         if (!e.animando) return@Canvas
         val t = e.ahora
         val o = e.geo.cabecera
+        val b = ln.base(t)
         translate(-o.x, -o.y) {
-        for (m in ln.migas) {
-            if (t < m.t0) continue
-            val vida = (t - m.t0) / 2f; if (vida > 1f) continue
-            val k = minOf(239, (vida * 239).toInt())
-            val x = m.puntos[k * 2]; val y = m.puntos[k * 2 + 1]
-            val a = if (vida > .85f) (1 - vida) / .15f else 1f
-            // Miga de galleta: esquinas suaves y un borde tostado para que tenga volumen, no un píxel cuadrado
-            val esquina = androidx.compose.ui.geometry.CornerRadius(m.tam * .35f)
-            val arriba = Offset(x - m.tam / 2, y - m.tam); val lado = androidx.compose.ui.geometry.Size(m.tam, m.tam)
-            drawRoundRect(Color(0xFFC9A46A).copy(alpha = a), arriba + Offset(0f, m.tam * .18f), lado, esquina)
-            drawRoundRect(Color(0xFFF3E3C3).copy(alpha = a), arriba, lado, esquina)
-        }
-        for ((n, p) in ln.pops.withIndex()) {
-            // Vida corta y alturas alternas: el siguiente puntaje nunca cae encima del anterior
-            val dt = t - p.t0; if (dt < 0f || dt > .34f) continue
-            val sube = if (dt < .16f) p2Out(dt / .16f) else 1f
-            val a = if (dt < .22f) sube else 1 - (dt - .22f) / .12f
-            val y = p.y - 6.dp.toPx() - (if (n % 2 == 0) 10 else 20).dp.toPx() * sube - (if (dt > .22f) 6.dp.toPx() * ((dt - .22f) / .12f) else 0f)
-            drawText(medidor, p.texto, Offset(p.x, y), estiloPop.copy(color = estiloPop.color.copy(alpha = a.coerceIn(0f, 1f))))
-        }
+            // El poder: una bolita menta con halo, entre la insignia y el nombre
+            val pe = ln.datos[b + PODER + 2]
+            if (pe > .01f) {
+                val c = Offset(ln.datos[b + PODER], ln.datos[b + PODER + 1])
+                drawCircle(TextoMigaClaro.copy(alpha = .22f), 7.dp.toPx() * pe, c)
+                drawCircle(TextoMigaClaro, 3.6.dp.toPx() * pe, c)
+            }
+            // Onda al comérselo
+            val ea = t - ln.anilloT
+            if (ln.anilloT >= 0f && ea >= 0f && ea < .35f) {
+                val u = ea / .35f
+                drawCircle(
+                    TextoMigaClaro.copy(alpha = .8f * (1 - u)), (18 + 20 * u).dp.toPx(),
+                    Offset(ln.datos[b + LOGO], ln.datos[b + LOGO + 1]), style = Stroke(1.6.dp.toPx())
+                )
+            }
+            for (m in ln.migas) {
+                if (t < m.t0) continue
+                val vida = (t - m.t0) / 2f; if (vida > 1f) continue
+                val k = minOf(239, (vida * 239).toInt())
+                val x = m.puntos[k * 2]; val y = m.puntos[k * 2 + 1]
+                val a = if (vida > .85f) (1 - vida) / .15f else 1f
+                // Miga de galleta: esquinas suaves y un borde tostado para que tenga volumen, no un píxel cuadrado
+                val esquina = androidx.compose.ui.geometry.CornerRadius(m.tam * .35f)
+                val arriba = Offset(x - m.tam / 2, y - m.tam); val lado = Size(m.tam, m.tam)
+                drawRoundRect(LogoMigaSombra.copy(alpha = a), arriba + Offset(0f, m.tam * .18f), lado, esquina)
+                drawRoundRect(LogoMiga.copy(alpha = a), arriba, lado, esquina)
+            }
+            for ((n, p) in ln.pops.withIndex()) {
+                // Vida corta y alturas alternas: el siguiente puntaje nunca cae encima del anterior
+                val dt = t - p.t0; if (dt < 0f || dt > .5f) continue
+                val sube = if (dt < .18f) salidaCubica(dt / .18f) else 1f
+                val a = if (dt < .32f) sube else 1 - (dt - .32f) / .18f
+                val y = p.y - 6.dp.toPx() - (if (n % 2 == 0) 10 else 20).dp.toPx() * sube - (if (dt > .32f) 6.dp.toPx() * ((dt - .32f) / .18f) else 0f)
+                drawText(medidor, p.texto, Offset(p.x, y), estiloPop.copy(color = estiloPop.color.copy(alpha = a.coerceIn(0f, 1f))))
+            }
         }
     }
 }

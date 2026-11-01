@@ -39,6 +39,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
@@ -47,6 +49,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
@@ -56,8 +59,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.Menta
@@ -70,6 +77,7 @@ import com.grupo3.nexo.ui.theme.TextoTercero
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.asin
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
@@ -83,7 +91,8 @@ import kotlin.math.sin
 /**
  * Etapas del seguimiento de una sesión, como el de un pedido. Siguen los estados del producto: solicitud
  * pendiente (RF5), aceptada (RF6), el día, el arranque, la sesión y la calificación mutua (RF9).
- * "Ya casi" y "En sesión" cambian según la modalidad: presencial o virtual.
+ * "Ya casi" y "En sesión" cambian según la modalidad: presencial o virtual. En presencial, como al pedir un
+ * carro: primero el tutor va en camino y, cuando llega, ella le muestra el PIN para iniciar la sesión.
  */
 enum class FaseSesion(val titulo: String, val detalle: String) {
     SOLA("Sin sesiones por ahora", "Cuando agendes una, la seguirás aquí paso a paso."),
@@ -91,6 +100,7 @@ enum class FaseSesion(val titulo: String, val detalle: String) {
     AGENDADA("Sesión agendada", "El tutor aceptó: ya está en tu calendario."),
     HOY("Hoy es tu sesión", "Revisa la hora y deja listo lo que necesitas."),
     YA_CASI("Ya casi", "Faltan 30 minutos: tu tutor va en camino."),
+    LLEGO("Tu tutor llegó", "Faltan 2 minutos: muéstrale el PIN para empezar."),
     EN_SESION("Sesión en curso", "Concéntrate: el chat sigue abierto si lo necesitas."),
     YA_CASI_VIRTUAL("Ya casi", "Faltan 30 minutos: la videollamada estará lista."),
     EN_SESION_VIRTUAL("Sesión en curso", "Videollamada con tu tutor en curso."),
@@ -155,7 +165,7 @@ private const val ALTO = 270f
  * Dibuja una escena: el suelo coincide con el borde inferior y todas las escenas comparten escala, así los
  * personajes miden lo mismo en todas las fases. Cada pieza hereda el giro y la opacidad de su padre.
  */
-private fun DrawScope.escena(r: Rig, bmps: List<ImageBitmap?>, t: Float, unDp: Float, mueve: Movimiento) {
+private fun DrawScope.escena(r: Rig, bmps: List<ImageBitmap?>, t: Float, unDp: Float, mueve: Movimiento, pin: List<TextLayoutResult> = emptyList()) {
     val sc = size.height / ALTO
     val x0 = (size.width - r.ancho * sc) / 2f
     val instante = Instante(t, size.width / sc / 2f)
@@ -168,6 +178,8 @@ private fun DrawScope.escena(r: Rig, bmps: List<ImageBitmap?>, t: Float, unDp: F
     fun raizDe(i: Int): Int = r.capas[i].padre.let { if (it >= 0) raizDe(it) else i }
     val raices = IntArray(r.capas.size) { raizDe(it) }
     val dp = unDp / sc
+    // Donde se juntan los dos fondos de "Ya casi": la calle a la izquierda, el parque a la derecha
+    val costura = r.capas.firstOrNull { it.n == "costura" }?.x
 
     fun DrawScope.enCadena(i: Int, bloque: DrawScope.() -> Unit) {
         val c = r.capas[i]
@@ -201,6 +213,10 @@ private fun DrawScope.escena(r: Rig, bmps: List<ImageBitmap?>, t: Float, unDp: F
             if (alfas[i] <= 0.01f) return@forEachIndexed
             val img = bmps[i]
             if (img == null && c.w <= 0f) return@forEachIndexed
+            if (c.n.startsWith("fondo_") && img != null) {
+                fondo(c, img, movs[i], alfas[i], costura, -x0 / sc, (size.width - x0) / sc)
+                return@forEachIndexed
+            }
             if (grupo < 0.99f && capa != raiz) {
                 drawContext.canvas.saveLayer(Rect(-ALTO, -ALTO, r.ancho + ALTO, 2 * ALTO), Paint().apply { alpha = grupo })
                 capa = raiz
@@ -213,15 +229,46 @@ private fun DrawScope.escena(r: Rig, bmps: List<ImageBitmap?>, t: Float, unDp: F
                     if (ancho == 1f) drawImage(img, alpha = a, filterQuality = FilterQuality.Medium)
                     else scale(ancho, 1f, Offset(img.width * movs[i].ancla, 0f)) { drawImage(img, alpha = a, filterQuality = FilterQuality.Medium) }
                 }
-                else vector(c, a, dp)
+                else vector(c, a, dp, pin)
             }
         }
         if (capa >= 0) drawContext.canvas.restore()
     }
 }
 
+/**
+ * Fondo que pasa: la tira (c.w = largo de lo que se repite) se dibuja una y otra vez hasta cubrir lo visible,
+ * corrida por m.dx. Con costura, la calle solo ocupa la mitad izquierda y el parque la derecha.
+ */
+private fun DrawScope.fondo(c: Capa, img: ImageBitmap, m: Mov, a: Float, costura: Float?, desde: Float, hasta: Float) {
+    val izq = if (costura != null && c.n == "fondo_parque") costura else desde
+    val der = if (costura != null && c.n == "fondo_calle") costura else hasta
+    val borde = 30f // el fondo se desvanece en sus extremos: no queda un corte seco contra el otro
+    clipRect(izq, -ALTO, der, 2 * ALTO) {
+        drawContext.canvas.saveLayer(Rect(izq, -ALTO, der, 2 * ALTO), Paint())
+        var x = c.x + m.dx
+        x -= ceil((x - izq) / c.w) * c.w
+        while (x < der) {
+            translate(x, c.y) { drawImage(img, alpha = a, filterQuality = FilterQuality.Medium) }
+            x += c.w
+        }
+        drawRect(
+            Brush.horizontalGradient(listOf(Color.Transparent, Color.Black), startX = izq, endX = izq + borde),
+            Offset(izq, -ALTO), Size(borde, 3 * ALTO), blendMode = BlendMode.DstIn
+        )
+        drawRect(
+            Brush.horizontalGradient(listOf(Color.Black, Color.Transparent), startX = der - borde, endX = der),
+            Offset(der - borde, -ALTO), Size(borde, 3 * ALTO), blendMode = BlendMode.DstIn
+        )
+        drawContext.canvas.restore()
+    }
+}
+
+/** El PIN de muestra que ella le enseña al tutor en "Llegó". */
+private const val PIN_MUESTRA = "4821"
+
 /** Elementos de interfaz de la escena: se dibujan en código con los colores de la app. */
-private fun DrawScope.vector(c: Capa, a: Float, dp: Float) {
+private fun DrawScope.vector(c: Capa, a: Float, dp: Float, pin: List<TextLayoutResult>) {
     val centro = Offset(c.x + c.w / 2f, c.y + c.h / 2f)
     when {
         c.n == "burbuja" -> {
@@ -236,6 +283,31 @@ private fun DrawScope.vector(c: Capa, a: Float, dp: Float) {
             drawPath(cola, Superficie, alpha = a)
             drawRoundRect(Superficie, Offset(c.x, c.y), Size(c.w, c.h), radio, alpha = a)
             drawRoundRect(BordeSutil, Offset(c.x, c.y), Size(c.w, c.h), radio, alpha = a, style = Stroke(dp))
+        }
+        c.n == "pin" -> {
+            // Nube de lo que ella le dice al tutor, con la colita hacia su boca, y el PIN en el centro
+            val cola = Path().apply {
+                moveTo(c.x + c.h * 0.3f, c.y + c.h * 0.62f)
+                lineTo(c.x - c.h * 0.3f, c.y + c.h * 0.84f)
+                lineTo(c.x + c.h * 0.55f, c.y + c.h * 0.9f)
+                close()
+            }
+            val radio = CornerRadius(c.h * 0.42f)
+            drawPath(cola, Superficie, alpha = a)
+            drawRoundRect(Superficie, Offset(c.x, c.y), Size(c.w, c.h), radio, alpha = a)
+            drawRoundRect(BordeSutil, Offset(c.x, c.y), Size(c.w, c.h), radio, alpha = a, style = Stroke(dp))
+        }
+        c.n.startsWith("pin") -> {
+            // Una cifra del PIN, centrada en su casilla
+            val cifra = pin.getOrNull(c.n.last().digitToInt()) ?: return
+            // La cifra se ajusta al alto de su casilla (el texto se mide en píxeles, la escena va en unidades)
+            val f = c.h / cifra.size.height
+            withTransform({
+                translate(centro.x, centro.y)
+                scale(f, f, Offset.Zero)
+            }) {
+                drawText(cifra, topLeft = Offset(-cifra.size.width / 2f, -cifra.size.height / 2f), alpha = a)
+            }
         }
         c.n == "tarjeta" -> {
             val radio = CornerRadius(c.h * 0.13f)
@@ -309,9 +381,6 @@ private fun estrella(centro: Offset, radio: Float) = Path().apply {
 }
 
 /* ==================== Gestos reutilizables ==================== */
-
-/** Ancho del torso de perfil: las piezas lo dibujan casi de frente y de lado se ve grueso. */
-private const val TORSO_PERFIL = 0.86f
 
 /** Torso que respira desde la cintura (sube un poco al inhalar, sin deformarse) y se mece apenas. */
 private fun respira(t: Float, fase: Float = 0f, inclina: Float = 0f, ancho: Float = 1f, ancla: Float = 0.5f) = Mov(
@@ -467,44 +536,101 @@ private val movHoy: Movimiento = { n, i ->
     }
 }
 
-private const val CICLO_CAMINO = 9.5f
-private const val LLEGA = 3.8f
-private const val ZANCADA = 58f
+/** Ritmo de cada uno: duración de un paso completo y lo que avanza el cuerpo en una pisada, en unidades de escena. */
+private class Ritmo(val paso: Float, val zancada: Float) {
+    /** Lo que pasa su fondo por segundo: lo mismo que avanzan los pies, así no patinan. */
+    val velocidad = 2f * zancada / paso
+}
+
+private val ritmoEstudiante = Ritmo(1.15f, 86f)
+private val ritmoTutor = Ritmo(1.28f, 94f) // más largo y pausado, como alguien que no tiene prisa
+
+/** Los fondos se ven tenues (son el lugar, no el tema) y pasan algo más lento que los pies: el fondo queda lejos. */
+private const val ALFA_FONDO = 0.55f
+private const val PROFUNDIDAD = 0.88f
 
 /**
- * Caminan uno hacia el otro desde los bordes: la zancada depende de la distancia recorrida (los pies no
- * patinan), el cuerpo sube y baja con cada paso, los brazos van al revés de las piernas y todo se calma al
- * frenar. Al encontrarse se dan la mano, la sacuden dos veces y se sueltan.
+ * Una pierna y un brazo de perfil al caminar. fase avanza 2π por paso completo; vel (0 a 1) calma el gesto al
+ * frenar; s = -1 para el personaje en espejo; inclina = cuánto se echa hacia adelante al caminar. La pierna que
+ * avanza dobla la rodilla y el brazo de su lado va al revés, con el codo doblándose al adelantarlo; el cuerpo
+ * sube cuando las piernas se cruzan y rebota un poco en cada pisada.
+ */
+private fun caminar(parte: String, fase: Float, vel: Float, s: Float, t: Float, inclina: Float = 2f): Mov? = when (parte) {
+    "raiz" -> Mov(dy = (-2.6f * cos(fase) * cos(fase) + 0.6f * abs(sin(fase))) * vel)
+    "torso" -> respira(t, inclina = s * inclina * vel)
+    "cabeza" -> Mov(grados = s * (-1.5f * vel + 0.8f * onda(t, 4.8f)))
+    "muslo" -> Mov(grados = s * -22f * sin(fase) * vel)
+    "muslo2" -> Mov(grados = s * 22f * sin(fase) * vel)
+    "pierna" -> Mov(grados = s * (4f + 38f * max(0f, cos(fase - 0.3f))) * vel)
+    "pierna2" -> Mov(grados = s * (4f + 38f * max(0f, -cos(fase - 0.3f))) * vel)
+    // El brazo se balancea ±30° (la mano pasa delante y detrás de la pierna) y el codo se dobla al adelantarlo
+    "brazo" -> Mov(grados = s * (30f * sin(fase) * vel - 3f * (1f - vel)))
+    "brazo2" -> Mov(grados = s * (-30f * sin(fase) * vel - 3f * (1f - vel)))
+    "ante" -> Mov(grados = s * -(10f + 30f * max(0f, -sin(fase)) * vel))
+    "ante2" -> Mov(grados = s * -(10f + 30f * max(0f, sin(fase)) * vel))
+    else -> null
+}
+
+/**
+ * Ya casi (faltan 30 minutos): cada uno camina sin parar en su mitad, ella por la calle y él por el parque, y
+ * su fondo pasa detrás al ritmo de sus pasos.
  */
 private val movYaCasi: Movimiento = { n, i ->
-    val t = i.t % CICLO_CAMINO
-    val tutor = n.startsWith("t_")
-    val s = if (tutor) -1f else 1f // el tutor está en espejo: sus giros van al revés
-    val inicio = -(i.mitad + 70f)
+    when (n) {
+        "fondo_calle" -> Mov(dx = -(ritmoEstudiante.velocidad * PROFUNDIDAD * i.t) % 100_000f, alfa = ALFA_FONDO)
+        "fondo_parque" -> Mov(dx = (ritmoTutor.velocidad * PROFUNDIDAD * i.t) % 100_000f, alfa = ALFA_FONDO)
+        else -> {
+            val tutor = n.startsWith("t_")
+            val r = if (tutor) ritmoTutor else ritmoEstudiante
+            val fase = DOS_PI * i.t / r.paso + if (tutor) 1.1f else 0f
+            caminar(n.substring(2), fase, 1f, if (tutor) -1f else 1f, i.t, if (tutor) 3.5f else 2f) ?: QUIETO
+        }
+    }
+}
+
+private const val LLEGA = 2.6f
+private const val ACERCA = 110f
+
+/**
+ * Llegó (faltan 2 minutos): los dos terminan de acercarse y frenan con un último paso corto, cara a cara. Ella
+ * sube la mirada hacia él y entonces le sale la nube con el PIN, cifra a cifra. Corre con el tiempo de la fase:
+ * la llegada pasa una vez y luego quedan quietos, respirando, con la nube flotando y el tutor asintiendo.
+ */
+private val movLlego: Movimiento = { n, i ->
+    val t = i.t
     val avance = frenada(t / LLEGA)
-    val distancia = abs(inicio) * avance
     val resto = 1f - (t / LLEGA).coerceIn(0f, 1f)
-    val velocidad = (3f * resto * resto).coerceAtMost(1f)
-    val fase = distancia / ZANCADA * PI.toFloat() + if (tutor) 0.8f else 0f
-    val paso = sin(fase) * velocidad
-    val rodilla = max(0f, sin(fase + 1.2f)) * velocidad
-    val rodilla2 = max(0f, sin(fase + 1.2f + PI.toFloat())) * velocidad
-    val mano = tramo(t, LLEGA + 0.35f, LLEGA + 0.95f) * (1f - tramo(t, 7.3f, 7.9f))
-    val sacude = sin((t - LLEGA - 1f) * DOS_PI / 0.42f) * meseta(t, LLEGA + 0.95f, LLEGA + 1.1f, LLEGA + 1.6f, LLEGA + 1.95f)
-    val visible = tramo(t, 0f, 0.35f) * (1f - tramo(t, 8.7f, 9.3f))
-    when (n.substring(2)) {
-        "raiz" -> Mov(dx = s * inicio * (1f - avance), dy = -2.2f * abs(cos(fase)) * velocidad, alfa = visible)
-        "torso" -> respira(i.t, fase = if (tutor) 0.4f else 0f, inclina = s * (2.2f * velocidad + 1.5f * mano), ancho = TORSO_PERFIL, ancla = if (tutor) 0.75f else 0.25f)
-        "cabeza" -> Mov(grados = s * (-1.5f * velocidad + 3f * mano * (0.5f + 0.5f * sin((t - LLEGA) * 3f)) + 0.8f * onda(i.t, 4.8f)))
-        "muslo" -> Mov(grados = s * (90f + 22f * paso))
-        "pierna" -> Mov(grados = s * (-90f + 34f * rodilla))
-        "muslo2" -> Mov(grados = s * (90f - 22f * paso))
-        "pierna2" -> Mov(grados = s * (-90f + 34f * rodilla2))
-        "brazo" -> Mov(grados = s * (-18f * paso * (1f - mano) - 20f * mano + 2.5f * sacude))
-        "ante" -> Mov(grados = s * (80f - 8f * abs(paso) - 98f * mano + 1.5f * sacude))
-        "brazo2" -> Mov(grados = s * (18f * paso + 3f * (1f - velocidad) * onda(i.t, 4.6f)))
-        "ante2" -> Mov(grados = s * (80f - 8f * abs(paso)))
-        else -> QUIETO
+    val vel = (3f * resto * resto).coerceAtMost(1f)
+    val nube = (t - LLEGA - 0.45f) / 0.45f
+    val mira = tramo(t, LLEGA - 0.5f, LLEGA + 0.2f)
+    val asiente = sin((t - 3.9f) * DOS_PI / 0.55f) * meseta((t - 3.7f) % 7f, 0f, 0.2f, 1.1f, 1.4f) * tramo(t, 3.6f, 3.8f)
+    when {
+        n == "fondo_calle" -> Mov(alfa = ALFA_FONDO)
+        n == "pin" -> Mov(
+            escala = 0.6f + 0.4f * rebote(nube).coerceAtLeast(0f),
+            dy = -1f * onda(t, 3.1f) * tramo(t, LLEGA + 0.9f, LLEGA + 1.4f),
+            alfa = suave(nube * 1.6f)
+        )
+        // Cada cifra entra con su propio retraso y un saltito
+        n.startsWith("pin") -> {
+            val k = n.last().digitToInt()
+            val e = (t - LLEGA - 0.7f - k * 0.16f) / 0.3f
+            Mov(escala = 0.7f + 0.3f * rebote(e).coerceAtLeast(0f), dy = 2f * (1f - suave(e)), alfa = suave(e * 1.5f))
+        }
+        else -> {
+            val tutor = n.startsWith("t_")
+            val s = if (tutor) -1f else 1f
+            val r = if (tutor) ritmoTutor else ritmoEstudiante
+            val fase = ACERCA * avance / r.zancada * PI.toFloat() + if (tutor) 1.1f else 0f
+            val parte = n.substring(2)
+            when {
+                parte == "raiz" -> Mov(dx = -s * ACERCA * (1f - avance), dy = (-2.6f * cos(fase) * cos(fase) + 0.6f * abs(sin(fase))) * vel)
+                tutor && parte == "cabeza" -> Mov(grados = s * (-1.5f * vel + 3f * asiente + 0.8f * onda(t, 4.8f)))
+                // Ella mira al tutor mientras le muestra el código
+                !tutor && parte == "cabeza" -> Mov(grados = -1.5f * vel - 3.5f * mira + 0.8f * onda(t, 5.2f))
+                else -> caminar(parte, fase, vel, s, t, if (tutor) 3.5f else 2f) ?: QUIETO
+            }
+        }
     }
 }
 
@@ -636,7 +762,8 @@ private fun escenaDe(f: FaseSesion): Triple<Rig, Movimiento, Float> = when (f) {
     FaseSesion.ENVIADA -> Triple(rigEnviada, movEnviada, 2.5f)
     FaseSesion.AGENDADA -> Triple(rigAgendada, movAgendada, 3.5f)
     FaseSesion.HOY -> Triple(rigHoy, movHoy, 3f)
-    FaseSesion.YA_CASI -> Triple(rigYaCasi, movYaCasi, 6f)
+    FaseSesion.YA_CASI -> Triple(rigYaCasi, movYaCasi, 0.3f)
+    FaseSesion.LLEGO -> Triple(rigLlego, movLlego, 6f)
     FaseSesion.EN_SESION -> Triple(rigSesion, movSesion, 4.2f)
     FaseSesion.YA_CASI_VIRTUAL -> Triple(rigConectando, movConectando, 5f)
     FaseSesion.EN_SESION_VIRTUAL -> Triple(rigLlamada, movLlamada, 2f)
@@ -656,6 +783,10 @@ fun BarraSesion(modifier: Modifier = Modifier) {
     val tiempo = reloj.animateFloat(
         0f, 1200f, infiniteRepeatable(tween(1_200_000, easing = LinearEasing), RepeatMode.Restart), label = "t"
     )
+    // El PIN de la nube (de muestra: aún no hay datos reales)
+    val medidor = rememberTextMeasurer()
+    val estiloPin = MaterialTheme.typography.titleSmall.copy(color = TextoPrimario, letterSpacing = 2.sp)
+    val pin = remember(estiloPin) { PIN_MUESTRA.map { medidor.measure(it.toString(), estiloPin) } }
     Column(
         modifier
             .fillMaxWidth()
@@ -671,6 +802,8 @@ fun BarraSesion(modifier: Modifier = Modifier) {
             label = "escena"
         ) { f ->
             val (rig, mueve, pose) = escenaDe(f)
+            // "Llegó" cuenta desde que aparece: la llegada pasa una sola vez
+            val inicio = remember { if (f == FaseSesion.LLEGO) tiempo.value else 0f }
             // Solo se decodifican las imágenes de la fase visible (y, al cambiar, las de la siguiente)
             val bmps = rememberBitmaps(rig.capas.map { it.id })
             // A la izquierda, en qué paso va la sesión; a la derecha, la escena que lo cuenta
@@ -696,8 +829,8 @@ fun BarraSesion(modifier: Modifier = Modifier) {
                     )
                 }
                 Canvas(Modifier.weight(0.56f).fillMaxHeight().clipToBounds()) {
-                    val t = if (movimiento) tiempo.value else pose
-                    escena(rig, bmps, t, 1.dp.toPx(), mueve)
+                    val t = if (movimiento) tiempo.value - inicio else pose
+                    escena(rig, bmps, t, 1.dp.toPx(), mueve, pin)
                 }
             }
         }

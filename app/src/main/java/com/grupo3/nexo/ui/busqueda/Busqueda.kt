@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -89,6 +90,7 @@ import com.grupo3.nexo.ui.components.BarraSuperior
 import com.grupo3.nexo.ui.components.Valoracion
 import com.grupo3.nexo.ui.components.formatoPrecio
 import com.grupo3.nexo.ui.components.icono
+import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.superficiePulsable
@@ -371,20 +373,27 @@ private fun HojaFiltros(
 /** Opción de filtro con ícono (modalidad), mismo estilo que [FiltroOpcion]. */
 @Composable
 private fun FiltroIcono(texto: String, icono: ImageVector, seleccionado: Boolean, alClicar: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = Modifier
-            .height(40.dp)
+            .areaTactilSinCambiarMedida()
+            .height(48.dp)
             .pulsable(rol = Role.RadioButton, alClicar = alClicar)
-            .then(
-                if (seleccionado) Modifier.background(TinteBosque, RoundedCornerShape(8.dp)).border(1.dp, BosqueAcento.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
-                else Modifier.superficie(RoundedCornerShape(8.dp))
-            )
-            .padding(horizontal = 14.dp)
     ) {
-        Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(17.dp))
-        Spacer(Modifier.width(6.dp))
-        Text(texto, color = TextoPrimario, style = MaterialTheme.typography.titleSmall.copy(fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Medium))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .height(40.dp)
+                .then(
+                    if (seleccionado) Modifier.background(TinteBosque, RoundedCornerShape(8.dp)).border(1.dp, BosqueAcento.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
+                    else Modifier.superficie(RoundedCornerShape(8.dp))
+                )
+                .padding(horizontal = 14.dp)
+        ) {
+            Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(17.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(texto, color = TextoPrimario, style = MaterialTheme.typography.titleSmall.copy(fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Medium))
+        }
     }
 }
 

@@ -18,6 +18,12 @@ val ErrorBosque = Color(0xFFBA1A1A)
 
 /** Menta: solo micro-indicadores (punto "en línea", insignias de no leídos, confirmaciones). */
 val Menta = Color(0xFF00B872)
+/** Punto de presencia cuando la persona no está en línea. */
+val PuntoDesconectado = Color(0xFFB9C6BE)
+/** Trazo de los eslabones de la barra de navegación. */
+val TrazoEslabon = Color(0xFF153A28)
+/** Menta clara para el texto de la miga sobre fondo oscuro. */
+val TextoMigaClaro = Color(0xFF8FE0B8)
 
 /* Superficies */
 val Fondo = Lienzo
@@ -29,10 +35,11 @@ val TinteBosque = Color(0xFFE1ECE5)
 
 /* Texto */
 val TextoPrimario = BosqueProfundo
-val TextoSecundario = Salvia
+/** Salvia oscurecida para texto: 4.5:1 sobre blanco y sobre el lienzo (Salvia queda para formas e ilustración). */
+val TextoSecundario = Color(0xFF587966)
 /** Metadatos de menor jerarquía; cumple 4.5:1 sobre blanco y sobre el lienzo. */
-val TextoTercero = Color(0xFF6B8577)
-val Marcador = Bosque.copy(alpha = 0.42f)
+val TextoTercero = Color(0xFF60776B)
+val Marcador = Bosque.copy(alpha = 0.64f)
 
 val Acento = BosqueAcento
 
@@ -79,3 +86,16 @@ val tonosAvatar = listOf(
     Color(0xFF2E4B3F) to Color(0xFF4A6B5D),
     Color(0xFF0F3D33) to Color(0xFF22594C)
 )
+
+/* Logo animado (ilustración) */
+val LogoAzulPower = Color(0xFF9CC4FF)
+val LogoFondoOscuro = Color(0xFF020B07)
+val LogoFondoMedio = Color(0xFF0B3324)
+val LogoFondoClaro = Color(0xFF17573C)
+val LogoLenguaBorde = Color(0xFF1F8A5B)
+val LogoLengua1 = Color(0xFF3CCB8B)
+val LogoLengua2 = Color(0xFF7FDDB0)
+val LogoLengua3 = Color(0xFFA8EBCB)
+val LogoLenguaSurco = Color(0xFF2A9E6A)
+val LogoMigaSombra = Color(0xFFC9A46A)
+val LogoMiga = Color(0xFFF3E3C3)

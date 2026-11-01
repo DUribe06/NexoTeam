@@ -30,7 +30,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.EventNote
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.ChatBubbleOutline
-import androidx.compose.material.icons.rounded.HourglassTop
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
@@ -64,6 +63,7 @@ import com.grupo3.nexo.domain.usecase.ObtenerTutoresUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.ui.busqueda.AreaEstudio
 import com.grupo3.nexo.ui.components.Avatar
+import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.AvisoNexo
 import com.grupo3.nexo.ui.components.BotonPrimario
 import com.grupo3.nexo.ui.components.BotonSecundario
@@ -77,7 +77,7 @@ import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.InsigniaEstado
 import com.grupo3.nexo.ui.components.RotuloGrupo
 import com.grupo3.nexo.ui.components.TextoLinea
-import com.grupo3.nexo.ui.components.TituloPantalla
+import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.icono
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.theme.MielOscura
@@ -95,6 +95,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import com.grupo3.nexo.ui.components.BotonTonal
 import com.grupo3.nexo.ui.components.Pestanas
+import com.grupo3.nexo.ui.components.PLAZO_RESPUESTA
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -102,7 +103,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.graphics.graphicsLayer
 import com.grupo3.nexo.R
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueProfundo
@@ -193,7 +193,7 @@ fun PantallaSolicitudes(
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            TituloPantalla(
+            CabeceraSeccion(
                 titulo = if (estado.esTutor) "Solicitudes recibidas" else "Mis solicitudes",
                 subtitulo = when {
                     estado.total == 0 -> null
@@ -204,9 +204,12 @@ fun PantallaSolicitudes(
             )
 
             if (estado.total > 0) {
-                val estados = EstadoSolicitud.entries.filter { (estado.conteos[it] ?: 0) > 0 }
+                val estados = remember(estado.conteos) { EstadoSolicitud.entries.filter { (estado.conteos[it] ?: 0) > 0 } }
+                val opciones = remember(estados, estado.conteos) {
+                    listOf("Todas") + estados.map { "${plural(it)} ${estado.conteos[it]}" }
+                }
                 Pestanas(
-                    opciones = listOf("Todas") + estados.map { "${plural(it)} ${estado.conteos[it]}" },
+                    opciones = opciones,
                     seleccionada = estado.filtro?.let { estados.indexOf(it) + 1 } ?: 0,
                     alElegir = { i -> viewModel.filtrar(if (i == 0) null else estados[i - 1]) },
                     modifier = Modifier.padding(top = 6.dp)
@@ -277,7 +280,7 @@ fun PantallaSolicitudes(
         val aceptada = s.estado == EstadoSolicitud.ACEPTADA
         DialogoConfirmacion(
             titulo = if (aceptada) "¿Cancelar la tutoría?" else "¿Cancelar la solicitud?",
-            mensaje = if (aceptada) "Le avisaremos a ${s.nombreTutor} que no asistirás el ${s.fecha} a las ${s.hora}."
+            mensaje = if (aceptada) "Le avisaremos a ${s.nombreTutor} que no asistirás el ${formatoFecha(s.fecha)} a las ${s.hora}."
             else "${s.nombreTutor} ya no verá esta solicitud.",
             confirmar = if (aceptada) "Cancelar tutoría" else "Cancelar solicitud",
             alConfirmar = {
@@ -312,21 +315,20 @@ private fun TarjetaSolicitud(
     modifier: Modifier = Modifier
 ) {
     val otraParte = if (esTutor) solicitud.nombreEstudiante else solicitud.nombreTutor
-    // Las cerradas (rechazadas, finalizadas, canceladas) se apagan un poco: lo activo manda
+    // Las cerradas (rechazadas, finalizadas, canceladas) apagan el nombre con color, no con transparencia: el contraste se mantiene
     val activa = solicitud.estado == EstadoSolicitud.PENDIENTE || solicitud.estado == EstadoSolicitud.ACEPTADA
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .superficie(RoundedCornerShape(20.dp))
-            .graphicsLayer { alpha = if (activa) 1f else 0.82f }
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Avatar(otraParte, tamano = 40.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                TextoLinea(otraParte, MaterialTheme.typography.titleMedium, TextoPrimario)
+                TextoLinea(otraParte, MaterialTheme.typography.titleMedium, if (activa) TextoPrimario else TextoSecundario)
                 TextoLinea(solicitud.materia, MaterialTheme.typography.bodyMedium, TextoSecundario)
             }
             Spacer(Modifier.width(8.dp))
@@ -337,7 +339,7 @@ private fun TarjetaSolicitud(
         Text(solicitud.tema, color = TextoPrimario, style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Dato(ImageVector.vectorResource(R.drawable.ph_calendario), solicitud.fecha)
+            Dato(ImageVector.vectorResource(R.drawable.ph_calendario), formatoFecha(solicitud.fecha))
             Spacer(Modifier.width(14.dp))
             Dato(ImageVector.vectorResource(R.drawable.ph_reloj), solicitud.hora)
             Spacer(Modifier.width(14.dp))
@@ -369,9 +371,10 @@ private fun TarjetaSolicitud(
         when {
             esTutor && solicitud.estado == EstadoSolicitud.PENDIENTE -> {
                 Spacer(Modifier.height(12.dp))
+                AvisoPlazo("Responde antes de $PLAZO_RESPUESTA")
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BotonTonal("Aceptar", alAceptar, icono = Icons.Rounded.Check)
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.weight(1f))
                     BotonTexto("Rechazar", alRechazar, color = TextoSecundario)
                 }
                 Spacer(Modifier.height(4.dp))
@@ -391,16 +394,8 @@ private fun TarjetaSolicitud(
                 Spacer(Modifier.height(4.dp))
             }
             !esTutor && solicitud.estado == EstadoSolicitud.PENDIENTE -> {
-                Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.HourglassTop, contentDescription = null, tint = MielOscura, modifier = Modifier.size(15.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        "Expira si no responde en 24 h",
-                        color = TextoTercero,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.weight(1f)
-                    )
+                    AvisoPlazo("Expira si no responde en $PLAZO_RESPUESTA", Modifier.weight(1f), conAire = false)
                     BotonTexto("Cancelar", alCancelar, color = Rojo)
                 }
             }
@@ -412,12 +407,26 @@ private fun TarjetaSolicitud(
     }
 }
 
+/** Plazo de respuesta (RF6) en una línea discreta, igual para estudiante y tutor. */
+@Composable
+private fun AvisoPlazo(texto: String, modifier: Modifier = Modifier, conAire: Boolean = true) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.padding(top = if (conAire) 12.dp else 0.dp)
+    ) {
+        Icon(ImageVector.vectorResource(R.drawable.ph_reloj), contentDescription = null, tint = MielOscura, modifier = Modifier.size(15.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(texto, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
 @Composable
 private fun Dato(icono: ImageVector, texto: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(15.dp))
         Spacer(Modifier.width(5.dp))
-        Text(texto, color = BosqueProfundo, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium).merge(CifrasTabulares))
+        val estilo = MaterialTheme.typography.bodyMedium
+        Text(texto, color = BosqueProfundo, style = remember(estilo) { estilo.copy(fontWeight = FontWeight.Medium).merge(CifrasTabulares) })
     }
 }
 
@@ -434,7 +443,7 @@ private fun HojaRechazo(solicitud: Solicitud, alCerrar: () -> Unit, alConfirmar:
     var motivo by rememberSaveable { mutableStateOf("") }
     HojaNexo(
         titulo = "Rechazar solicitud",
-        subtitulo = "${solicitud.nombreEstudiante} · ${solicitud.materia} · ${solicitud.fecha}, ${solicitud.hora}. A ${solicitud.nombreEstudiante.substringBefore(' ')} le sugeriremos otros tutores de ${solicitud.materia}.",
+        subtitulo = "${solicitud.nombreEstudiante} · ${solicitud.materia} · ${formatoFecha(solicitud.fecha)}, ${solicitud.hora}. A ${solicitud.nombreEstudiante.substringBefore(' ')} le sugeriremos otros tutores de ${solicitud.materia}.",
         alCerrar = alCerrar
     ) {
         RotuloGrupo("Motivo (opcional)", Modifier.padding(top = 20.dp, bottom = 10.dp))

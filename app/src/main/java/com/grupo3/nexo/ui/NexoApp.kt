@@ -10,8 +10,6 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -21,8 +19,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -48,12 +50,13 @@ import com.grupo3.nexo.ui.perfil.PantallaPerfil
 import com.grupo3.nexo.ui.solicitudes.PantallaSolicitudes
 import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.tutor.PantallaTutorPerfil
+import kotlinx.coroutines.delay
 
 /* Movimiento de navegación (Material 3, curvas enfatizadas: arrancan rápido y frenan suave):
  * - entre pestañas: el contenido nuevo entra deslizándose un poco desde el lado hacia el que viajan los
  *   eslabones de la barra, y el anterior se va hacia el otro; así pantalla y barra cuentan el mismo gesto;
  * - hacia un detalle: eje compartido horizontal (entra desde la derecha y vuelve hacia ella);
- * - del acceso al Inicio: fundido con un leve acercamiento, la foto continúa de una pantalla a la otra.
+ * - del acceso al Inicio: fundido breve; la entrada la hacen los bloques del Inicio, escalonados.
  * Con el gesto de atrás predictivo, estas mismas transiciones se recorren al arrastrar. */
 private const val DURACION = 340
 private val EntradaEnfatizada = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
@@ -118,6 +121,15 @@ fun NexoApp() {
     val rutaActual = entradaActual?.destination?.route
     val mostrarBarra = rutaActual in rutasDeBarra
 
+    // Al llegar desde el acceso, la barra espera a que los bloques del Inicio empiecen a asentarse
+    var vieneDelAcceso by remember { mutableStateOf(false) }
+    LaunchedEffect(mostrarBarra) {
+        if (mostrarBarra && vieneDelAcceso) {
+            delay(800)
+            vieneDelAcceso = false
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -137,15 +149,18 @@ fun NexoApp() {
         ) {
             composable(
                 Rutas.Login.ruta,
-                exitTransition = { fadeOut(tween(300)) + scaleOut(tween(400, easing = Enfatizada), targetScale = 0.98f) }
+                exitTransition = { fadeOut(tween(180, easing = SalidaEnfatizada)) }
             ) {
-                PantallaLogin(alEntrar = { controlador.irAInicio() })
+                PantallaLogin(alEntrar = {
+                    vieneDelAcceso = true
+                    controlador.irAInicio()
+                })
             }
             composable(
                 Rutas.Inicio.ruta,
                 enterTransition = {
                     if (initialState.destination.route == Rutas.Login.ruta) {
-                        fadeIn(tween(500, delayMillis = 80)) + scaleIn(tween(700, easing = EntradaEnfatizada), initialScale = 1.05f)
+                        fadeIn(tween(240, delayMillis = 60))
                     } else entrada()
                 }
             ) {
@@ -220,7 +235,9 @@ fun NexoApp() {
 
         AnimatedVisibility(
             visible = mostrarBarra,
-            enter = slideInVertically(tween(380, easing = EntradaEnfatizada)) { it } + fadeIn(tween(240)),
+            enter = slideInVertically(
+                tween(380, delayMillis = if (vieneDelAcceso) 320 else 0, easing = EntradaEnfatizada)
+            ) { it } + fadeIn(tween(240, delayMillis = if (vieneDelAcceso) 320 else 0)),
             exit = slideOutVertically(tween(200, easing = SalidaEnfatizada)) { it } + fadeOut(tween(160))
         ) {
             BarraNavegacion(

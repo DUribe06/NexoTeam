@@ -26,13 +26,6 @@ enum class EstadoSesion(val etiqueta: String) {
     NO_ASISTIO("No asistió")
 }
 
-/** Validación de la cuenta de tutor por el administrador (RF1, RF12). */
-enum class EstadoVerificacion(val etiqueta: String) {
-    PENDIENTE("En verificación"),
-    VERIFICADO("Tutor verificado"),
-    SUSPENDIDO("Cuenta suspendida")
-}
-
 /** Forma en la que se presta la tutoría (glosario de la Entrega 1B). */
 enum class Modalidad(val etiqueta: String) {
     VIRTUAL("Virtual"),
@@ -210,16 +203,12 @@ data class Usuario(
     val rol: Rol,
     val universidad: String = "",
     val carrera: String = "",
-    /** null si nunca se registró como tutor; si no, el estado de su validación (RF12). */
-    val verificacion: EstadoVerificacion? = null,
     /** Perfil público como tutor. */
     val bio: String = "",
     val materias: List<String> = emptyList(),
     val colorPrimario: Long = 0xFF0D3829,
     val colorSecundario: Long = 0xFF3F8F69
-) {
-    val puedeEnsenar: Boolean get() = verificacion == EstadoVerificacion.VERIFICADO
-}
+)
 
 /** Cifras del usuario en el modo actual, para el Perfil y el Historial. */
 data class ResumenActividad(

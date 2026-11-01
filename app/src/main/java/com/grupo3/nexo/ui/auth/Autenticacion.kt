@@ -134,6 +134,16 @@ import com.grupo3.nexo.domain.model.Rol
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import javax.inject.Inject
+import com.grupo3.nexo.ui.theme.TituloMarca
+import com.grupo3.nexo.ui.theme.CuerpoAviso
+import com.grupo3.nexo.ui.theme.CuerpoEnlace
+import com.grupo3.nexo.ui.theme.MarcadorCampo
+import com.grupo3.nexo.ui.theme.TextoBotonPrincipal
+import com.grupo3.nexo.ui.theme.EtiquetaSeparador
+import com.grupo3.nexo.ui.theme.TextoBotonSecundario
+import com.grupo3.nexo.ui.theme.CampoAcceso
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 
 /* ==================== ViewModel ==================== */
 
@@ -149,8 +159,6 @@ class LoginViewModel @Inject constructor(
         val correo: String = "",
         val contrasena: String = "",
         val aceptaCondiciones: Boolean = false,
-        /** Rol con el que se registra; un tutor queda pendiente de verificación (RF1). */
-        val rol: Rol = Rol.ESTUDIANTE,
         val esRegistro: Boolean = false,
         val cargando: Boolean = false,
         val error: String? = null,
@@ -164,8 +172,6 @@ class LoginViewModel @Inject constructor(
     fun cambiarCorreo(valor: String) = _estado.update { it.copy(correo = valor.trim(), error = null) }
     fun cambiarContrasena(valor: String) = _estado.update { it.copy(contrasena = valor, error = null) }
     fun cambiarCondiciones(valor: Boolean) = _estado.update { it.copy(aceptaCondiciones = valor, error = null) }
-
-    fun cambiarRol(valor: Rol) = _estado.update { it.copy(rol = valor, error = null) }
 
     fun alternarModo() = _estado.update { it.copy(esRegistro = !it.esRegistro, error = null) }
 
@@ -186,7 +192,7 @@ class LoginViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _estado.update { it.copy(cargando = true) }
-            val exito = if (e.esRegistro) registrarse(e.nombre.trim(), e.correo, e.contrasena, e.rol)
+            val exito = if (e.esRegistro) registrarse(e.nombre.trim(), e.correo, e.contrasena)
                         else iniciarSesion(e.correo, e.contrasena)
             _estado.update {
                 it.copy(
@@ -304,9 +310,7 @@ private fun ContenidoAcceso(
                         Spacer(Modifier.height(14.dp))
                         Text(
                             "Nexo",
-                            fontSize = 26.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = (-0.6).sp,
+                            style = LocalTextStyle.current.merge(TituloMarca),
                             modifier = Modifier
                                 .semantics { heading() }
                                 .entrada(1, iniciado)
@@ -322,8 +326,7 @@ private fun ContenidoAcceso(
                                 if (esRegistro) "Acceso a la red colaborativa de tutorías."
                                 else "Qué bueno verte de nuevo. Inicia sesión.",
                                 color = Salvia,
-                                fontSize = 14.sp,
-                                lineHeight = 21.sp,
+                                style = LocalTextStyle.current.merge(MaterialTheme.typography.bodyMedium),
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.widthIn(max = 300.dp)
                             )
@@ -393,8 +396,7 @@ private fun ContenidoAcceso(
                             Text(
                                 estado.error.orEmpty(),
                                 color = ErrorBosque,
-                                fontSize = 13.sp,
-                                lineHeight = 18.sp,
+                                style = LocalTextStyle.current.merge(CuerpoAviso),
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -586,12 +588,7 @@ private fun CampoPildora(
         value = valor,
         onValueChange = alCambiar,
         singleLine = true,
-        textStyle = TextStyle(
-            fontFamily = InstrumentSans,
-            fontWeight = FontWeight.Medium,
-            fontSize = 15.sp,
-            color = BosqueProfundo
-        ),
+        textStyle = CampoAcceso.copy(color = BosqueProfundo),
         cursorBrush = SolidColor(BosqueAcento),
         visualTransformation = if (esContrasena && !visible) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions = teclado,
@@ -613,7 +610,7 @@ private fun CampoPildora(
                 Spacer(Modifier.width(12.dp))
                 Box(Modifier.weight(1f)) {
                     if (valor.isEmpty()) {
-                        Text(marcador, color = Bosque.copy(alpha = 0.50f), fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                        Text(marcador, color = Bosque.copy(alpha = 0.50f), style = LocalTextStyle.current.merge(MarcadorCampo))
                     }
                     campo()
                 }
@@ -676,7 +673,7 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
                 ) { append("condiciones de uso") }
             },
             color = Salvia,
-            fontSize = 13.sp
+            style = LocalTextStyle.current.merge(CuerpoEnlace)
         )
     }
 }
@@ -718,7 +715,7 @@ private fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> Un
                 CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(texto, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, letterSpacing = 0.3.sp)
+                    Text(texto, color = Color.White, style = LocalTextStyle.current.merge(TextoBotonPrincipal))
                     Spacer(Modifier.width(10.dp + desplazamientoFlecha))
                     Icon(
                         Icons.AutoMirrored.Rounded.ArrowForward,
@@ -743,9 +740,7 @@ private fun SeparadorSocial(modifier: Modifier = Modifier) {
         Text(
             "O CONÉCTATE CON",
             color = Bosque.copy(alpha = 0.55f),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 1.6.sp,
+            style = LocalTextStyle.current.merge(EtiquetaSeparador),
             modifier = Modifier.padding(horizontal = 12.dp)
         )
         Box(Modifier.width(52.dp).height(1.dp).background(Bosque.copy(alpha = 0.15f)))
@@ -767,7 +762,7 @@ private fun BotonGoogle(habilitado: Boolean, alClicar: () -> Unit, modifier: Mod
     ) {
         Image(painterResource(R.drawable.ic_google), contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(10.dp))
-        Text("Continuar con Google", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text("Continuar con Google", style = LocalTextStyle.current.merge(TextoBotonSecundario))
     }
 }
 
@@ -781,7 +776,7 @@ private fun EnlaceCambioModo(esRegistro: Boolean, alClicar: () -> Unit, modifier
             }
         },
         color = Salvia,
-        fontSize = 13.sp,
+        style = LocalTextStyle.current.merge(CuerpoEnlace),
         modifier = modifier
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },

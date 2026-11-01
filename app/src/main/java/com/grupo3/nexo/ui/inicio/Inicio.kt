@@ -97,6 +97,7 @@ import com.grupo3.nexo.ui.components.aparicion
 import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.components.formatoPrecio
 import com.grupo3.nexo.ui.components.icono
+import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
@@ -173,6 +174,14 @@ import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.util.Locale
 import kotlin.math.roundToInt
+import com.grupo3.nexo.ui.theme.EtiquetaArea
+import com.grupo3.nexo.ui.theme.EtiquetaFecha
+import com.grupo3.nexo.ui.theme.EtiquetaDisponibilidad
+import com.grupo3.nexo.ui.theme.CuerpoSesion
+import com.grupo3.nexo.ui.theme.TituloMateria
+import com.grupo3.nexo.ui.theme.CuerpoNombre
+import com.grupo3.nexo.ui.theme.EtiquetaBoton
+import com.grupo3.nexo.ui.theme.CifraHora
 
 /* ==================== ViewModel ==================== */
 
@@ -511,7 +520,7 @@ private fun AccesoArea(area: AreaEstudio, alClicar: () -> Unit) {
         Text(
             area.etiqueta,
             color = BosqueProfundo,
-            style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold),
+            style = EtiquetaArea,
             maxLines = 1,
             textAlign = TextAlign.Center
         )
@@ -573,7 +582,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                 Text(
                     fechaLarga(s.fecha),
                     color = BosqueAcento,
-                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                    style = EtiquetaFecha,
                     modifier = Modifier.weight(1f)
                 )
                 // Modalidad como texto con ícono, sin pastilla: el único botón blanco es "Abrir chat"
@@ -583,7 +592,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                 ) {
                     Icon(painterResource(s.modalidad.iconoPh), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(s.modalidad.etiqueta, color = BosqueAcento, style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold))
+                    Text(s.modalidad.etiqueta, color = BosqueAcento, style = EtiquetaArea)
                 }
             }
             Row(
@@ -595,7 +604,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                 Text(
                     s.hora,
                     color = BosqueProfundo,
-                    style = TextStyle(fontFamily = InstrumentSans, fontWeight = FontWeight.SemiBold, fontSize = 42.sp, lineHeight = 46.sp, letterSpacing = (-1.6).sp).merge(CifrasTabulares)
+                    style = CifraHora.merge(CifrasTabulares)
                 )
                 Spacer(Modifier.width(14.dp))
                 Box(
@@ -607,10 +616,10 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                 )
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    TextoLinea(s.materia, MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp), BosqueProfundo)
+                    TextoLinea(s.materia, TituloMateria, BosqueProfundo)
                     TextoLinea(
                         "${formatoHoras(s.duracionHoras)} · hasta las ${horaFin(s.hora, s.duracionHoras)}",
-                        MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Medium),
+                        CuerpoSesion,
                         Salvia
                     )
                 }
@@ -619,7 +628,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                 Avatar(s.conQuien, tamano = 28.dp)
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    TextoLinea(s.conQuien, MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium), BosqueProfundo)
+                    TextoLinea(s.conQuien, CuerpoNombre, BosqueProfundo)
                     primera.tutor?.let { t ->
                         TextoLinea(
                             "${universidadCorta(t.universidad)} · ${formatoValoracion(t.rating)}",
@@ -629,17 +638,24 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     }
                 }
                 primera.tutorId?.let { id ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                    Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier
+                            .areaTactilSinCambiarMedida()
+                            .height(48.dp)
                             .pulsable(etiqueta = "Escribir a ${s.conQuien}") { alAbrirChat(id) }
-                            .height(40.dp)
-                            .background(Color.White, RoundedCornerShape(20.dp))
-                            .padding(horizontal = 15.dp)
                     ) {
-                        Icon(painterResource(R.drawable.ph_chat), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(17.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Abrir chat", color = BosqueProfundo, style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .height(40.dp)
+                                .background(Color.White, RoundedCornerShape(20.dp))
+                                .padding(horizontal = 15.dp)
+                        ) {
+                            Icon(painterResource(R.drawable.ph_chat), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(17.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Abrir chat", color = BosqueProfundo, style = EtiquetaBoton)
+                        }
                     }
                 }
             }
@@ -695,7 +711,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                 Text(
                     "${q.sesion.materia} · ${q.sesion.conQuien}",
                     color = BosqueProfundo,
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Medium),
+                    style = CuerpoSesion,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
@@ -790,7 +806,7 @@ private fun TiraDisponibilidad(horas: Int, dias: List<String>, alEditar: () -> U
                 if (horas == 0) "Publica tus horarios para aparecer en las búsquedas"
                 else "Tu disponibilidad · ${if (horas == 1) "1 hora" else "$horas horas"} a la semana",
                 color = Salvia,
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.5.sp),
+                style = EtiquetaDisponibilidad,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
@@ -798,7 +814,7 @@ private fun TiraDisponibilidad(horas: Int, dias: List<String>, alEditar: () -> U
             Text(
                 if (horas == 0) "Publicar" else "Editar",
                 color = BosqueAcento,
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                style = EtiquetaFecha
             )
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp)) {
@@ -823,7 +839,7 @@ private fun TiraDisponibilidad(horas: Int, dias: List<String>, alEditar: () -> U
                     Text(
                         d,
                         color = if (activo) BosqueProfundo else TextoTercero,
-                        style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.5.sp, fontWeight = if (activo) FontWeight.SemiBold else FontWeight.Medium),
+                        style = EtiquetaArea.copy(fontWeight = if (activo) FontWeight.SemiBold else FontWeight.Medium),
                         maxLines = 1,
                         textAlign = TextAlign.Center
                     )

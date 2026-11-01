@@ -66,6 +66,7 @@ import com.grupo3.nexo.ui.navigation.Rutas
 import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Salvia
+import com.grupo3.nexo.ui.theme.TrazoEslabon
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -104,7 +105,7 @@ private val ALTO_BARRA = 52.dp
 private val ALTO_DISENO_ONDA = 86.dp
 private val TAM_ESLABON = 34.dp
 /** Color y grosor del trazo de los eslabones (medidos en eslabon_1.png / eslabon_2.png). */
-private val ColorEslabon = Color(0xFF153A28)
+private val ColorEslabon = TrazoEslabon
 private const val GROSOR_BRAZO = 2.75f
 
 /** Separación (dp) entre las caras de los dos brazos con los eslabones juntos: hasta ahí la liga aún no existe. */

@@ -39,6 +39,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -67,7 +73,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.R
-import com.grupo3.nexo.domain.model.EstadoVerificacion
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.ResumenActividad
 import com.grupo3.nexo.domain.model.Rol
@@ -80,6 +85,8 @@ import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.ui.components.Avatar
 import com.grupo3.nexo.ui.components.CabeceraBosque
 import com.grupo3.nexo.ui.components.CifrasTabulares
+import com.grupo3.nexo.ui.components.ListaResenas
+import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.components.DialogoConfirmacion
 import com.grupo3.nexo.ui.components.EncabezadoSeccion
 import com.grupo3.nexo.ui.components.Estrellas
@@ -101,7 +108,6 @@ import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.Miel
-import com.grupo3.nexo.ui.theme.MielOscura
 import com.grupo3.nexo.ui.theme.Rojo
 import com.grupo3.nexo.ui.theme.Salvia
 import com.grupo3.nexo.ui.theme.TextoPrimario
@@ -162,7 +168,10 @@ fun PantallaPerfil(
     val estado by viewModel.estado.collectAsState()
     val usuario = estado.usuario
     val desplazamiento = rememberScrollState()
-    val cabeceraVisible by remember { derivedStateOf { desplazamiento.value < 300 } }
+    // El velo aparece cuando el selector llega a la barra de estado, sea cual sea el alto de la foto
+    val altoBarra = WindowInsets.statusBars.getTop(LocalDensity.current)
+    var arribaSelector by remember { mutableFloatStateOf(Float.MAX_VALUE) }
+    val cabeceraVisible by remember { derivedStateOf { arribaSelector > altoBarra } }
     IconosClarosEnBarraDeEstado(activo = cabeceraVisible)
     val iniciado = rememberPrimeraVez()
     var confirmarSalida by remember { mutableStateOf(false) }
@@ -184,6 +193,7 @@ fun PantallaPerfil(
                     alElegir = viewModel::elegirModo,
                     modifier = Modifier
                         .solaparHaciaArriba(30.dp)
+                        .onGloballyPositioned { arribaSelector = it.positionInRoot().y }
                         .padding(horizontal = 20.dp)
                         .aparicion(1, iniciado)
                 )
@@ -199,9 +209,7 @@ fun PantallaPerfil(
                         // Lo accionable va primero; las cifras y materias quedan como contexto
                         if (esTutor) {
                             Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp)) {
-                                Verificacion(usuario.verificacion)
-                                Spacer(Modifier.height(10.dp))
-                                TarjetaDisponibilidad(usuario.puedeEnsenar, alAbrirDisponibilidad)
+                                TarjetaDisponibilidad(alAbrirDisponibilidad)
                             }
                             Cifras(estado.resumen, true, Modifier.padding(horizontal = 20.dp, vertical = 18.dp))
                             BloqueTutor(usuario, estado.resenas, alVerTodas = alAbrirHistorial)
@@ -266,7 +274,6 @@ private fun CabeceraAjustable(
 /* ==================== Piezas ==================== */
 
 /** Esquinas amplias como la tarjeta de la próxima sesión del Inicio y los campos del acceso. */
-private val FormaOrganica = RoundedCornerShape(22.dp)
 
 /** Botón circular verde bosque con flecha, el mismo "ir" del buscador del Inicio. */
 @Composable
@@ -404,12 +411,14 @@ private fun BloqueTutor(usuario: Usuario, resenas: List<Resena>, alVerTodas: () 
 
         if (resenas.isNotEmpty()) {
             EncabezadoSeccion("Lo que dicen de ti", Modifier.padding(top = 10.dp), accion = "Ver todas", alAccion = alVerTodas)
-            Column(Modifier.fillMaxWidth().superficie(FormaOrganica)) {
-                resenas.take(2).forEachIndexed { i, r ->
-                    if (i > 0) Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(Divisor))
-                    FilaResena(r)
-                }
-            }
+            ListaResenas(resenas.take(2))
+        } else {
+            EncabezadoSeccion("Lo que dicen de ti", Modifier.padding(top = 10.dp))
+            Text(
+                "Aún no tienes reseñas. Aparecerán aquí cuando los estudiantes califiquen tus tutorías.",
+                color = TextoSecundario,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }
@@ -442,60 +451,6 @@ private fun Materias(titulo: String, materias: List<String>, modifier: Modifier 
                 )
             }
         }
-    }
-}
-
-/** Estado de la cuenta de tutor como una línea con ícono, sin pastilla de color. */
-@Composable
-private fun Verificacion(estado: EstadoVerificacion?) {
-    if (estado == null) return
-    val (color, detalle) = when (estado) {
-        EstadoVerificacion.VERIFICADO -> BosqueAcento to "Apareces en las búsquedas y recibes solicitudes."
-        EstadoVerificacion.PENDIENTE -> MielOscura to "Revisamos tus datos académicos; te avisaremos al terminar."
-        EstadoVerificacion.SUSPENDIDO -> Rojo to "Tu perfil no aparece en las búsquedas. Escríbenos para revisarlo."
-    }
-    // Tarjeta tintada con el color del estado; verificado es la más tenue
-    Row(
-        verticalAlignment = Alignment.Top,
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(if (estado == EstadoVerificacion.VERIFICADO) TinteBosque else color.copy(alpha = 0.10f), FormaOrganica)
-            .border(1.dp, color.copy(alpha = 0.16f), FormaOrganica)
-            .padding(start = 16.dp, end = 14.dp, top = 14.dp, bottom = 14.dp)
-    ) {
-        Icon(
-            painterResource(if (estado == EstadoVerificacion.PENDIENTE) R.drawable.ph_historial else R.drawable.ph_sello),
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.padding(top = 2.dp).size(22.dp)
-        )
-        Spacer(Modifier.width(10.dp))
-        Column {
-            Text(estado.etiqueta, color = color, style = MaterialTheme.typography.titleSmall)
-            Text(detalle, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@Composable
-private fun FilaResena(resena: Resena) {
-    Column(Modifier.padding(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Avatar(resena.autor, tamano = 32.dp)
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                TextoLinea(resena.autor, MaterialTheme.typography.titleSmall, TextoPrimario)
-                TextoLinea(resena.fecha, MaterialTheme.typography.bodySmall, TextoTercero)
-            }
-            Estrellas(resena.estrellas, tamano = 12.dp)
-        }
-        Text(
-            resena.texto,
-            color = TextoSecundario,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 3,
-            modifier = Modifier.padding(top = 8.dp)
-        )
     }
 }
 
@@ -558,29 +513,22 @@ private fun Menu(alAbrirHistorial: () -> Unit, alSalir: () -> Unit) {
 
 /** Modo tutor: acceso directo a la disponibilidad, lo que más usa quien enseña. */
 @Composable
-private fun TarjetaDisponibilidad(habilitada: Boolean, alAbrir: () -> Unit) {
+private fun TarjetaDisponibilidad(alAbrir: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .superficie(FormaOrganica)
-            .clickable(enabled = habilitada, role = Role.Button, onClick = alAbrir)
+            .clickable(role = Role.Button, onClick = alAbrir)
             .padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 14.dp)
-            .alpha(if (habilitada) 1f else 0.5f)
     ) {
         Icon(painterResource(R.drawable.ph_calendario), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text("Mi disponibilidad horaria", color = BosqueProfundo, style = MaterialTheme.typography.titleSmall)
-            Text(
-                if (habilitada) "Define cuándo puedes dar tutorías." else "Disponible cuando verifiquemos tu cuenta.",
-                color = Salvia,
-                style = MaterialTheme.typography.bodySmall
-            )
+            Text("Define cuándo puedes dar tutorías.", color = Salvia, style = MaterialTheme.typography.bodySmall)
         }
-        if (habilitada) {
-            BotonIr()
-        }
+        BotonIr()
     }
 }
 

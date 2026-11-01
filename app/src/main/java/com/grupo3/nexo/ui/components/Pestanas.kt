@@ -3,6 +3,7 @@ package com.grupo3.nexo.ui.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +18,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -41,13 +48,15 @@ fun Pestanas(
     modifier: Modifier = Modifier,
     margen: Dp = 20.dp
 ) {
+    val desplazamiento = rememberScrollState()
     Row(
         modifier = modifier
             .fillMaxWidth()
             .drawBehind {
                 drawLine(Divisor, Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1.dp.toPx())
             }
-            .horizontalScroll(rememberScrollState())
+            .desvanecerBordes(desplazamiento)
+            .horizontalScroll(desplazamiento)
             .padding(horizontal = margen - 12.dp)
             .selectableGroup()
     ) {
@@ -80,3 +89,25 @@ fun Pestanas(
         }
     }
 }
+
+/**
+ * Desvanece los bordes de una tira con desplazamiento, solo donde hay más contenido:
+ * la última pestaña no queda cortada a media palabra sino que se pierde suavemente.
+ */
+private fun Modifier.desvanecerBordes(estado: ScrollState, ancho: Dp = 32.dp): Modifier =
+    graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+        .drawWithContent {
+            drawContent()
+            val borde = (ancho.toPx() / size.width).coerceAtMost(0.5f)
+            val inicio = if (estado.canScrollBackward) borde else 0f
+            val fin = if (estado.canScrollForward) 1f - borde else 1f
+            drawRect(
+                Brush.horizontalGradient(
+                    0f to (if (inicio > 0f) Color.Transparent else Color.Black),
+                    inicio to Color.Black,
+                    fin to Color.Black,
+                    1f to (if (fin < 1f) Color.Transparent else Color.Black)
+                ),
+                blendMode = BlendMode.DstIn
+            )
+        }

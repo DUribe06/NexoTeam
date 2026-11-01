@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.components
 
+import kotlin.math.roundToInt
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation.NavBackStackEntry
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -58,6 +59,7 @@ import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -104,6 +106,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import com.grupo3.nexo.R
+import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import com.grupo3.nexo.ui.theme.FormaTarjeta
+import com.grupo3.nexo.ui.theme.FormaControl
+import com.grupo3.nexo.ui.theme.FormaOpcion
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
+import com.grupo3.nexo.ui.theme.especAparicion
 import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.BosqueAcento
@@ -115,6 +128,7 @@ import com.grupo3.nexo.ui.theme.InstrumentSans
 import com.grupo3.nexo.ui.theme.Lienzo
 import com.grupo3.nexo.ui.theme.Marcador
 import com.grupo3.nexo.ui.theme.Menta
+import com.grupo3.nexo.ui.theme.PuntoDesconectado
 import com.grupo3.nexo.ui.theme.Miel
 import com.grupo3.nexo.ui.theme.MielFondo
 import com.grupo3.nexo.ui.theme.MielOscura
@@ -129,20 +143,15 @@ import com.grupo3.nexo.ui.theme.VerdeFondo
 import com.grupo3.nexo.ui.theme.pincelBosque
 import com.grupo3.nexo.ui.theme.tonosAvatar
 import java.util.Locale
+import com.grupo3.nexo.ui.theme.CampoEntrada
+import com.grupo3.nexo.ui.theme.MarcadorCampo
+import com.grupo3.nexo.ui.theme.NumeroInsignia
+import com.grupo3.nexo.ui.theme.inicialesAvatar
 
 /* ==================== Superficies ==================== */
 
 /** Cifras con ancho fijo (precios, horas, calificaciones) para que no "bailen" al cambiar. */
 val CifrasTabulares = TextStyle(fontFeatureSettings = "tnum")
-
-/*
- * Escala de esquinas de la app (el acceso conserva la suya):
- * tarjetas 12 dp, controles (botones, campos) 10 dp, opciones pequeñas 8 dp.
- * Nada de píldoras salvo avatares, puntos de estado y contadores.
- */
-val FormaTarjeta = RoundedCornerShape(12.dp)
-val FormaControl = RoundedCornerShape(10.dp)
-val FormaOpcion = RoundedCornerShape(8.dp)
 
 /**
  * Superficie base: blanco sobre el lienzo con un borde fino. Plana a propósito:
@@ -183,6 +192,19 @@ fun Modifier.superficiePulsable(
             onClickLabel = etiqueta,
             onClick = alClicar
         )
+}
+
+/**
+ * Área táctil de 48 dp para una fila visible de [alto]: el padre sigue viendo `alto`
+ * y el pulsable (de 48 dp) sobresale por igual arriba y abajo, sin desplazar nada.
+ * Va antes de `.height(48.dp)` y `.pulsable(...)`.
+ */
+fun Modifier.areaTactilSinCambiarMedida(alto: Dp = 40.dp): Modifier = layout { medible, restricciones ->
+    val p = medible.measure(restricciones)
+    val reportado = alto.roundToPx().coerceAtMost(p.height)
+    // Mismo redondeo que el centrado del contenido (mitad hacia arriba), para no mover nada 1 px
+    val sobra = ((p.height - reportado) / 2f).roundToInt()
+    layout(p.width, reportado) { p.place(0, -sobra) }
 }
 
 /** Solo escala al presionar; para elementos con fondo propio (avatares, píldoras). */
@@ -297,15 +319,20 @@ fun BotonSecundario(
     compacto: Boolean = false,
     peligro: Boolean = false,
     habilitado: Boolean = true,
-    colorIcono: Color = BosqueAcento
+    colorIcono: Color = BosqueAcento,
+    /** Alto del botón; 48 dp en pantallas nuevas para cumplir el área táctil mínima. */
+    alto: Dp = if (compacto) 44.dp else 52.dp,
+    /** Lo que lee TalkBack cuando el texto solo no basta (p. ej. "Calificar a Ana, Cálculo I"). */
+    descripcion: String? = null
 ) {
     val colorTexto = if (peligro) Rojo else TextoPrimario
     Row(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .height(if (compacto) 44.dp else 52.dp)
+            .height(alto)
             .pulsable(habilitado = habilitado, alClicar = alClicar)
+            .semantics { if (descripcion != null) contentDescription = descripcion }
             .background(Color.White, FormaControl)
             .border(1.dp, if (peligro) Rojo.copy(alpha = 0.30f) else Bosque.copy(alpha = 0.16f), FormaControl)
             .padding(horizontal = if (compacto) 16.dp else 20.dp)
@@ -350,21 +377,30 @@ fun BotonTonal(
     icono: ImageVector? = null,
     colorIcono: Color = BosqueAcento
 ) {
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
+    // Se ve de 40 dp pero se toca en 48: el área extra sobresale sin mover el diseño
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
-            .heightIn(min = 40.dp)
+            .areaTactilSinCambiarMedida()
+            .heightIn(min = 48.dp)
             .clip(FormaControl)
-            .background(TinteBosque)
             .clickable(role = Role.Button, onClick = alClicar)
-            .padding(horizontal = 14.dp, vertical = 9.dp)
     ) {
-        if (icono != null) {
-            Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(17.dp))
-            Spacer(Modifier.width(6.dp))
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .heightIn(min = 40.dp)
+                .clip(FormaControl)
+                .background(TinteBosque)
+                .padding(horizontal = 14.dp, vertical = 9.dp)
+        ) {
+            if (icono != null) {
+                Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(17.dp))
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(texto, color = BosqueProfundo, style = MaterialTheme.typography.titleSmall, maxLines = 1)
         }
-        Text(texto, color = BosqueProfundo, style = MaterialTheme.typography.titleSmall, maxLines = 1)
     }
 }
 
@@ -433,18 +469,22 @@ fun BotonIcono(
     sobreOscuro: Boolean = false,
     insignia: Int = 0
 ) {
-    Box(modifier = modifier.minimumInteractiveComponentSize(), contentAlignment = Alignment.Center) {
+    Box(
+        modifier = modifier
+            .minimumInteractiveComponentSize()
+            .clickable(
+                role = Role.Button,
+                onClickLabel = descripcion,
+                onClick = alClicar
+            )
+            .semantics { contentDescription = descripcion },
+        contentAlignment = Alignment.Center
+    ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(44.dp)
                 .clip(FormaControl)
-                .clickable(
-                    role = Role.Button,
-                    onClickLabel = descripcion,
-                    onClick = alClicar
-                )
-                .semantics { contentDescription = descripcion }
         ) {
             Icon(
                 icono,
@@ -499,13 +539,7 @@ fun Campo(
         onValueChange = alCambiar,
         singleLine = !multilinea,
         maxLines = lineasMaximas,
-        textStyle = TextStyle(
-            fontFamily = InstrumentSans,
-            fontWeight = FontWeight.Medium,
-            fontSize = 15.sp,
-            lineHeight = 21.sp,
-            color = BosqueProfundo
-        ),
+        textStyle = CampoEntrada.copy(color = BosqueProfundo),
         cursorBrush = SolidColor(BosqueAcento),
         keyboardOptions = teclado,
         keyboardActions = acciones,
@@ -532,7 +566,7 @@ fun Campo(
                 }
                 Box(Modifier.weight(1f)) {
                     if (valor.isEmpty()) {
-                        Text(marcador, color = Marcador, fontSize = 15.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+                        Text(marcador, color = Marcador, style = LocalTextStyle.current.merge(MarcadorCampo), maxLines = 1)
                     }
                     campo()
                 }
@@ -613,10 +647,7 @@ fun InsigniaConteo(cantidad: Int, modifier: Modifier = Modifier, bordeColor: Col
         Text(
             if (cantidad > 9) "9+" else cantidad.toString(),
             color = BosqueProfundo,
-            fontFamily = InstrumentSans,
-            fontWeight = FontWeight.Bold,
-            fontSize = 10.sp,
-            lineHeight = 12.sp
+            style = LocalTextStyle.current.merge(NumeroInsignia)
         )
     }
 }
@@ -676,10 +707,7 @@ fun Avatar(
             Text(
                 iniciales(nombre),
                 color = Color.White,
-                fontFamily = InstrumentSans,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = (tamano.value * 0.36f).sp,
-                letterSpacing = (-0.2).sp
+                style = LocalTextStyle.current.merge(inicialesAvatar(tamano))
             )
         }
         if (enLinea != null) {
@@ -690,7 +718,7 @@ fun Avatar(
                     .size(tamanoPunto)
                     .border(2.dp, anillo ?: Color.White, CircleShape)
                     .padding(2.dp)
-                    .background(if (enLinea) Menta else Color(0xFFB9C6BE), CircleShape)
+                    .background(if (enLinea) Menta else PuntoDesconectado, CircleShape)
             )
         }
     }
@@ -758,6 +786,19 @@ fun formatoPrecio(valor: Double): String =
     "$" + valor.toLong().toString().reversed().chunked(3).joinToString(".").reversed()
 fun formatoHoras(horas: Double): String =
     if (horas % 1.0 == 0.0) "${horas.toInt()} h" else String.format(localeColombia, "%.1f h", horas)
+
+private val mesesAbreviados = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+
+/** Fecha corta en español: "24 oct", "30 sept" → "30 sep". Si el texto no es una fecha, se devuelve tal cual. */
+fun formatoFecha(texto: String): String {
+    val partes = texto.trim().split(" ")
+    val dia = partes.getOrNull(0)?.toIntOrNull() ?: return texto
+    val mes = partes.getOrNull(1)?.lowercase()?.trimEnd('.')?.take(3)
+    return if (mes in mesesAbreviados) "$dia $mes" else texto
+}
+
+/** Plazo que tiene el tutor para responder una solicitud. Se usa en todos los textos que lo mencionan. */
+const val PLAZO_RESPUESTA = "24 h"
 
 /* ==================== Textos estructurales ==================== */
 
@@ -836,7 +877,67 @@ fun EstadoVacio(
         )
         if (accion != null && alAccion != null) {
             Spacer(Modifier.height(20.dp))
-            BotonSecundario(accion, alAccion, compacto = true)
+            BotonSecundario(accion, alAccion, compacto = true, alto = 48.dp)
+        }
+    }
+}
+
+/** Estado de error de carga: insignia tenue con aviso, título, mensaje y reintento opcional. */
+@Composable
+fun EstadoError(
+    modifier: Modifier = Modifier,
+    titulo: String = "No pudimos cargar esto",
+    mensaje: String = "Revisa tu conexión e inténtalo de nuevo en un momento.",
+    alReintentar: (() -> Unit)? = null,
+) {
+    val reducidas = LocalAnimacionesReducidas.current
+    val aparicion = remember { Animatable(if (reducidas) 1f else 0f) }
+    LaunchedEffect(reducidas) {
+        if (reducidas) aparicion.snapTo(1f) else aparicion.animateTo(1f, especAparicion(0))
+    }
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .fillMaxWidth()
+            .graphicsLayer { alpha = aparicion.value }
+            .padding(horizontal = 40.dp, vertical = 40.dp)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(64.dp)
+                .background(TinteBosque, FormaTarjeta)
+        ) {
+            Icon(
+                painterResource(R.drawable.ph_aviso),
+                contentDescription = null,
+                tint = TextoSecundario,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+        Spacer(Modifier.height(EspacioNormal))
+        Text(
+            titulo,
+            color = TextoPrimario,
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() }
+        )
+        Spacer(Modifier.height(EspacioFino))
+        Text(
+            mensaje,
+            color = TextoSecundario,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(max = 300.dp)
+        )
+        if (alReintentar != null) {
+            Spacer(Modifier.height(EspacioMargen))
+            // El botón compacto mide 44 dp; la caja le da los 48 dp de área táctil sin cambiarlo
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.heightIn(min = 48.dp)) {
+                BotonSecundario("Reintentar", alReintentar, compacto = true, alto = 48.dp)
+            }
         }
     }
 }

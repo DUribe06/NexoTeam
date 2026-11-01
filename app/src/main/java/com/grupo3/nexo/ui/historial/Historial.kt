@@ -57,12 +57,23 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.grupo3.nexo.domain.model.Resena
+import com.grupo3.nexo.domain.model.ResumenActividad
+import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Sesion
+import com.grupo3.nexo.domain.usecase.ObtenerMisResenasUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerResumenActividadUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
+import com.grupo3.nexo.ui.components.EncabezadoSeccion
+import com.grupo3.nexo.ui.components.ListaResenas
+import com.grupo3.nexo.ui.components.formatoValoracion
+import com.grupo3.nexo.ui.components.HojaCalificacion
 import com.grupo3.nexo.domain.usecase.CalificarSesionUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerHistorialUseCase
 import com.grupo3.nexo.ui.components.Avatar
+import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.AvisoNexo
-import com.grupo3.nexo.ui.components.BarraSuperior
+import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.BotonPrimario
 import com.grupo3.nexo.ui.components.BotonSecundario
 import com.grupo3.nexo.ui.components.Campo
@@ -100,13 +111,20 @@ import javax.inject.Inject
 @HiltViewModel
 class HistorialViewModel @Inject constructor(
     obtenerHistorial: ObtenerHistorialUseCase,
+    obtenerUsuario: ObtenerUsuarioUseCase,
+    obtenerResumen: ObtenerResumenActividadUseCase,
+    obtenerResenas: ObtenerMisResenasUseCase,
     private val calificarSesion: CalificarSesionUseCase
 ) : ViewModel() {
 
     data class Estado(
         val cargando: Boolean = true,
         val todas: List<Sesion> = emptyList(),
-        val materia: String? = null
+        val materia: String? = null,
+        /** En modo tutor el historial son las sesiones dadas y las reseñas recibidas (RF9, RF10). */
+        val esTutor: Boolean = false,
+        val resumen: ResumenActividad? = null,
+        val resenas: List<Resena> = emptyList()
     ) {
         /** Sesiones del filtro actual, en orden cronológico (la más reciente arriba). */
         val sesiones get() = todas.filter { materia == null || it.materia == materia }
@@ -118,8 +136,15 @@ class HistorialViewModel @Inject constructor(
 
     private val materia = MutableStateFlow<String?>(null)
 
-    val estado = combine(obtenerHistorial(), materia) { lista, m ->
-        Estado(cargando = false, todas = lista, materia = m)
+    val estado = combine(obtenerHistorial(), materia, obtenerUsuario(), obtenerResumen(), obtenerResenas()) { lista, m, usuario, resumen, resenas ->
+        Estado(
+            cargando = false,
+            todas = lista,
+            materia = m,
+            esTutor = usuario.rol == Rol.TUTOR,
+            resumen = resumen,
+            resenas = if (usuario.rol == Rol.TUTOR) resenas else emptyList()
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 
     fun filtrar(valor: String?) {
@@ -147,15 +172,16 @@ fun PantallaHistorial(
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            BarraSuperior("Historial", alVolver)
+            CabeceraSeccion(if (estado.esTutor) "Tutorías dadas" else "Tus tutorías", alVolver = alVolver)
 
             if (estado.todas.isEmpty() && !estado.cargando) {
                 EstadoVacio(
                     icono = Icons.Rounded.History,
                     titulo = "Aún no hay sesiones",
-                    mensaje = "Tus tutorías completadas aparecerán aquí para que puedas calificarlas.",
-                    accion = "Buscar tutor",
-                    alAccion = alBuscar
+                    mensaje = if (estado.esTutor) "Las tutorías que des aparecerán aquí para que califiques a tus estudiantes."
+                              else "Tus tutorías completadas aparecerán aquí para que puedas calificarlas.",
+                    accion = if (estado.esTutor) null else "Buscar tutor",
+                    alAccion = if (estado.esTutor) null else alBuscar
                 )
             } else {
                 LazyColumn(
@@ -164,7 +190,7 @@ fun PantallaHistorial(
                 ) {
                     item(key = "resumen") { Resumen(estado) }
                     item(key = "rotulo") {
-                        RotuloGrupo("Tus sesiones", Modifier.padding(start = 4.dp, top = 12.dp))
+                        RotuloGrupo(if (estado.esTutor) "Sesiones dadas" else "Tus sesiones", Modifier.padding(start = 4.dp, top = 12.dp))
                     }
                     if (estado.materias.size > 1) {
                         item(key = "filtros") {
@@ -172,7 +198,15 @@ fun PantallaHistorial(
                         }
                     }
                     items(estado.sesiones, key = { it.id }) { sesion ->
-                        TarjetaHistorial(sesion, alCalificar = { porCalificarId = sesion.id }, modifier = Modifier.animateItem())
+                        TarjetaHistorial(sesion, estado.esTutor, alCalificar = { porCalificarId = sesion.id }, modifier = Modifier.animateItem())
+                    }
+                    if (estado.esTutor && estado.resenas.isNotEmpty()) {
+                        item(key = "resenas") {
+                            Column(Modifier.padding(top = 14.dp)) {
+                                EncabezadoSeccion("Lo que dicen de ti")
+                                ListaResenas(estado.resenas)
+                            }
+                        }
                     }
                 }
             }
@@ -183,11 +217,12 @@ fun PantallaHistorial(
     porCalificar?.let { sesion ->
         HojaCalificacion(
             sesion = sesion,
+            esTutor = estado.esTutor,
             alCerrar = { porCalificarId = null },
             alEnviar = { estrellas, comentario ->
                 viewModel.calificar(sesion.id, estrellas, comentario)
                 porCalificarId = null
-                alcance.launch { avisos.showSnackbar("Gracias, tu calificación ayuda a otros estudiantes") }
+                alcance.launch { avisos.showSnackbar(if (estado.esTutor) "Gracias, tu calificación quedó guardada" else "Gracias, tu calificación ayuda a otros estudiantes") }
             }
         )
     }
@@ -216,11 +251,23 @@ private fun Resumen(estado: HistorialViewModel.Estado) {
             .fillMaxWidth()
             .height(64.dp)
     ) {
-        CifraResumen("${estado.completadas}", if (estado.completadas == 1) "sesión" else "sesiones", Modifier.weight(1f))
+        val unaSesion = estado.completadas == 1
+        CifraResumen(
+            "${estado.completadas}",
+            when {
+                estado.esTutor -> if (unaSesion) "sesión dada" else "sesiones dadas"
+                else -> if (unaSesion) "sesión" else "sesiones"
+            },
+            Modifier.weight(1f)
+        )
         Box(Modifier.fillMaxHeight().padding(vertical = 10.dp).width(1.dp).background(Divisor))
-        CifraResumen(formatoHoras(estado.horas), "de estudio", Modifier.weight(1f))
+        CifraResumen(formatoHoras(estado.horas), if (estado.esTutor) "dadas" else "de estudio", Modifier.weight(1f))
         Box(Modifier.fillMaxHeight().padding(vertical = 10.dp).width(1.dp).background(Divisor))
-        CifraResumen("${estado.porCalificar}", "por calificar", Modifier.weight(1f), resaltar = estado.porCalificar > 0)
+        if (estado.esTutor) {
+            CifraResumen(estado.resumen?.promedioRecibido?.let(::formatoValoracion) ?: "–", "calificación", Modifier.weight(1f))
+        } else {
+            CifraResumen("${estado.porCalificar}", "por calificar", Modifier.weight(1f), resaltar = estado.porCalificar > 0)
+        }
     }
 }
 
@@ -243,25 +290,44 @@ private fun CifraResumen(valor: String, etiqueta: String, modifier: Modifier = M
 }
 
 @Composable
-private fun TarjetaHistorial(sesion: Sesion, alCalificar: () -> Unit, modifier: Modifier = Modifier) {
+private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -> Unit, modifier: Modifier = Modifier) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .superficie(RoundedCornerShape(20.dp))
-            .graphicsLayer { alpha = if (sesion.estado == EstadoSesion.COMPLETADA) 1f else 0.82f }
             .padding(14.dp)
     ) {
-        Avatar(sesion.conQuien, tamano = 40.dp)
+        // Solo el avatar se atenúa en sesiones sin completar: el texto conserva su contraste
+        Avatar(
+            sesion.conQuien,
+            tamano = 40.dp,
+            modifier = Modifier.graphicsLayer { alpha = if (sesion.estado == EstadoSesion.COMPLETADA) 1f else 0.6f }
+        )
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             TextoLinea(sesion.materia, MaterialTheme.typography.titleMedium, TextoPrimario)
             TextoLinea(sesion.conQuien, MaterialTheme.typography.bodyMedium, TextoSecundario)
             Text(
-                "${sesion.fecha} · ${sesion.hora} · ${formatoHoras(sesion.duracionHoras)} · ${sesion.modalidad.etiqueta}",
+                "${formatoFecha(sesion.fecha)} · ${sesion.hora} · ${formatoHoras(sesion.duracionHoras)} · ${sesion.modalidad.etiqueta}",
                 color = TextoTercero,
                 style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares)
             )
+            sesion.calificacionRecibida?.takeIf { sesion.estado == EstadoSesion.COMPLETADA }?.let { nota ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .semantics(mergeDescendants = true) {
+                            contentDescription = "Te calificó con $nota ${if (nota == 1) "estrella" else "estrellas"}"
+                        }
+                ) {
+                    Text("Te calificó", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.Rounded.Star, contentDescription = null, tint = Miel, modifier = Modifier.size(13.dp))
+                    Text("$nota", color = TextoSecundario, style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares))
+                }
+            }
             sesion.comentario?.let {
                 Text(
                     "“$it”",
@@ -286,101 +352,12 @@ private fun TarjetaHistorial(sesion: Sesion, alCalificar: () -> Unit, modifier: 
             if (nota != null) {
                 Estrellas(nota, tamano = 13.dp)
             } else {
-                BotonSecundario("Calificar", alCalificar, icono = Icons.Rounded.Star, compacto = true, colorIcono = Miel)
-            }
-        }
-    }
-}
-
-private val etiquetasNota = listOf("Toca una estrella", "Mala", "Regular", "Buena", "Muy buena", "Excelente")
-
-@Composable
-private fun HojaCalificacion(sesion: Sesion, alCerrar: () -> Unit, alEnviar: (Int, String?) -> Unit) {
-    var estrellas by rememberSaveable { mutableIntStateOf(0) }
-    var comentario by rememberSaveable { mutableStateOf("") }
-
-    HojaNexo(
-        titulo = "¿Cómo te fue con ${sesion.conQuien.substringBefore(' ')}?",
-        subtitulo = "${sesion.materia} · ${sesion.fecha}",
-        alCerrar = alCerrar
-    ) {
-        Spacer(Modifier.height(24.dp))
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .selectableGroup()
-        ) {
-            repeat(5) { indice ->
-                val valor = indice + 1
-                val llena = valor <= estrellas
-                // Cada estrella "salta" al llenarse, en cascada desde la primera.
-                val escala by animateFloatAsState(
-                    if (llena) 1f else 0.86f,
-                    spring(dampingRatio = 0.45f, stiffness = 700f - indice * 60f),
-                    label = "estrella$indice"
+                BotonSecundario(
+                    "Calificar", alCalificar,
+                    icono = Icons.Rounded.Star, compacto = true, colorIcono = Miel, alto = 48.dp,
+                    descripcion = "Calificar a ${sesion.conQuien}, ${sesion.materia}"
                 )
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .selectable(
-                            selected = valor == estrellas,
-                            role = Role.RadioButton,
-                            onClick = { estrellas = valor }
-                        )
-                        .semantics { contentDescription = "$valor ${if (valor == 1) "estrella" else "estrellas"}" }
-                ) {
-                    Icon(
-                        Icons.Rounded.Star,
-                        contentDescription = null,
-                        tint = if (llena) Miel else Bosque.copy(alpha = 0.12f),
-                        modifier = Modifier
-                            .size(44.dp)
-                            .graphicsLayer {
-                                scaleX = escala
-                                scaleY = escala
-                            }
-                    )
-                }
             }
         }
-        AnimatedContent(
-            targetState = estrellas,
-            transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(100)) },
-            label = "etiquetaNota",
-            modifier = Modifier.fillMaxWidth()
-        ) { n ->
-            Text(
-                etiquetasNota[n],
-                color = if (n == 0) TextoTercero else VerdeEstado,
-                style = MaterialTheme.typography.titleSmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-            )
-        }
-        RotuloGrupo("Reseña (opcional)", Modifier.padding(top = 22.dp, bottom = 10.dp))
-        Campo(
-            valor = comentario,
-            alCambiar = { comentario = it },
-            marcador = "¿Qué le dirías a otro estudiante?",
-            lineasMaximas = 4,
-            teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
-        )
-        Text(
-            "Solo puedes calificar una vez cada sesión.",
-            color = TextoTercero,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(start = 20.dp, top = 6.dp)
-        )
-        Spacer(Modifier.height(20.dp))
-        BotonPrimario(
-            texto = "Enviar calificación",
-            habilitado = estrellas > 0,
-            alClicar = { alEnviar(estrellas, comentario.ifBlank { null }) },
-            modifier = Modifier.fillMaxWidth()
-        )
     }
 }

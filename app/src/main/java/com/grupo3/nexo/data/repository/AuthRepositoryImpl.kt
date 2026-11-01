@@ -1,7 +1,6 @@
 package com.grupo3.nexo.data.repository
 
 import com.grupo3.nexo.data.mock.MockData
-import com.grupo3.nexo.domain.model.EstadoVerificacion
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Usuario
 import com.grupo3.nexo.domain.repository.AuthRepository
@@ -32,19 +31,18 @@ class AuthRepositoryImpl @Inject constructor() : AuthRepository {
         return valido
     }
 
-    override suspend fun registrarse(nombre: String, correo: String, contrasena: String, rol: Rol): Boolean {
+    override suspend fun registrarse(nombre: String, correo: String, contrasena: String): Boolean {
         delay(900)
         val valido = nombre.isNotBlank() && correo.contains("@") && contrasena.length >= 4
         if (valido) {
             _usuario.update {
-                // Cuenta nueva: sin historial; si se registra como tutor queda pendiente de verificación (RF1)
+                // Cuenta nueva: sin historial; empieza como estudiante y cambia de modo desde el Perfil
                 Usuario(
                     id = it.id,
                     nombre = nombre,
                     correo = correo,
                     handle = "@" + nombre.lowercase().replace(" ", "."),
-                    rol = rol,
-                    verificacion = if (rol == Rol.TUTOR) EstadoVerificacion.PENDIENTE else null
+                    rol = Rol.ESTUDIANTE
                 )
             }
             _autenticado.value = true
@@ -59,8 +57,7 @@ class AuthRepositoryImpl @Inject constructor() : AuthRepository {
     }
 
     override fun cambiarModo(rol: Rol) {
-        // Pasar a tutor por primera vez abre la solicitud de verificación (RF12)
-        _usuario.update { it.copy(rol = rol, verificacion = if (rol == Rol.TUTOR) it.verificacion ?: EstadoVerificacion.PENDIENTE else it.verificacion) }
+        _usuario.update { it.copy(rol = rol) }
     }
 
     override fun cerrarSesion() {

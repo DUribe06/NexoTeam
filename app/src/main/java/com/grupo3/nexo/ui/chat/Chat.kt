@@ -59,6 +59,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.model.Chat
+import com.grupo3.nexo.domain.model.EstadoSesion
+import com.grupo3.nexo.domain.model.Sesion
+import com.grupo3.nexo.domain.usecase.CalificarSesionUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerSesionDeConversacionUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerSesionesDelModoUseCase
+import com.grupo3.nexo.ui.components.BotonSecundario
+import com.grupo3.nexo.ui.components.formatoFecha
+import com.grupo3.nexo.ui.components.HojaCalificacion
+import com.grupo3.nexo.ui.theme.Miel
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.ui.text.style.TextOverflow
 import com.grupo3.nexo.domain.model.Mensaje
 import com.grupo3.nexo.domain.usecase.EnviarMensajeUseCase
 import com.grupo3.nexo.domain.usecase.MarcarChatLeidoUseCase
@@ -72,7 +83,7 @@ import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.InsigniaConteo
 import com.grupo3.nexo.ui.components.TextoLinea
-import com.grupo3.nexo.ui.components.TituloPantalla
+import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.superficiePulsable
@@ -118,6 +129,9 @@ class ConversacionViewModel @Inject constructor(
     obtenerChats: ObtenerChatsUseCase,
     obtenerMensajes: ObtenerMensajesUseCase,
     obtenerTutores: ObtenerTutoresUseCase,
+    obtenerSesiones: ObtenerSesionesDelModoUseCase,
+    private val calificarSesion: CalificarSesionUseCase,
+    private val sesionDeConversacion: ObtenerSesionDeConversacionUseCase,
     private val enviarMensaje: EnviarMensajeUseCase,
     private val marcarLeido: MarcarChatLeidoUseCase
 ) : ViewModel() {
@@ -126,7 +140,10 @@ class ConversacionViewModel @Inject constructor(
         val nombre: String = "",
         val enLinea: Boolean = false,
         val soloLectura: Boolean = false,
-        val mensajes: List<Mensaje> = emptyList()
+        val mensajes: List<Mensaje> = emptyList(),
+        /** Sesión de la conversación: la próxima si hay una agendada; si no, la más reciente (RF8, RF9). */
+        val sesion: Sesion? = null,
+        val esTutor: Boolean = false
     )
 
     private val chatId = MutableStateFlow("")
@@ -135,21 +152,29 @@ class ConversacionViewModel @Inject constructor(
         chatId,
         chatId.flatMapLatest { obtenerMensajes(it) },
         obtenerChats(),
-        obtenerTutores()
-    ) { id, mensajes, chats, tutores ->
+        obtenerTutores(),
+        obtenerSesiones()
+    ) { id, mensajes, chats, tutores, sesiones ->
         val chat = chats.firstOrNull { it.id == id }
         val tutor = tutores.firstOrNull { it.id == id }
+        val sesion = sesionDeConversacion(sesiones, id, chat?.soloLectura ?: false)
         Estado(
             nombre = chat?.nombre ?: tutor?.nombre.orEmpty(),
             enLinea = chat?.enLinea ?: tutor?.enLinea ?: false,
             soloLectura = chat?.soloLectura ?: false,
-            mensajes = mensajes
+            mensajes = mensajes,
+            sesion = sesion,
+            esTutor = chat?.comoTutor ?: false
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 
     fun cargar(id: String) {
         chatId.value = id
         viewModelScope.launch { marcarLeido(id) }
+    }
+
+    fun calificar(sesionId: String, estrellas: Int, comentario: String?) {
+        viewModelScope.launch { calificarSesion(sesionId, estrellas, comentario) }
     }
 
     fun enviar(texto: String) {
@@ -171,7 +196,7 @@ fun PantallaChats(
     val sinLeer = estado.chats.sumOf { it.noLeidos }
 
     Column(Modifier.fillMaxSize()) {
-        TituloPantalla(
+        CabeceraSeccion(
             titulo = "Chats",
             subtitulo = when (sinLeer) {
                 0 -> "Coordina los detalles de tus sesiones"
@@ -267,6 +292,7 @@ fun PantallaConversacion(
     val estado by viewModel.estado.collectAsState()
     val listaEstado = rememberLazyListState()
     var texto by rememberSaveable { mutableStateOf("") }
+    var calificando by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(estado.mensajes.size) {
         if (estado.mensajes.isNotEmpty()) listaEstado.animateScrollToItem(estado.mensajes.lastIndex)
@@ -311,6 +337,15 @@ fun PantallaConversacion(
                         color = if (estado.enLinea) VerdeEstado else TextoTercero,
                         style = MaterialTheme.typography.bodySmall
                     )
+                    estado.sesion?.let { sesion ->
+                        Text(
+                            " · ${sesion.materia} · ${formatoFecha(sesion.fecha)}",
+                            color = TextoTercero,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
@@ -360,7 +395,7 @@ fun PantallaConversacion(
         }
 
         if (estado.soloLectura) {
-            AvisoSoloLectura()
+            PieSesionTerminada(estado.sesion, alCalificar = { calificando = true })
             return@Column
         }
 
@@ -406,6 +441,19 @@ fun PantallaConversacion(
                 )
             }
         }
+    }
+
+    val sesionPorCalificar = estado.sesion
+    if (calificando && sesionPorCalificar != null) {
+        HojaCalificacion(
+            sesion = sesionPorCalificar,
+            esTutor = estado.esTutor,
+            alCerrar = { calificando = false },
+            alEnviar = { estrellas, comentario ->
+                viewModel.calificar(sesionPorCalificar.id, estrellas, comentario)
+                calificando = false
+            }
+        )
     }
 }
 
@@ -458,7 +506,7 @@ private fun Burbuja(mensaje: Mensaje, iniciaGrupo: Boolean, cierraGrupo: Boolean
 
 /** Pie de una conversación cuya sesión terminó: el historial se conserva, sin mensajes nuevos (RF8). */
 @Composable
-private fun AvisoSoloLectura() {
+private fun AvisoSoloLectura(nota: Int? = null, motivo: String = "La sesión terminó.") {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -470,10 +518,66 @@ private fun AvisoSoloLectura() {
     ) {
         Icon(Icons.Rounded.Lock, contentDescription = null, tint = TextoTercero, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(10.dp))
-        Text(
-            "La sesión terminó. Puedes consultar la conversación, pero ya no enviar mensajes.",
-            color = TextoSecundario,
-            style = MaterialTheme.typography.bodySmall
+        Column {
+            Text(
+                "$motivo Puedes consultar la conversación, pero ya no enviar mensajes.",
+                color = TextoSecundario,
+                style = MaterialTheme.typography.bodySmall
+            )
+            if (nota != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .semantics(mergeDescendants = true) {
+                            contentDescription = "Calificaste con $nota ${if (nota == 1) "estrella" else "estrellas"}"
+                        }
+                ) {
+                    Text("Calificaste", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
+                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.Rounded.Star, contentDescription = null, tint = Miel, modifier = Modifier.size(14.dp))
+                    Text("$nota", color = TextoSecundario, style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares))
+                }
+            }
+        }
+    }
+}
+
+/** Pie de una conversación terminada: si la sesión quedó sin calificar, invita a hacerlo (RF9). */
+@Composable
+private fun PieSesionTerminada(sesion: Sesion?, alCalificar: () -> Unit) {
+    if (sesion == null) {
+        AvisoSoloLectura()
+        return
+    }
+    if (sesion.estado != EstadoSesion.COMPLETADA) {
+        AvisoSoloLectura(
+            motivo = if (sesion.estado == EstadoSesion.CANCELADA) "La sesión se canceló." else "La sesión se cerró sin asistencia."
+        )
+        return
+    }
+    if (!sesion.porCalificar) {
+        AvisoSoloLectura(sesion.calificacion)
+        return
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .drawBehind { drawLine(Divisor, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
+            .navigationBarsPadding()
+            .padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("La sesión terminó", color = TextoPrimario, style = MaterialTheme.typography.titleSmall)
+            Text("Ya no se pueden enviar mensajes.", color = TextoTercero, style = MaterialTheme.typography.bodySmall)
+        }
+        Spacer(Modifier.width(12.dp))
+        BotonSecundario(
+            "Calificar", alCalificar,
+            icono = Icons.Rounded.Star, compacto = true, colorIcono = Miel, alto = 48.dp,
+            descripcion = "Calificar a ${sesion.conQuien}, ${sesion.materia}"
         )
     }
 }

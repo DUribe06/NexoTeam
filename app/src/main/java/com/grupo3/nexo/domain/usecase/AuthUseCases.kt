@@ -17,8 +17,8 @@ class IniciarSesionUseCase @Inject constructor(
 class RegistrarseUseCase @Inject constructor(
     private val repositorio: AuthRepository
 ) {
-    suspend operator fun invoke(nombre: String, correo: String, contrasena: String, rol: Rol): Boolean =
-        repositorio.registrarse(nombre, correo, contrasena, rol)
+    suspend operator fun invoke(nombre: String, correo: String, contrasena: String): Boolean =
+        repositorio.registrarse(nombre, correo, contrasena)
 }
 
 /** Inicia sesión con Google (flujo simplificado para el prototipo). */
