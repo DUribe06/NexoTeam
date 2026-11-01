@@ -99,3 +99,13 @@ val LogoLengua3 = Color(0xFFA8EBCB)
 val LogoLenguaSurco = Color(0xFF2A9E6A)
 val LogoMigaSombra = Color(0xFFC9A46A)
 val LogoMiga = Color(0xFFF3E3C3)
+
+/* Escena dibujada de la barra de sesión del Inicio. */
+val CalOscuro = Color(0xFF264435)
+val CalSalvia = Color(0xFF898F78)
+val CalDia = Color(0xFF8C9584)
+val CalCuerpo = Color(0xFFE6EAE7)
+val CalCelda = Color(0xFFF3F4F1)
+val CalLinea = Color(0xFFA3A89F)
+val VerdeMarca = Color(0xFF3FA874)
+val SombraSuelo = Color(0xFFD5DBD4)

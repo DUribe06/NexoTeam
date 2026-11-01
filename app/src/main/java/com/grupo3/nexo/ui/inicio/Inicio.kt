@@ -2,6 +2,8 @@ package com.grupo3.nexo.ui.inicio
 
 import com.grupo3.nexo.ui.components.SesionEsqueleto
 import com.grupo3.nexo.ui.components.Carga
+import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.cargaDe
 import androidx.compose.animation.Crossfade
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -346,17 +348,14 @@ fun PantallaInicio(
                 val ultimasProximas = remember { mutableStateOf(estado.proximas) }
                 if (estado.proximas.isNotEmpty()) ultimasProximas.value = estado.proximas
                 Crossfade(
-                    targetState = when {
-                        estado.cargando -> Carga.CARGANDO
-                        estado.proximas.isEmpty() -> Carga.VACIO
-                        else -> Carga.LISTO
-                    },
+                    targetState = cargaDe(estado.cargando, estado.proximas.isEmpty()),
                     animationSpec = tween(280),
                     label = "proximas"
                 ) { carga ->
                     when (carga) {
                         Carga.CARGANDO -> SesionEsqueleto()
                         Carga.VACIO -> SinSesiones(alBuscar = { alBuscar(null) })
+                        Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus sesiones")
                         Carga.LISTO -> ultimasProximas.value.takeIf { it.isNotEmpty() }?.let { TarjetaProximas(it, alAbrirChat) }
                     }
                 }

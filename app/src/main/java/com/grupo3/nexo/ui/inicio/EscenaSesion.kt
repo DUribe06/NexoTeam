@@ -81,6 +81,14 @@ import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
+import com.grupo3.nexo.ui.theme.CalOscuro
+import com.grupo3.nexo.ui.theme.CalSalvia
+import com.grupo3.nexo.ui.theme.CalDia
+import com.grupo3.nexo.ui.theme.CalCuerpo
+import com.grupo3.nexo.ui.theme.CalCelda
+import com.grupo3.nexo.ui.theme.CalLinea
+import com.grupo3.nexo.ui.theme.VerdeMarca
+import com.grupo3.nexo.ui.theme.SombraSuelo
 
 /**
  * Escena animada de la próxima sesión. Los personajes son títeres armados con las piezas de las hojas de
@@ -332,16 +340,8 @@ private fun DrawScope.vector(c: Capa, a: Float, dp: Float, pin: List<TextLayoutR
 }
 
 // Colores del calendario de la referencia
-private val CalOscuro = Color(0xFF264435)
-private val CalSalvia = Color(0xFF898F78)
-private val CalDia = Color(0xFF8C9584)
-private val CalCuerpo = Color(0xFFE6EAE7)
-private val CalCelda = Color(0xFFF3F4F1)
-private val CalLinea = Color(0xFFA3A89F)
-private val VerdeMarca = Color(0xFF3FA874)
 
 /** Sombra suave del suelo bajo los muebles (como en las láminas de referencia). */
-private val SombraSuelo = Color(0xFFD5DBD4)
 
 /** Tarjeta de calendario: encabezado verde con su barra, nombres de los días y la cuadrícula con el fin de semana. */
 private fun DrawScope.calendario(c: Capa, a: Float) {

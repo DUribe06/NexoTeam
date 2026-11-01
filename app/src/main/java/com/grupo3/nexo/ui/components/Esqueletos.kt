@@ -147,4 +147,4 @@ fun SesionEsqueleto(modifier: Modifier = Modifier, capas: Int = 2) {
 }
 
 /** Estado de unos datos que llegan del repositorio: aún cargando, vacíos o listos. */
-enum class Carga { CARGANDO, VACIO, LISTO }
+enum class Carga { CARGANDO, VACIO, ERROR, LISTO }
