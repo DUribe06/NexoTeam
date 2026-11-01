@@ -5,6 +5,9 @@ package com.grupo3.nexo.domain.model
  * Puros: sin dependencias de Android ni de framework.
  */
 
+/** Horas que tiene el tutor para responder una solicitud antes de que expire (RF5, RF6). */
+const val PLAZO_RESPUESTA_HORAS = 24
+
 enum class Rol(val etiqueta: String) {
     ESTUDIANTE("Estudiante"),
     TUTOR("Tutor")

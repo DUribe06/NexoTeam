@@ -88,7 +88,7 @@ fun cambioContenido(): ContentTransform =
 
 /**
  * Vale true si el usuario puso en 0 la escala de animaciones del sistema.
- * Lo provee NexoTema (se conecta en la sesión 6).
+ * Lo provee NexoTema.
  */
 val LocalAnimacionesReducidas = staticCompositionLocalOf { false }
 

@@ -216,14 +216,14 @@ fun NexoApp() {
                 )
             }
             composable(Rutas.TutorPerfil.ruta) { entrada ->
-                val tutorId = entrada.arguments?.getString("tutorId").orEmpty()
+                val tutorId = entrada.arguments?.getString(Rutas.TutorPerfil.ARG_TUTOR).orEmpty()
                 PantallaTutorPerfil(
                     tutorId = tutorId,
                     alVolver = { controlador.popBackStack() }
                 )
             }
             composable(Rutas.Conversacion.ruta) { entrada ->
-                val chatId = entrada.arguments?.getString("chatId").orEmpty()
+                val chatId = entrada.arguments?.getString(Rutas.Conversacion.ARG_CHAT).orEmpty()
                 PantallaConversacion(
                     chatId = chatId,
                     alVolver = { controlador.popBackStack() }

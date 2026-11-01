@@ -320,7 +320,7 @@ private fun HojaFiltros(
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             FiltroOpcion("Cualquiera", estado.franja == null, { alElegirFranja(null) }, conMarca = false)
             Franja.entries.forEach { f ->
-                FiltroOpcion("${f.etiqueta} · ${"%02d".format(f.desde)}–${f.hasta + 1}h", estado.franja == f, { alElegirFranja(f) }, conMarca = false)
+                FiltroOpcion("${f.etiqueta} · ${"%02d".format(f.desde)}:00–${"%02d".format(f.hasta + 1)}:00", estado.franja == f, { alElegirFranja(f) }, conMarca = false)
             }
         }
 

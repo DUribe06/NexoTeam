@@ -246,7 +246,7 @@ private fun FilaChat(chat: Chat, alAbrir: () -> Unit, modifier: Modifier = Modif
                 TextoLinea(chat.nombre, MaterialTheme.typography.titleMedium, TextoPrimario, Modifier.weight(1f))
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    chat.hora,
+                    formatoFecha(chat.hora),
                     color = if (sinLeer) VerdeEstado else TextoTercero,
                     style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares).copy(
                         fontWeight = if (sinLeer) FontWeight.SemiBold else FontWeight.Normal
@@ -363,7 +363,7 @@ fun PantallaConversacion(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp)
             ) {
-                items(respuestasRapidas) { sugerencia ->
+                items(respuestasRapidas, key = { it }) { sugerencia ->
                     Text(
                         sugerencia,
                         color = BosqueProfundo,
@@ -495,7 +495,7 @@ private fun Burbuja(mensaje: Mensaje, iniciaGrupo: Boolean, cierraGrupo: Boolean
         }
         if (cierraGrupo) {
             Text(
-                mensaje.hora,
+                formatoFecha(mensaje.hora),
                 color = TextoTercero,
                 style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares),
                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)

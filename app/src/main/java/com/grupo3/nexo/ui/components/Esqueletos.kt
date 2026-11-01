@@ -1,11 +1,7 @@
 package com.grupo3.nexo.ui.components
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +33,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.ui.theme.BosqueAcento
+import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
+import com.grupo3.nexo.ui.theme.especPulso
 import com.grupo3.nexo.ui.theme.SuperficieClara
 import com.grupo3.nexo.ui.theme.TinteBosque
 
@@ -55,12 +54,17 @@ fun Esqueleto(
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     contenido: @Composable ColumnScope.() -> Unit
 ) {
-    val pulso = rememberInfiniteTransition(label = "esqueleto").animateFloat(
-        initialValue = 1f,
-        targetValue = 0.45f,
-        animationSpec = infiniteRepeatable(tween(850, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "pulso"
-    )
+    // Con las animaciones del sistema apagadas, el esqueleto queda quieto
+    val pulso: State<Float> = if (LocalAnimacionesReducidas.current) {
+        remember { mutableFloatStateOf(0.7f) }
+    } else {
+        rememberInfiniteTransition(label = "esqueleto").animateFloat(
+            initialValue = 1f,
+            targetValue = 0.45f,
+            animationSpec = especPulso(),
+            label = "pulso"
+        )
+    }
     CompositionLocalProvider(LocalPulso provides pulso) {
         Column(
             modifier = modifier.clearAndSetSemantics { contentDescription = descripcion },

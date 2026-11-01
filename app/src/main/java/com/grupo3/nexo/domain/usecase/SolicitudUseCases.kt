@@ -3,6 +3,7 @@ package com.grupo3.nexo.domain.usecase
 import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Solicitud
+import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.repository.SolicitudRepository
 import kotlinx.coroutines.flow.Flow
 import com.grupo3.nexo.domain.model.Rol
@@ -64,8 +65,7 @@ class EnviarSolicitudUseCase @Inject constructor(
     private val repositorio: SolicitudRepository
 ) {
     suspend operator fun invoke(
-        tutorId: String,
-        nombreTutor: String,
+        tutor: Tutor,
         materia: String,
         tema: String,
         fecha: String,
@@ -74,6 +74,6 @@ class EnviarSolicitudUseCase @Inject constructor(
         mensaje: String
     ) {
         require(tema.isNotBlank()) { "Indica el tema a reforzar" }
-        repositorio.enviar(tutorId, nombreTutor, materia, tema.trim(), fecha, hora, modalidad, mensaje.trim())
+        repositorio.enviar(tutor.id, tutor.nombre, materia, tema.trim(), fecha, hora, modalidad, mensaje.trim())
     }
 }

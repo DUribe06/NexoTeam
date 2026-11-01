@@ -52,6 +52,7 @@ import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.descripcion
+import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.components.icono
 import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
 import com.grupo3.nexo.ui.components.pulsable
@@ -167,8 +168,7 @@ fun PantallaDisponibilidad(
                         Text(
                             when (activas) {
                                 0 -> "Sin horas"
-                                1 -> "1 hora"
-                                else -> "$activas horas"
+                                else -> formatoHoras(activas.toDouble())
                             },
                             color = if (activas > 0) VerdeEstado else TextoTercero,
                             style = MaterialTheme.typography.labelMedium

@@ -175,7 +175,7 @@ class TutorPerfilViewModel @Inject constructor(
     fun solicitar(datos: DatosSolicitud) {
         val t = estado.value.tutor ?: return
         viewModelScope.launch {
-            enviarSolicitud(t.id, t.nombre, datos.materia, datos.tema, datos.fecha, datos.hora, datos.modalidad, datos.mensaje)
+            enviarSolicitud(t, datos.materia, datos.tema, datos.fecha, datos.hora, datos.modalidad, datos.mensaje)
             aviso.value = "Solicitud enviada. ${t.nombre.substringBefore(' ')} tiene $PLAZO_RESPUESTA para responder."
         }
     }
@@ -644,7 +644,7 @@ private fun HojaSolicitud(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.selectableGroup()
             ) {
-                items(dias.size) { i ->
+                items(dias.size, key = { dias[it].fecha.toString() }) { i ->
                     SelectorDia(
                         dia = dias[i].abreviatura,
                         fecha = dias[i].etiqueta,

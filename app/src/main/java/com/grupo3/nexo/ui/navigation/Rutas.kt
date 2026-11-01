@@ -21,9 +21,11 @@ sealed class Rutas(val ruta: String) {
     data object Disponibilidad : Rutas("disponibilidad")
     data object Historial : Rutas("historial")
     data object TutorPerfil : Rutas("tutor/{tutorId}") {
+        const val ARG_TUTOR = "tutorId"
         fun crear(tutorId: String) = "tutor/$tutorId"
     }
     data object Conversacion : Rutas("conversacion/{chatId}") {
+        const val ARG_CHAT = "chatId"
         fun crear(chatId: String) = "conversacion/$chatId"
     }
 }

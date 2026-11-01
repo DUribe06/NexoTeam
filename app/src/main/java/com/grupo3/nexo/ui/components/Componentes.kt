@@ -115,6 +115,7 @@ import com.grupo3.nexo.ui.theme.FormaOpcion
 import com.grupo3.nexo.ui.theme.EspacioFino
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.domain.model.PLAZO_RESPUESTA_HORAS
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.especAparicion
 import com.grupo3.nexo.domain.model.EstadoSolicitud
@@ -797,8 +798,8 @@ fun formatoFecha(texto: String): String {
     return if (mes in mesesAbreviados) "$dia $mes" else texto
 }
 
-/** Plazo que tiene el tutor para responder una solicitud. Se usa en todos los textos que lo mencionan. */
-const val PLAZO_RESPUESTA = "24 h"
+/** Plazo de respuesta del dominio, ya escrito para los textos que lo mencionan. */
+val PLAZO_RESPUESTA = formatoHoras(PLAZO_RESPUESTA_HORAS.toDouble())
 
 /* ==================== Textos estructurales ==================== */
 
