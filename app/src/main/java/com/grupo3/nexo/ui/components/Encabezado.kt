@@ -1,6 +1,7 @@
 package com.grupo3.nexo.ui.components
 
 import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.EspacioCorto
 import com.grupo3.nexo.ui.theme.EspacioFino
 import com.grupo3.nexo.ui.theme.EspacioMargen
@@ -28,10 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
@@ -112,7 +109,7 @@ fun CabeceraSeccion(
                 Column(Modifier.weight(1f)) {
                     Text(
                         titulo,
-                        color = Color.White,
+                        color = SobreOscuro,
                         style = MaterialTheme.typography.headlineMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -122,7 +119,7 @@ fun CabeceraSeccion(
                     )
                     if (subtitulo != null) {
                         Spacer(Modifier.height(EspacioMicro))
-                        Text(subtitulo, color = Color.White.copy(alpha = 0.88f), style = MaterialTheme.typography.bodyMedium)
+                        Text(subtitulo, color = SobreOscuro.copy(alpha = 0.88f), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
                 acciones()

@@ -1,6 +1,7 @@
 package com.grupo3.nexo.ui.components
 
 import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioCercano
 import com.grupo3.nexo.ui.theme.EspacioCorto
@@ -39,7 +40,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -144,7 +144,7 @@ fun AvisoNexo(estado: SnackbarHostState, modifier: Modifier = Modifier) {
         ) {
             Icon(IconosNexo.MarcaCirculo, contentDescription = null, tint = Menta, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(EspacioAjustado))
-            Text(datos.visuals.message, color = Color.White, style = MaterialTheme.typography.titleSmall)
+            Text(datos.visuals.message, color = SobreOscuro, style = MaterialTheme.typography.titleSmall)
         }
     }
 }

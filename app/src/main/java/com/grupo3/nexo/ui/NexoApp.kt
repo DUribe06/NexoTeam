@@ -2,6 +2,8 @@ package com.grupo3.nexo.ui
 
 import com.grupo3.nexo.ui.components.LocalEntradaActual
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
@@ -19,11 +21,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -123,8 +123,8 @@ fun NexoApp() {
     val controlador = rememberNavController()
     val reducidas = LocalAnimacionesReducidas.current
     val barraViewModel: BarraViewModel = hiltViewModel()
-    val pendientes by barraViewModel.pendientes.collectAsState()
-    val noLeidos by barraViewModel.noLeidos.collectAsState()
+    val pendientes by barraViewModel.pendientes.collectAsStateWithLifecycle()
+    val noLeidos by barraViewModel.noLeidos.collectAsStateWithLifecycle()
 
     val entradaActual by controlador.currentBackStackEntryAsState()
     val rutaActual = entradaActual?.destination?.route

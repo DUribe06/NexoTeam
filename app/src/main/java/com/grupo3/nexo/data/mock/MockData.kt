@@ -70,8 +70,7 @@ object MockData {
                 franja(LUNES, "10:00", VIRTUAL), franja(LUNES, "16:00", VIRTUAL, PRESENCIAL),
                 franja(MIERCOLES, "10:00", VIRTUAL), franja(JUEVES, "18:00", VIRTUAL),
                 franja(SABADO, "10:00", VIRTUAL, PRESENCIAL)
-            ),
-            colorPrimario = 0xFF1B5E3F, colorSecundario = 0xFF4E9C78
+            )
         ),
         Tutor(
             id = "t2", nombre = "Carlos Mendoza", handle = "@cmendoza",
@@ -83,8 +82,7 @@ object MockData {
             horario = listOf(
                 franja(MARTES, "18:00", VIRTUAL), franja(MIERCOLES, "18:00", VIRTUAL),
                 franja(VIERNES, "14:00", PRESENCIAL), franja(SABADO, "08:00", VIRTUAL)
-            ),
-            colorPrimario = 0xFF155E63, colorSecundario = 0xFF4A9EA0
+            )
         ),
         Tutor(
             id = "t3", nombre = "Lucía Fernández", handle = "@lucfer",
@@ -96,8 +94,7 @@ object MockData {
             horario = listOf(
                 franja(LUNES, "15:00", PRESENCIAL), franja(MARTES, "10:00", VIRTUAL, PRESENCIAL),
                 franja(JUEVES, "15:00", PRESENCIAL), franja(VIERNES, "09:00", VIRTUAL)
-            ),
-            colorPrimario = 0xFF8A6A1F, colorSecundario = 0xFFC9A44C
+            )
         ),
         Tutor(
             id = "t4", nombre = "María López", handle = "@marlopez",
@@ -109,8 +106,7 @@ object MockData {
             horario = listOf(
                 franja(LUNES, "07:00", VIRTUAL), franja(MIERCOLES, "07:00", VIRTUAL),
                 franja(SABADO, "09:00", VIRTUAL)
-            ),
-            colorPrimario = 0xFF8C3B2E, colorSecundario = 0xFFC7714F
+            )
         ),
         Tutor(
             id = "t5", nombre = "Pablo Sánchez", handle = "@pablos",
@@ -122,8 +118,7 @@ object MockData {
             horario = listOf(
                 franja(MARTES, "19:00", VIRTUAL), franja(JUEVES, "19:00", VIRTUAL),
                 franja(SABADO, "14:00", PRESENCIAL)
-            ),
-            colorPrimario = 0xFF2E4A62, colorSecundario = 0xFF6585A0
+            )
         ),
         Tutor(
             id = "t6", nombre = "Sofía García", handle = "@sofiag",
@@ -135,8 +130,7 @@ object MockData {
             horario = listOf(
                 franja(LUNES, "14:00", PRESENCIAL), franja(MIERCOLES, "14:00", PRESENCIAL),
                 franja(VIERNES, "16:00", VIRTUAL, PRESENCIAL)
-            ),
-            colorPrimario = 0xFF2F6B3A, colorSecundario = 0xFF7FAF6B
+            )
         ),
         Tutor(
             id = "t7", nombre = "Diego Ramírez", handle = "@dramirez",
@@ -148,8 +142,7 @@ object MockData {
             horario = listOf(
                 franja(MARTES, "16:00", VIRTUAL), franja(MIERCOLES, "16:00", VIRTUAL, PRESENCIAL),
                 franja(JUEVES, "20:00", VIRTUAL), franja(DOMINGO, "10:00", VIRTUAL)
-            ),
-            colorPrimario = 0xFF1D4D5C, colorSecundario = 0xFF4C7F8C
+            )
         ),
         Tutor(
             id = "t8", nombre = "Elena Vargas", handle = "@elenav",
@@ -161,8 +154,7 @@ object MockData {
             horario = listOf(
                 franja(MARTES, "08:00", PRESENCIAL), franja(JUEVES, "08:00", PRESENCIAL),
                 franja(SABADO, "15:00", VIRTUAL)
-            ),
-            colorPrimario = 0xFF6B3A55, colorSecundario = 0xFFA0688A
+            )
         )
     )
 
@@ -205,16 +197,16 @@ object MockData {
 
     /** Solo hay chat con solicitudes aceptadas o sesiones ya terminadas (RF8). */
     val chats = listOf(
-        Chat("t1", "Ana Torres", "Perfecto, nos vemos el sábado a las 10 👍", "10:24", 2, true, 0xFF1B5E3F, 0xFF4E9C78),
-        Chat("t3", "Lucía Fernández", "Recuerda traer los problemas del parcial", "Ayer", 1, true, 0xFF8A6A1F, 0xFFC9A44C),
-        Chat("t7", "Diego Ramírez", "¿Te parece si revisamos el modelo ER?", "Lun", 0, true, 0xFF1D4D5C, 0xFF4C7F8C),
-        Chat("t5", "Pablo Sánchez", "Mi portafolio va avanzando 🎉", "7 oct", 0, true, 0xFF2E4A62, 0xFF6585A0, soloLectura = true),
+        Chat("t1", "Ana Torres", "Perfecto, nos vemos el sábado a las 10 👍", "10:24", 2, true),
+        Chat("t3", "Lucía Fernández", "Recuerda traer los problemas del parcial", "Ayer", 1, true),
+        Chat("t7", "Diego Ramírez", "¿Te parece si revisamos el modelo ER?", "Lun", 0, true),
+        Chat("t5", "Pablo Sánchez", "Mi portafolio va avanzando 🎉", "7 oct", 0, true, soloLectura = true),
         // Conversaciones con estudiantes, en modo tutor
-        Chat("e4", "Andrea Prado", "Gracias, nos vemos por Meet.", "9:12", 1, true, 0xFF5B4A8A, 0xFF8E7FC0, comoTutor = true),
-        Chat("e6", "Renzo Cruz", "¡Gracias por la sesión!", "14 oct", 0, false, 0xFF7A4B2A, 0xFFB98256, soloLectura = true, comoTutor = true),
+        Chat("e4", "Andrea Prado", "Gracias, nos vemos por Meet.", "9:12", 1, true, comoTutor = true),
+        Chat("e6", "Renzo Cruz", "¡Gracias por la sesión!", "14 oct", 0, false, soloLectura = true, comoTutor = true),
         // Sesiones terminadas sin calificar: desde aquí se puede calificar a la otra parte (RF9)
-        Chat("e2", "Jorge Luna", "Ya entendí la recursión, gracias.", "25 sept", 0, false, 0xFF4A6B2F, 0xFF86A866, soloLectura = true, comoTutor = true),
-        Chat("t4", "María López", "Gracias por la clase, ¡nos vemos!", "30 sept", 0, false, 0xFF8C3B2E, 0xFFC7714F, soloLectura = true)
+        Chat("e2", "Jorge Luna", "Ya entendí la recursión, gracias.", "25 sept", 0, false, soloLectura = true, comoTutor = true),
+        Chat("t4", "María López", "Gracias por la clase, ¡nos vemos!", "30 sept", 0, false, soloLectura = true)
     )
 
     val mensajes = listOf(
@@ -240,21 +232,21 @@ object MockData {
     /** Sesiones de Diego en sus dos modos: futuras (PROGRAMADA) y pasadas (historial, RF10). */
     val sesiones = listOf(
         // Como estudiante
-        Sesion("x1", "t1", "Ana Torres", "Cálculo I", "24 oct", "10:00", 1.5, VIRTUAL, PROGRAMADA, colorPrimario = 0xFF1B5E3F, colorSecundario = 0xFF4E9C78, solicitudId = "s10"),
-        Sesion("x2", "t3", "Lucía Fernández", "Física I", "26 oct", "15:00", 1.0, PRESENCIAL, PROGRAMADA, colorPrimario = 0xFF8A6A1F, colorSecundario = 0xFFC9A44C, solicitudId = "s8"),
-        Sesion("x3", "t7", "Diego Ramírez", "SQL", "27 oct", "16:00", 1.0, VIRTUAL, PROGRAMADA, colorPrimario = 0xFF1D4D5C, colorSecundario = 0xFF4C7F8C, solicitudId = "s11"),
-        Sesion("h1", "t3", "Lucía Fernández", "Física I", "14 oct", "15:00", 1.5, PRESENCIAL, COMPLETADA, calificacion = 5, comentario = "Clarísima con los diagramas.", calificacionRecibida = 5, colorPrimario = 0xFF8A6A1F, colorSecundario = 0xFFC9A44C),
-        Sesion("h2", "t5", "Pablo Sánchez", "Figma", "7 oct", "11:00", 2.0, VIRTUAL, COMPLETADA, calificacion = 5, calificacionRecibida = 5, colorPrimario = 0xFF2E4A62, colorSecundario = 0xFF6585A0),
-        Sesion("h3", "t4", "María López", "Inglés", "30 sept", "09:00", 1.0, VIRTUAL, COMPLETADA, calificacionRecibida = 4, colorPrimario = 0xFF8C3B2E, colorSecundario = 0xFFC7714F),
-        Sesion("h4", "t1", "Ana Torres", "Matemática Básica", "23 sept", "10:00", 1.5, VIRTUAL, COMPLETADA, calificacion = 4, colorPrimario = 0xFF1B5E3F, colorSecundario = 0xFF4E9C78),
-        Sesion("h5", "t6", "Sofía García", "Química", "16 sept", "14:00", 1.0, PRESENCIAL, COMPLETADA, colorPrimario = 0xFF2F6B3A, colorSecundario = 0xFF7FAF6B),
-        Sesion("h6", "t2", "Carlos Mendoza", "Python", "10 sept", "18:00", 1.0, VIRTUAL, CANCELADA, colorPrimario = 0xFF155E63, colorSecundario = 0xFF4A9EA0),
+        Sesion("x1", "t1", "Ana Torres", "Cálculo I", "24 oct", "10:00", 1.5, VIRTUAL, PROGRAMADA, solicitudId = "s10"),
+        Sesion("x2", "t3", "Lucía Fernández", "Física I", "26 oct", "15:00", 1.0, PRESENCIAL, PROGRAMADA, solicitudId = "s8"),
+        Sesion("x3", "t7", "Diego Ramírez", "SQL", "27 oct", "16:00", 1.0, VIRTUAL, PROGRAMADA, solicitudId = "s11"),
+        Sesion("h1", "t3", "Lucía Fernández", "Física I", "14 oct", "15:00", 1.5, PRESENCIAL, COMPLETADA, calificacion = 5, comentario = "Clarísima con los diagramas.", calificacionRecibida = 5),
+        Sesion("h2", "t5", "Pablo Sánchez", "Figma", "7 oct", "11:00", 2.0, VIRTUAL, COMPLETADA, calificacion = 5, calificacionRecibida = 5),
+        Sesion("h3", "t4", "María López", "Inglés", "30 sept", "09:00", 1.0, VIRTUAL, COMPLETADA, calificacionRecibida = 4),
+        Sesion("h4", "t1", "Ana Torres", "Matemática Básica", "23 sept", "10:00", 1.5, VIRTUAL, COMPLETADA, calificacion = 4),
+        Sesion("h5", "t6", "Sofía García", "Química", "16 sept", "14:00", 1.0, PRESENCIAL, COMPLETADA),
+        Sesion("h6", "t2", "Carlos Mendoza", "Python", "10 sept", "18:00", 1.0, VIRTUAL, CANCELADA),
         // Como tutor
-        Sesion("y1", "e4", "Andrea Prado", "Programación", "20 oct", "18:00", 1.0, VIRTUAL, PROGRAMADA, comoTutor = true, colorPrimario = 0xFF5B4A8A, colorSecundario = 0xFF8E7FC0, solicitudId = "s4"),
-        Sesion("g1", "e6", "Renzo Cruz", "Programación", "14 oct", "15:00", 1.0, VIRTUAL, COMPLETADA, comoTutor = true, calificacion = 5, calificacionRecibida = 5, colorPrimario = 0xFF7A4B2A, colorSecundario = 0xFFB98256),
-        Sesion("g2", "e1", "Valeria Ríos", "Cálculo I", "9 oct", "10:00", 1.5, VIRTUAL, COMPLETADA, comoTutor = true, calificacion = 5, calificacionRecibida = 5, colorPrimario = 0xFF2F5D7C, colorSecundario = 0xFF6A97B5),
-        Sesion("g3", "e2", "Jorge Luna", "Programación", "25 sept", "16:00", 1.0, PRESENCIAL, COMPLETADA, comoTutor = true, calificacionRecibida = 4, colorPrimario = 0xFF4A6B2F, colorSecundario = 0xFF86A866),
-        Sesion("g4", "e3", "Camila Torres", "Cálculo I", "18 sept", "08:00", 1.0, VIRTUAL, NO_ASISTIO, comoTutor = true, colorPrimario = 0xFF7C2F4E, colorSecundario = 0xFFB56A88)
+        Sesion("y1", "e4", "Andrea Prado", "Programación", "20 oct", "18:00", 1.0, VIRTUAL, PROGRAMADA, comoTutor = true, solicitudId = "s4"),
+        Sesion("g1", "e6", "Renzo Cruz", "Programación", "14 oct", "15:00", 1.0, VIRTUAL, COMPLETADA, comoTutor = true, calificacion = 5, calificacionRecibida = 5),
+        Sesion("g2", "e1", "Valeria Ríos", "Cálculo I", "9 oct", "10:00", 1.5, VIRTUAL, COMPLETADA, comoTutor = true, calificacion = 5, calificacionRecibida = 5),
+        Sesion("g3", "e2", "Jorge Luna", "Programación", "25 sept", "16:00", 1.0, PRESENCIAL, COMPLETADA, comoTutor = true, calificacionRecibida = 4),
+        Sesion("g4", "e3", "Camila Torres", "Cálculo I", "18 sept", "08:00", 1.0, VIRTUAL, NO_ASISTIO, comoTutor = true)
     )
 
     private val horasDia = listOf("08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00")

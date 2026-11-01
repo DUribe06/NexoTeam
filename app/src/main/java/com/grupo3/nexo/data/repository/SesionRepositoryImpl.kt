@@ -42,8 +42,6 @@ class SesionRepositoryImpl @Inject constructor(
             modalidad = solicitud.modalidad,
             estado = EstadoSesion.PROGRAMADA,
             comoTutor = comoTutor,
-            colorPrimario = tutor?.colorPrimario ?: 0xFF2F5D7C,
-            colorSecundario = tutor?.colorSecundario ?: 0xFF6A97B5,
             solicitudId = solicitud.id
         )
         sesiones.update { listOf(nueva) + it }

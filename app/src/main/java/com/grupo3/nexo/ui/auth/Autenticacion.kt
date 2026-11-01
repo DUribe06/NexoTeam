@@ -70,7 +70,6 @@ import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -94,7 +93,9 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
@@ -107,7 +108,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
@@ -116,11 +116,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.usecase.IniciarSesionGoogleUseCase
 import com.grupo3.nexo.domain.usecase.IniciarSesionUseCase
 import com.grupo3.nexo.domain.usecase.RegistrarseUseCase
+import com.grupo3.nexo.domain.usecase.ValidarAccesoUseCase
 import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
 import com.grupo3.nexo.ui.components.Onda
 import com.grupo3.nexo.ui.theme.Bosque
@@ -148,6 +150,8 @@ import com.grupo3.nexo.ui.theme.CuerpoEnlace
 import com.grupo3.nexo.ui.theme.MarcadorCampo
 import com.grupo3.nexo.ui.theme.TextoBotonPrincipal
 import com.grupo3.nexo.ui.theme.EtiquetaSeparador
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TextoBotonSecundario
 import com.grupo3.nexo.ui.theme.CampoAcceso
 import androidx.compose.material3.LocalTextStyle
@@ -160,7 +164,8 @@ import com.grupo3.nexo.ui.components.IconosNexo
 class LoginViewModel @Inject constructor(
     private val iniciarSesion: IniciarSesionUseCase,
     private val registrarse: RegistrarseUseCase,
-    private val iniciarSesionGoogle: IniciarSesionGoogleUseCase
+    private val iniciarSesionGoogle: IniciarSesionGoogleUseCase,
+    private val validarAcceso: ValidarAccesoUseCase
 ) : ViewModel() {
 
     data class Estado(
@@ -187,14 +192,7 @@ class LoginViewModel @Inject constructor(
     fun entrar() {
         val e = _estado.value
         if (e.cargando) return
-        val error = when {
-            e.esRegistro && e.nombre.isBlank() -> "Escribe tu nombre o un alias"
-            e.correo.isBlank() || e.contrasena.isBlank() -> "Completa todos los campos para continuar"
-            !e.correo.contains("@") -> "Escribe un correo válido, por ejemplo correo@ejemplo.com"
-            e.contrasena.length < 4 -> "La contraseña debe tener al menos 4 caracteres"
-            e.esRegistro && !e.aceptaCondiciones -> "Acepta las condiciones de uso para vincularte"
-            else -> null
-        }
+        val error = validarAcceso(e.esRegistro, e.nombre, e.correo, e.contrasena, e.aceptaCondiciones)
         if (error != null) {
             _estado.update { it.copy(error = error) }
             return
@@ -237,7 +235,7 @@ fun PantallaLogin(
     alEntrar: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
-    val estado by viewModel.estado.collectAsState()
+    val estado by viewModel.estado.collectAsStateWithLifecycle()
 
     LaunchedEffect(estado.autenticado) {
         if (estado.autenticado) {
@@ -410,6 +408,7 @@ private fun ContenidoAcceso(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = EspacioAjustado)
+                                    .semantics { liveRegion = LiveRegionMode.Polite }
                             )
                         }
 
@@ -559,8 +558,8 @@ private fun InsigniaLogo(modifier: Modifier = Modifier) {
             }
             .size(84.dp)
             .shadow(20.dp, forma, ambientColor = BosqueProfundo, spotColor = BosqueProfundo.copy(alpha = 0.35f))
-            .background(Color.White, forma)
-            .border(1.dp, Color.White.copy(alpha = 0.95f), forma)
+            .background(Superficie, forma)
+            .border(1.dp, Superficie.copy(alpha = 0.95f), forma)
     ) {
         Image(
             painter = painterResource(R.drawable.logo_nexo),
@@ -606,7 +605,7 @@ private fun CampoPildora(
         modifier = modifier
             .fillMaxWidth()
             .shadow(elevacion, CircleShape, ambientColor = BosqueProfundo.copy(alpha = 0.4f), spotColor = BosqueProfundo.copy(alpha = 0.18f))
-            .background(Color.White, CircleShape)
+            .background(Superficie, CircleShape)
             .border(grosorBorde, colorBorde, CircleShape)
             .onFocusChanged { enfocado = it.isFocused },
         decorationBox = { campo ->
@@ -642,7 +641,7 @@ private fun CampoPildora(
 /** Casilla redonda de aceptación de condiciones (toda la fila es pulsable). */
 @Composable
 private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, modifier: Modifier = Modifier) {
-    val relleno by animateColorAsState(if (aceptado) BosqueMedio else Color.White, label = "relleno")
+    val relleno by animateColorAsState(if (aceptado) BosqueMedio else Superficie, label = "relleno")
     val borde by animateColorAsState(if (aceptado) BosqueMedio else Bosque.copy(alpha = 0.3f), label = "borde")
     val escalaMarca by animateFloatAsState(
         if (aceptado) 1f else 0f, resorteRebote(), label = "marca"
@@ -665,7 +664,7 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
             Icon(
                 IconosNexo.Marca,
                 contentDescription = null,
-                tint = Color.White,
+                tint = SobreOscuro,
                 modifier = Modifier
                     .size(12.dp)
                     .graphicsLayer {
@@ -679,7 +678,7 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
             buildAnnotatedString {
                 append("Acepto las ")
                 withStyle(
-                    SpanStyle(color = Bosque, fontWeight = FontWeight.SemiBold, textDecoration = TextDecoration.Underline)
+                    SpanStyle(color = Bosque, fontWeight = FontWeight.SemiBold)
                 ) { append("condiciones de uso") }
             },
             color = TextoSecundario,
@@ -700,7 +699,7 @@ private fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> Un
         contentAlignment = Alignment.Center,
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .heightIn(min = 56.dp)
             .graphicsLayer {
                 scaleX = escala
                 scaleY = escala
@@ -722,15 +721,15 @@ private fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> Un
             label = "contenidoBoton"
         ) { estaCargando ->
             if (estaCargando) {
-                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+                CircularProgressIndicator(color = SobreOscuro, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(texto, color = Color.White, style = LocalTextStyle.current.merge(TextoBotonPrincipal))
+                    Text(texto, color = SobreOscuro, style = LocalTextStyle.current.merge(TextoBotonPrincipal))
                     Spacer(Modifier.width(EspacioAjustado + desplazamientoFlecha))
                     Icon(
                         IconosNexo.Adelante,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = SobreOscuro,
                         modifier = Modifier.size(17.dp)
                     )
                 }
@@ -764,7 +763,7 @@ private fun BotonGoogle(habilitado: Boolean, alClicar: () -> Unit, modifier: Mod
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .height(50.dp)
+            .heightIn(min = 50.dp)
             // Solo contorno, sin relleno ni sombra: así no se confunde con los campos
             .border(1.dp, Bosque.copy(alpha = 0.18f), CircleShape)
             .clip(CircleShape)
@@ -788,13 +787,19 @@ private fun EnlaceCambioModo(esRegistro: Boolean, alClicar: () -> Unit, modifier
         color = TextoSecundario,
         style = LocalTextStyle.current.merge(CuerpoEnlace),
         modifier = modifier
+            // Área de toque de 48 dp: el enlace sigue midiendo 44 dp para el resto del diseño
+            .layout { medible, restricciones ->
+                val p = medible.measure(restricciones)
+                val minimo = 44.dp.roundToPx()
+                layout(p.width, if (p.height <= 48.dp.roundToPx()) minimo else p.height) { p.place(0, 0) }
+            }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 role = Role.Button,
                 onClick = alClicar
             )
-            .heightIn(min = 44.dp)
+            .heightIn(min = 48.dp)
             .padding(horizontal = EspacioCercano, vertical = EspacioMedio)
     )
 }

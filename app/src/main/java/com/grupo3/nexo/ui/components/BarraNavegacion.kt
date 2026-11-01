@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.R
 import com.grupo3.nexo.ui.navigation.Rutas
+import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.BosqueProfundo
@@ -632,7 +633,7 @@ fun BarraNavegacion(
         Box(
             Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(Superficie)
                 .windowInsetsBottomHeight(WindowInsets.navigationBars)
         )
     }

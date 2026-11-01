@@ -80,10 +80,7 @@ data class Tutor(
     /** Tarifa por hora en pesos colombianos (COP). */
     val precioHora: Double,
     val enLinea: Boolean,
-    val horario: List<FranjaTutor> = emptyList(),
-    /** Colores del gradiente de identidad visual del tutor (ARGB). */
-    val colorPrimario: Long,
-    val colorSecundario: Long
+    val horario: List<FranjaTutor> = emptyList()
 ) {
     /** Modalidades que el tutor ofrece en al menos una franja. */
     val modalidades: Set<Modalidad> get() = horario.flatMapTo(mutableSetOf()) { it.modalidades }
@@ -150,8 +147,6 @@ data class Sesion(
     val comentario: String? = null,
     /** Calificación que la otra parte le dio al usuario (RF9 es mutua). */
     val calificacionRecibida: Int? = null,
-    val colorPrimario: Long,
-    val colorSecundario: Long,
     /** Solicitud de la que nació la sesión al ser aceptada (RF6). */
     val solicitudId: String? = null
 ) {
@@ -168,8 +163,6 @@ data class Chat(
     val hora: String,
     val noLeidos: Int,
     val enLinea: Boolean,
-    val colorPrimario: Long,
-    val colorSecundario: Long,
     /** La sesión ya terminó: el historial se conserva pero no admite mensajes nuevos (RF8). */
     val soloLectura: Boolean = false,
     /** true si la conversación es con un estudiante (el usuario actúa como tutor). */
@@ -208,9 +201,7 @@ data class Usuario(
     val carrera: String = "",
     /** Perfil público como tutor. */
     val bio: String = "",
-    val materias: List<String> = emptyList(),
-    val colorPrimario: Long = 0xFF0D3829,
-    val colorSecundario: Long = 0xFF3F8F69
+    val materias: List<String> = emptyList()
 )
 
 /** Cifras del usuario en el modo actual, para el Perfil y el Historial. */

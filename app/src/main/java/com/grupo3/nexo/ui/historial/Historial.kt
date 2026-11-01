@@ -1,7 +1,6 @@
 package com.grupo3.nexo.ui.historial
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,36 +13,31 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -65,9 +59,7 @@ import com.grupo3.nexo.ui.components.Avatar
 import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.AvisoNexo
 import com.grupo3.nexo.ui.components.CabeceraSeccion
-import com.grupo3.nexo.ui.components.BotonPrimario
 import com.grupo3.nexo.ui.components.BotonSecundario
-import com.grupo3.nexo.ui.components.Campo
 import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.FiltroOpcion
 import com.grupo3.nexo.ui.components.Carga
@@ -77,18 +69,15 @@ import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.theme.cambioContenido
 import com.grupo3.nexo.ui.components.Estrellas
-import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.RotuloGrupo
 import com.grupo3.nexo.ui.components.TextoLinea
 import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.components.superficie
-import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.Miel
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
-import com.grupo3.nexo.ui.theme.VerdeEstado
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -170,7 +159,7 @@ fun PantallaHistorial(
     alBuscar: () -> Unit,
     viewModel: HistorialViewModel = hiltViewModel()
 ) {
-    val estado by viewModel.estado.collectAsState()
+    val estado by viewModel.estado.collectAsStateWithLifecycle()
     var porCalificarId by rememberSaveable { mutableStateOf<String?>(null) }
     val porCalificar = estado.todas.firstOrNull { it.id == porCalificarId }
     val avisos = remember { SnackbarHostState() }
@@ -273,7 +262,8 @@ private fun Resumen(estado: HistorialViewModel.Estado) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .heightIn(min = 64.dp)
+            .height(IntrinsicSize.Min)
     ) {
         val unaSesion = estado.completadas == 1
         CifraResumen(

@@ -3,6 +3,7 @@ package com.grupo3.nexo.ui.busqueda
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.grupo3.nexo.ui.theme.BosqueAcento
+import com.grupo3.nexo.ui.theme.SobreOscuro
 import androidx.compose.foundation.border
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
@@ -25,12 +26,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
@@ -39,14 +37,14 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
@@ -78,8 +76,6 @@ import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.FiltroOpcion
 import com.grupo3.nexo.ui.components.HojaNexo
-import com.grupo3.nexo.ui.components.IconosModalidad
-import com.grupo3.nexo.ui.components.InsigniaConteo
 import com.grupo3.nexo.ui.components.RotuloGrupo
 import com.grupo3.nexo.ui.components.TextoLinea
 import com.grupo3.nexo.ui.components.BarraSuperior
@@ -89,7 +85,6 @@ import com.grupo3.nexo.ui.components.icono
 import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
-import com.grupo3.nexo.ui.components.superficiePulsable
 import com.grupo3.nexo.ui.components.universidadCorta
 import com.grupo3.nexo.ui.navigation.Rutas
 import com.grupo3.nexo.ui.theme.BosqueMedio
@@ -105,7 +100,6 @@ import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.FormaOpcion
 import com.grupo3.nexo.ui.theme.cambioContenido
-import com.grupo3.nexo.ui.theme.Menta
 import com.grupo3.nexo.ui.theme.Salvia
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
@@ -210,8 +204,9 @@ fun PantallaBusqueda(
     alVolver: () -> Unit,
     viewModel: BusquedaViewModel = hiltViewModel()
 ) {
-    val estado by viewModel.estado.collectAsState()
+    val estado by viewModel.estado.collectAsStateWithLifecycle()
     val focos = LocalFocusManager.current
+    val opcionesArea = remember { listOf("Todas") + AreaEstudio.entries.map { it.etiqueta } }
     var mostrarFiltros by rememberSaveable { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
@@ -236,7 +231,7 @@ fun PantallaBusqueda(
         )
 
         Pestanas(
-            opciones = listOf("Todas") + AreaEstudio.entries.map { it.etiqueta },
+            opciones = opcionesArea,
             seleccionada = estado.area?.let { it.ordinal + 1 } ?: 0,
             alElegir = { i -> if (i == 0) estado.area?.let(viewModel::alternarArea) else viewModel.alternarArea(AreaEstudio.entries[i - 1]) },
             modifier = Modifier.padding(top = EspacioCorto)
@@ -356,7 +351,7 @@ private fun HojaFiltros(
                 onCheckedChange = null,
                 colors = SwitchDefaults.colors(
                     checkedTrackColor = BosqueMedio,
-                    checkedThumbColor = Color.White,
+                    checkedThumbColor = SobreOscuro,
                     checkedIconColor = BosqueMedio,
                     uncheckedTrackColor = TinteBosque,
                     uncheckedBorderColor = Salvia.copy(alpha = 0.6f),
@@ -390,13 +385,13 @@ private fun FiltroIcono(texto: String, icono: ImageVector, seleccionado: Boolean
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .areaTactilSinCambiarMedida()
-            .height(48.dp)
+            .heightIn(min = 48.dp)
             .pulsable(rol = Role.RadioButton, alClicar = alClicar)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .height(40.dp)
+                .heightIn(min = 40.dp)
                 .then(
                     if (seleccionado) Modifier.background(TinteBosque, FormaOpcion).border(1.dp, BosqueAcento.copy(alpha = 0.55f), FormaOpcion)
                     else Modifier.superficie(FormaOpcion)
@@ -412,7 +407,7 @@ private fun FiltroIcono(texto: String, icono: ImageVector, seleccionado: Boolean
 
 /**
  * Fila de tutor para listas agrupadas: avatar con estado, nombre, materias y una línea
- * de contexto (universidad · modalidad); a la derecha, valoración y tarifa.
+ * de contexto (universidad · modalidad); a la derecha, calificación y tarifa.
  * No dibuja fondo propio: lo pone la lista (ver [filaAgrupada]).
  */
 @Composable

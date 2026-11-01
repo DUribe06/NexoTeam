@@ -1,6 +1,8 @@
 package com.grupo3.nexo.ui.components
 
 import com.grupo3.nexo.ui.theme.especColor
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.especFundidoSalida
 import com.grupo3.nexo.ui.theme.DuracionCorta
 import com.grupo3.nexo.ui.theme.DuracionMedia
@@ -9,7 +11,6 @@ import com.grupo3.nexo.ui.theme.EscalaPresionBotonCompacto
 import com.grupo3.nexo.ui.theme.EscalaPresionBoton
 import com.grupo3.nexo.ui.theme.EscalaPresionTarjeta
 import androidx.compose.animation.core.snap
-import androidx.compose.foundation.layout.requiredHeight
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioCercano
@@ -21,6 +22,8 @@ import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioSuelto
 import kotlin.math.roundToInt
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavBackStackEntry
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import android.app.Activity
@@ -43,10 +46,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import com.grupo3.nexo.ui.theme.TinteBosque
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.BosqueMedio
@@ -81,20 +80,16 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
@@ -117,7 +112,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import com.grupo3.nexo.R
 import androidx.compose.animation.core.Animatable
@@ -133,29 +127,23 @@ import com.grupo3.nexo.domain.model.PLAZO_RESPUESTA_HORAS
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.especAparicion
 import com.grupo3.nexo.domain.model.EstadoSolicitud
+import com.grupo3.nexo.domain.model.siglasUniversidad
 import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.GrisEstado
-import com.grupo3.nexo.ui.theme.GrisFondo
-import com.grupo3.nexo.ui.theme.InstrumentSans
 import com.grupo3.nexo.ui.theme.Lienzo
 import com.grupo3.nexo.ui.theme.Marcador
 import com.grupo3.nexo.ui.theme.Menta
 import com.grupo3.nexo.ui.theme.PuntoDesconectado
 import com.grupo3.nexo.ui.theme.Miel
-import com.grupo3.nexo.ui.theme.MielFondo
 import com.grupo3.nexo.ui.theme.MielOscura
 import com.grupo3.nexo.ui.theme.Rojo
-import com.grupo3.nexo.ui.theme.RojoFondo
-import com.grupo3.nexo.ui.theme.SuperficieClara
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.VerdeEstado
-import com.grupo3.nexo.ui.theme.VerdeFondo
-import com.grupo3.nexo.ui.theme.pincelBosque
 import com.grupo3.nexo.ui.theme.tonosAvatar
 import java.util.Locale
 import com.grupo3.nexo.ui.theme.CampoEntrada
@@ -174,7 +162,7 @@ val CifrasTabulares = TextStyle(fontFeatureSettings = "tnum")
  */
 fun Modifier.superficie(forma: Shape = FormaTarjeta): Modifier =
     this
-        .background(Color.White, forma)
+        .background(Superficie, forma)
         .border(1.dp, BordeSutil, forma)
         .clip(forma)
 
@@ -217,7 +205,8 @@ fun Modifier.superficiePulsable(
  */
 fun Modifier.areaTactilSinCambiarMedida(alto: Dp = 40.dp): Modifier = layout { medible, restricciones ->
     val p = medible.measure(restricciones)
-    val reportado = alto.roundToPx().coerceAtMost(p.height)
+    // Con letra grande el contenido supera los 48 dp: se reporta entero para no cortar el texto
+    val reportado = if (p.height > maxOf(alto, 48.dp).roundToPx()) p.height else alto.roundToPx().coerceAtMost(p.height)
     // Mismo redondeo que el centrado del contenido (mitad hacia arriba), para no mover nada 1 px
     val sobra = ((p.height - reportado) / 2f).roundToInt()
     layout(p.width, reportado) { p.place(0, -sobra) }
@@ -276,7 +265,7 @@ fun BotonPrimario(
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .height(if (compacto) 44.dp else 52.dp)
+            .heightIn(min = if (compacto) 44.dp else 52.dp)
             .graphicsLayer {
                 scaleX = escala
                 scaleY = escala
@@ -285,7 +274,7 @@ fun BotonPrimario(
             .clip(FormaControl)
             .clickable(
                 interactionSource = interaccion,
-                indication = ripple(color = Color.White),
+                indication = ripple(color = SobreOscuro),
                 enabled = activo,
                 role = Role.Button,
                 onClick = alClicar
@@ -298,9 +287,9 @@ fun BotonPrimario(
             label = "contenidoBoton"
         ) { estaCargando ->
             if (estaCargando) {
-                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+                CircularProgressIndicator(color = SobreOscuro, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
             } else {
-                val color = if (habilitado) Color.White else TextoTercero
+                val color = if (habilitado) Superficie else TextoTercero
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (icono != null) {
                         Icon(icono, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
@@ -350,7 +339,7 @@ fun BotonSecundario(
         propagateMinConstraints = true,
         modifier = modifier
             .areaTactilSinCambiarMedida(alto)
-            .height(maxOf(alto, 48.dp))
+            .heightIn(min = maxOf(alto, 48.dp))
             .pulsable(habilitado = habilitado, alClicar = alClicar)
             .semantics { if (descripcion != null) contentDescription = descripcion }
     ) {
@@ -358,8 +347,8 @@ fun BotonSecundario(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .requiredHeight(alto)
-                .background(Color.White, FormaControl)
+                .heightIn(min = alto)
+                .background(Superficie, FormaControl)
                 .border(1.dp, if (peligro) Rojo.copy(alpha = 0.30f) else Bosque.copy(alpha = 0.16f), FormaControl)
                 .padding(horizontal = if (compacto) EspacioNormal else EspacioMargen)
         ) {
@@ -462,7 +451,7 @@ fun Modifier.filaAgrupada(indice: Int, total: Int, sangria: Dp = 16.dp, radio: D
         bottomEnd = if (indice == total - 1) radio else 0.dp
     )
     return this
-        .background(Color.White, forma)
+        .background(Superficie, forma)
         .clip(forma)
         .then(
             if (indice > 0) Modifier.drawBehind {
@@ -516,14 +505,14 @@ fun BotonIcono(
             Icon(
                 icono,
                 contentDescription = null,
-                tint = if (sobreOscuro) Color.White else TextoPrimario,
+                tint = if (sobreOscuro) SobreOscuro else TextoPrimario,
                 modifier = Modifier.size(22.dp)
             )
         }
         if (insignia > 0) {
             InsigniaConteo(
                 insignia,
-                bordeColor = if (sobreOscuro) BosqueProfundo else Color.White,
+                bordeColor = if (sobreOscuro) BosqueProfundo else Superficie,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(top = EspacioMicro, end = 0.dp)
@@ -572,7 +561,7 @@ fun Campo(
         keyboardActions = acciones,
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.White, forma)
+            .background(Superficie, forma)
             .border(grosorBorde, colorBorde, forma)
             .onFocusChanged { enfocado = it.isFocused },
         decorationBox = { campo ->
@@ -623,7 +612,7 @@ fun FiltroOpcion(
     conMarca: Boolean = true,
     habilitado: Boolean = true
 ) {
-    val fondo by animateColorAsState(if (seleccionado) TinteBosque else Color.White, especColor(), label = "fondoOpcion")
+    val fondo by animateColorAsState(if (seleccionado) TinteBosque else Superficie, especColor(), label = "fondoOpcion")
     val borde by animateColorAsState(if (seleccionado) BosqueAcento.copy(alpha = 0.55f) else BordeSutil, especColor(), label = "bordeOpcion")
     val interaccion = remember { MutableInteractionSource() }
     // La zona de toque sobresale 4 dp arriba y abajo (48 dp) sin que la opción ocupe más sitio ni cambie de tamaño,
@@ -679,7 +668,7 @@ fun enumerar(elementos: List<String>): String = when (elementos.size) {
 
 /** Contador de no leídos / pendientes: menta con cifra bosque (contraste AA). */
 @Composable
-fun InsigniaConteo(cantidad: Int, modifier: Modifier = Modifier, bordeColor: Color = Color.White) {
+fun InsigniaConteo(cantidad: Int, modifier: Modifier = Modifier, bordeColor: Color = Superficie) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
@@ -753,7 +742,7 @@ fun Avatar(
         ) {
             Text(
                 iniciales(nombre),
-                color = Color.White,
+                color = SobreOscuro,
                 style = LocalTextStyle.current.merge(inicialesAvatar(tamano))
             )
         }
@@ -763,7 +752,7 @@ fun Avatar(
                 Modifier
                     .align(Alignment.BottomEnd)
                     .size(tamanoPunto)
-                    .border(2.dp, anillo ?: Color.White, CircleShape)
+                    .border(2.dp, anillo ?: Superficie, CircleShape)
                     .padding(EspacioMicro)
                     .background(if (enLinea) Menta else PuntoDesconectado, CircleShape)
             )
@@ -796,7 +785,7 @@ fun Valoracion(valor: Double, modifier: Modifier = Modifier, color: Color = Text
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.semantics(mergeDescendants = true) { }
     ) {
-        Icon(IconosNexo.Estrella, contentDescription = "Valoración", tint = Miel, modifier = Modifier.size(14.dp))
+        Icon(IconosNexo.Estrella, contentDescription = "Calificación", tint = Miel, modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(3.dp))
         Text(
             formatoValoracion(valor),
@@ -817,15 +806,7 @@ fun Valoracion(valor: Double, modifier: Modifier = Modifier, color: Color = Text
 private val localeColombia = Locale("es", "CO")
 
 fun formatoValoracion(valor: Double): String = String.format(localeColombia, "%.1f", valor)
-/** Siglas de las universidades conocidas, para filas densas donde el nombre completo se corta. */
-private val siglasUniversidad = mapOf(
-    "Universidad Industrial de Santander" to "UIS",
-    "Universidad Autónoma de Bucaramanga" to "UNAB",
-    "Unidades Tecnológicas de Santander" to "UTS",
-    "Universidad Pontificia Bolivariana, Bucaramanga" to "UPB Bucaramanga",
-    "Universidad Santo Tomás, Bucaramanga" to "USTA Bucaramanga"
-)
-
+/** Nombre corto de la universidad (sigla si se conoce), para filas densas. */
 fun universidadCorta(nombre: String): String = siglasUniversidad[nombre] ?: nombre
 
 /** Pesos colombianos con punto de miles: 25000.0 → "$25.000". */
@@ -1005,7 +986,7 @@ fun InsigniaNexo(tamano: Dp = 36.dp, modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
         modifier = modifier
             .size(tamano)
-            .background(Color.White, forma)
+            .background(Superficie, forma)
     ) {
         Image(
             painter = painterResource(R.drawable.logo_nexo),

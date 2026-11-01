@@ -1,7 +1,6 @@
 package com.grupo3.nexo.ui.solicitudes
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
@@ -26,13 +24,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -44,18 +42,15 @@ import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Solicitud
-import com.grupo3.nexo.domain.model.Tutor
-import com.grupo3.nexo.domain.usecase.AbrirChatUseCase
+import com.grupo3.nexo.domain.usecase.AbrirChatDeSolicitudUseCase
 import com.grupo3.nexo.domain.usecase.ActualizarSolicitudUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerMisSolicitudesUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerTutoresUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.ui.busqueda.AreaEstudio
 import com.grupo3.nexo.ui.components.Avatar
 import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.AvisoNexo
 import com.grupo3.nexo.ui.components.BotonPrimario
-import com.grupo3.nexo.ui.components.BotonSecundario
 import com.grupo3.nexo.ui.components.BotonTexto
 import com.grupo3.nexo.ui.components.Campo
 import com.grupo3.nexo.ui.components.CifrasTabulares
@@ -76,8 +71,6 @@ import com.grupo3.nexo.ui.components.icono
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.theme.MielOscura
 import com.grupo3.nexo.ui.theme.Rojo
-import com.grupo3.nexo.ui.theme.RojoFondo
-import com.grupo3.nexo.ui.theme.SuperficieClara
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
@@ -118,9 +111,8 @@ import com.grupo3.nexo.ui.components.IconosNexo
 class SolicitudesViewModel @Inject constructor(
     obtenerMisSolicitudes: ObtenerMisSolicitudesUseCase,
     obtenerUsuario: ObtenerUsuarioUseCase,
-    obtenerTutores: ObtenerTutoresUseCase,
     private val actualizarSolicitud: ActualizarSolicitudUseCase,
-    private val abrirChat: AbrirChatUseCase
+    private val abrirChat: AbrirChatDeSolicitudUseCase
 ) : ViewModel() {
 
     data class Estado(
@@ -129,8 +121,7 @@ class SolicitudesViewModel @Inject constructor(
         val filtro: EstadoSolicitud? = null,
         val solicitudes: List<Solicitud> = emptyList(),
         val conteos: Map<EstadoSolicitud, Int> = emptyMap(),
-        val total: Int = 0,
-        val tutores: List<Tutor> = emptyList()
+        val total: Int = 0
     ) {
         val pendientes get() = conteos[EstadoSolicitud.PENDIENTE] ?: 0
     }
@@ -138,7 +129,7 @@ class SolicitudesViewModel @Inject constructor(
     /** El filtro recuerda el modo en que se eligió: al cambiar de estudiante a tutor se descarta. */
     private val filtro = MutableStateFlow<Pair<Rol, EstadoSolicitud>?>(null)
 
-    val estado = combine(obtenerMisSolicitudes(), obtenerUsuario(), obtenerTutores(), filtro) { propias, usuario, tutores, elegido ->
+    val estado = combine(obtenerMisSolicitudes(), obtenerUsuario(), filtro) { propias, usuario, elegido ->
         // Si el estado elegido se queda sin solicitudes (p. ej. se aceptó la última pendiente), vuelve a "Todas"
         val f = elegido?.takeIf { it.first == usuario.rol }?.second
             ?.takeIf { filtrado -> propias.any { it.estado == filtrado } }
@@ -148,8 +139,7 @@ class SolicitudesViewModel @Inject constructor(
             filtro = f,
             solicitudes = propias.filter { f == null || it.estado == f },
             conteos = propias.groupingBy { it.estado }.eachCount(),
-            total = propias.size,
-            tutores = tutores
+            total = propias.size
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 
@@ -164,16 +154,7 @@ class SolicitudesViewModel @Inject constructor(
 
     /** El chat existe solo para solicitudes aceptadas (RF8): se crea si aún no existe y se abre. */
     fun abrirConversacion(solicitud: Solicitud, alListo: (String) -> Unit) {
-        viewModelScope.launch {
-            if (estado.value.esTutor) {
-                abrirChat.conEstudiante(solicitud.estudianteId, solicitud.nombreEstudiante)
-                alListo(solicitud.estudianteId)
-            } else {
-                val tutor = estado.value.tutores.firstOrNull { it.id == solicitud.tutorId } ?: return@launch
-                abrirChat(tutor)
-                alListo(tutor.id)
-            }
-        }
+        viewModelScope.launch { abrirChat(solicitud)?.let(alListo) }
     }
 
     private fun cambiar(id: String, nuevo: EstadoSolicitud, motivo: String? = null) {
@@ -189,7 +170,7 @@ fun PantallaSolicitudes(
     alAbrirChat: (String) -> Unit,
     viewModel: SolicitudesViewModel = hiltViewModel()
 ) {
-    val estado by viewModel.estado.collectAsState()
+    val estado by viewModel.estado.collectAsStateWithLifecycle()
     val avisos = remember { SnackbarHostState() }
     val alcance = rememberCoroutineScope()
     var porCancelar by remember { mutableStateOf<Solicitud?>(null) }

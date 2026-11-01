@@ -46,7 +46,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,6 +70,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.Resena
@@ -84,7 +84,9 @@ import com.grupo3.nexo.domain.usecase.ObtenerResumenActividadUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.ui.components.BotonTexto
 import com.grupo3.nexo.ui.components.Carga
-import com.grupo3.nexo.ui.components.EsqueletoLista
+import com.grupo3.nexo.ui.components.Esqueleto
+import com.grupo3.nexo.ui.components.Hueso
+import com.grupo3.nexo.ui.components.LineaHueso
 import com.grupo3.nexo.ui.components.ErrorDeLista
 import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.cargaDe
@@ -117,6 +119,10 @@ import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.Miel
 import com.grupo3.nexo.ui.theme.Rojo
 import com.grupo3.nexo.ui.theme.Salvia
+import com.grupo3.nexo.ui.theme.BordeSutil
+import com.grupo3.nexo.ui.theme.FormaTarjeta
+import com.grupo3.nexo.ui.theme.Superficie
+import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
@@ -189,7 +195,7 @@ fun PantallaPerfil(
     alAbrirDisponibilidad: () -> Unit,
     viewModel: PerfilViewModel = hiltViewModel()
 ) {
-    val estado by viewModel.estado.collectAsState()
+    val estado by viewModel.estado.collectAsStateWithLifecycle()
     val usuario = estado.usuario
     val desplazamiento = rememberScrollState()
     // El velo aparece cuando el selector llega a la barra de estado, sea cual sea el alto de la foto
@@ -310,7 +316,7 @@ private fun BotonIr(modifier: Modifier = Modifier) {
             .size(36.dp)
             .background(BosqueMedio, CircleShape)
     ) {
-        Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+        Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(16.dp))
     }
 }
 
@@ -331,7 +337,7 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
             ) {
                 Text(
                     "Perfil",
-                    color = Color.White.copy(alpha = 0.88f),
+                    color = SobreOscuro.copy(alpha = 0.88f),
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -343,7 +349,7 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
             ) {
                 Text(
                     usuario.nombre,
-                    color = Color.White,
+                    color = SobreOscuro,
                     style = MaterialTheme.typography.displaySmall,
                     maxLines = 2,
                     modifier = Modifier.semantics { heading() }
@@ -352,7 +358,7 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
                 val detalle = listOf(usuario.carrera, universidadCorta(usuario.universidad)).filter { it.isNotBlank() }
                 Text(
                     detalle.joinToString(" · ").ifBlank { usuario.correo },
-                    color = Color.White.copy(alpha = 0.88f),
+                    color = SobreOscuro.copy(alpha = 0.88f),
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
@@ -375,7 +381,8 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
 @Composable
 private fun Cifras(resumen: ResumenActividad?, esTutor: Boolean, modifier: Modifier = Modifier) {
     val cifras: List<Triple<String, String, Boolean>> = when {
-        resumen == null -> listOf(Triple("–", "sesiones", false), Triple("–", "horas", false), Triple("–", "", false))
+        resumen == null && esTutor -> listOf(Triple("–", "calificación", false), Triple("–", "sesiones dadas", false), Triple("–", "estudiantes", false))
+        resumen == null -> listOf(Triple("–", "sesiones", false), Triple("–", "de estudio", false), Triple("–", "tutores", false))
         esTutor -> listOf(
             Triple(resumen.promedioRecibido?.let(::formatoValoracion) ?: "–", "calificación", resumen.promedioRecibido != null),
             Triple("${resumen.sesiones}", if (resumen.sesiones == 1) "sesión dada" else "sesiones dadas", false),
@@ -453,7 +460,7 @@ private fun BloqueTutor(
             alAccion = alVerTodas
         )
         when (carga) {
-            Carga.CARGANDO -> EsqueletoLista(filas = 2)
+            Carga.CARGANDO -> EsqueletoSinMargen(filas = 2)
             Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus reseñas")
             Carga.VACIO -> EstadoVacio(
                 icono = IconosNexo.Resena,
@@ -463,6 +470,34 @@ private fun BloqueTutor(
                 alAccion = alVerTodas
             )
             Carga.LISTO -> ListaResenas(resenas.take(2))
+        }
+    }
+}
+
+/** [EsqueletoLista] ya trae margen lateral; dentro de un bloque con margen propio se pintan los huesos sin él. */
+@Composable
+private fun EsqueletoSinMargen(filas: Int) {
+    Esqueleto(
+        Modifier.fillMaxWidth().padding(vertical = EspacioNormal),
+        verticalArrangement = Arrangement.spacedBy(EspacioMedio)
+    ) {
+        repeat(filas) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Superficie, FormaTarjeta)
+                    .border(1.dp, BordeSutil, FormaTarjeta)
+                    .padding(EspacioNormal)
+            ) {
+                Hueso(Modifier.size(44.dp), CircleShape)
+                Spacer(Modifier.width(EspacioMedio))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
+                    LineaHueso(0.55f, alto = 14.dp)
+                    LineaHueso(0.85f, alto = 10.dp)
+                    LineaHueso(0.4f, alto = 10.dp)
+                }
+            }
         }
     }
 }
@@ -544,7 +579,7 @@ private fun Menu(alAbrirHistorial: () -> Unit, alSalir: () -> Unit) {
         modifier = Modifier
             .padding(start = EspacioMargen, end = EspacioMargen, top = EspacioCercano)
             .fillMaxWidth()
-            .height(50.dp)
+            .heightIn(min = 50.dp)
             .clip(CircleShape)
             .border(1.dp, rojo.copy(alpha = 0.28f), CircleShape)
             .clickable(role = Role.Button, onClick = alSalir)
@@ -609,7 +644,7 @@ private fun SelectorModo(actual: Rol, alElegir: (Rol) -> Unit, modifier: Modifie
         Row(Modifier.fillMaxSize().selectableGroup()) {
             opciones.forEach { rol ->
                 val activo = rol == actual
-                val color by animateColorAsState(if (activo) Color.White else TextoSecundario, label = "textoModo")
+                val color by animateColorAsState(if (activo) SobreOscuro else TextoSecundario, label = "textoModo")
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier

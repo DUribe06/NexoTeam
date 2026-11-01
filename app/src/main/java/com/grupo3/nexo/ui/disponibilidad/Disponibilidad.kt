@@ -31,7 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.model.DiaDisponibilidad
 import com.grupo3.nexo.domain.model.HoraDisponible
@@ -52,6 +53,11 @@ import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.usecase.DefinirHoraUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerDisponibilidadUseCase
 import com.grupo3.nexo.ui.components.CabeceraSeccion
+import com.grupo3.nexo.ui.components.Carga
+import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.Esqueleto
+import com.grupo3.nexo.ui.components.LineaHueso
+import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.descripcion
@@ -66,6 +72,8 @@ import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.Menta
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
@@ -94,8 +102,9 @@ class DisponibilidadViewModel @Inject constructor(
     private val definirHora: DefinirHoraUseCase
 ) : ViewModel() {
 
+    /** null mientras llegan los datos: así no se muestra "0 horas publicadas" por error. */
     val dias = obtenerDisponibilidad()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList<DiaDisponibilidad>())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null as List<DiaDisponibilidad>?)
 
     fun definir(dia: String, hora: String, modalidades: Set<Modalidad>) {
         viewModelScope.launch { definirHora(dia, hora, modalidades) }
@@ -121,14 +130,16 @@ fun PantallaDisponibilidad(
     alVolver: () -> Unit,
     viewModel: DisponibilidadViewModel = hiltViewModel()
 ) {
-    val dias by viewModel.dias.collectAsState()
+    val diasCargados by viewModel.dias.collectAsStateWithLifecycle()
+    val dias = diasCargados.orEmpty()
+    val carga = cargaDe(cargando = diasCargados == null, vacia = dias.isEmpty())
     var enEdicion by rememberSaveable { mutableStateOf<HoraEnEdicion?>(null) }
 
-    val horas = dias.flatMap { it.horas }
-    val total = horas.count { it.seleccionada }
-    val virtuales = horas.count { Modalidad.VIRTUAL in it.modalidades }
-    val presenciales = horas.count { Modalidad.PRESENCIAL in it.modalidades }
-    val diasActivos = dias.count { d -> d.horas.any { it.seleccionada } }
+    val horas = remember(dias) { dias.flatMap { it.horas } }
+    val total = remember(horas) { horas.count { it.seleccionada } }
+    val virtuales = remember(horas) { horas.count { Modalidad.VIRTUAL in it.modalidades } }
+    val presenciales = remember(horas) { horas.count { Modalidad.PRESENCIAL in it.modalidades } }
+    val diasActivos = remember(dias) { dias.count { d -> d.horas.any { it.seleccionada } } }
 
     Column(Modifier.fillMaxSize()) {
         CabeceraSeccion("Mi disponibilidad", alVolver = alVolver)
@@ -137,7 +148,9 @@ fun PantallaDisponibilidad(
             verticalArrangement = Arrangement.spacedBy(EspacioMedio),
             contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioCorto, bottom = EspacioExtenso + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
         ) {
-            item(key = "resumen") {
+            if (carga == Carga.CARGANDO) item(key = "cargando") { EsqueletoDias() }
+            else if (carga != Carga.LISTO) item(key = "error") { ErrorDeLista(titulo = "No pudimos cargar tu disponibilidad") }
+            else item(key = "resumen") {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -169,7 +182,7 @@ fun PantallaDisponibilidad(
                 }
             }
 
-            items(dias, key = { it.dia }) { dia ->
+            if (carga == Carga.LISTO) items(dias, key = { it.dia }) { dia ->
                 val activas = dia.horas.count { it.seleccionada }
                 Column(
                     modifier = Modifier
@@ -233,11 +246,31 @@ fun PantallaDisponibilidad(
     }
 }
 
+/** Silueta del resumen y los días mientras llegan los datos; la lista ya trae su margen lateral. */
+@Composable
+private fun EsqueletoDias() {
+    Esqueleto(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(EspacioMedio)) {
+        repeat(3) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(EspacioCorto),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .superficie(FormaTarjeta)
+                    .padding(EspacioNormal)
+            ) {
+                LineaHueso(0.4f, alto = 14.dp)
+                LineaHueso(0.85f, alto = 10.dp)
+                LineaHueso(0.6f, alto = 10.dp)
+            }
+        }
+    }
+}
+
 /** Hora de la semana: apagada (contorno) o publicada (bosque plano con íconos de modalidad). */
 @Composable
 private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
     val activa = hora.seleccionada
-    val colorTexto by animateColorAsState(if (activa) Color.White else BosqueMedio.copy(alpha = 0.8f), label = "textoHora")
+    val colorTexto by animateColorAsState(if (activa) SobreOscuro else BosqueMedio.copy(alpha = 0.8f), label = "textoHora")
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -252,7 +285,7 @@ private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
                 .then(
                     if (activa) Modifier.background(BosqueMedio, FormaOpcion)
                     else Modifier
-                        .background(Color.White, FormaOpcion)
+                        .background(Superficie, FormaOpcion)
                         .border(1.dp, Bosque.copy(alpha = 0.16f), FormaOpcion)
                 )
                 .semantics(mergeDescendants = true) {

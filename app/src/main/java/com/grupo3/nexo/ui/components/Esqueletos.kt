@@ -1,6 +1,8 @@
 package com.grupo3.nexo.ui.components
 
 import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.EspacioCercano
 import com.grupo3.nexo.ui.theme.EspacioCorto
 import com.grupo3.nexo.ui.theme.EspacioFino
@@ -118,25 +120,25 @@ fun SesionEsqueleto(modifier: Modifier = Modifier, capas: Int = 2) {
                 .padding(start = EspacioNormal, end = EspacioCercano, top = EspacioNormal, bottom = EspacioCercano)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                LineaHueso(0.42f, alto = 11.dp, modifier = Modifier.weight(1f), color = Color.White)
-                Hueso(Modifier.size(width = 56.dp, height = 11.dp), color = Color.White)
+                LineaHueso(0.42f, alto = 11.dp, modifier = Modifier.weight(1f), color = SobreOscuro)
+                Hueso(Modifier.size(width = 56.dp, height = 11.dp), color = SobreOscuro)
             }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = EspacioCercano, bottom = EspacioNormal)) {
-                Hueso(Modifier.size(width = 112.dp, height = 38.dp), FormaOpcion, Color.White)
+                Hueso(Modifier.size(width = 112.dp, height = 38.dp), FormaOpcion, Superficie)
                 Spacer(Modifier.width(EspacioSuelto))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
-                    LineaHueso(0.7f, alto = 14.dp, color = Color.White)
-                    LineaHueso(0.85f, alto = 10.dp, color = Color.White)
+                    LineaHueso(0.7f, alto = 14.dp, color = SobreOscuro)
+                    LineaHueso(0.85f, alto = 10.dp, color = SobreOscuro)
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Hueso(Modifier.size(28.dp), CircleShape, Color.White)
+                Hueso(Modifier.size(28.dp), CircleShape, Superficie)
                 Spacer(Modifier.width(EspacioAjustado))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(EspacioFino)) {
-                    LineaHueso(0.45f, alto = 11.dp, color = Color.White)
-                    LineaHueso(0.3f, alto = 9.dp, color = Color.White)
+                    LineaHueso(0.45f, alto = 11.dp, color = SobreOscuro)
+                    LineaHueso(0.3f, alto = 9.dp, color = SobreOscuro)
                 }
-                Hueso(Modifier.size(width = 112.dp, height = 40.dp), FormaBoton, Color.White)
+                Hueso(Modifier.size(width = 112.dp, height = 40.dp), FormaBoton, Superficie)
             }
         }
         // Las sesiones siguientes, apiladas detrás como en la tarjeta real: así el esqueleto mide lo mismo

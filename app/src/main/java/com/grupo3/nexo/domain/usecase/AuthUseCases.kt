@@ -13,6 +13,24 @@ class IniciarSesionUseCase @Inject constructor(
         repositorio.iniciarSesion(correo, contrasena)
 }
 
+/** Valida los datos del acceso; devuelve el mensaje de error o null si todo está en orden. */
+class ValidarAccesoUseCase @Inject constructor() {
+    operator fun invoke(
+        esRegistro: Boolean,
+        nombre: String,
+        correo: String,
+        contrasena: String,
+        aceptaCondiciones: Boolean
+    ): String? = when {
+        esRegistro && nombre.isBlank() -> "Escribe tu nombre o un alias"
+        correo.isBlank() || contrasena.isBlank() -> "Completa todos los campos para continuar"
+        !correo.contains("@") -> "Escribe un correo válido, por ejemplo correo@ejemplo.com"
+        contrasena.length < 4 -> "La contraseña debe tener al menos 4 caracteres"
+        esRegistro && !aceptaCondiciones -> "Acepta las condiciones de uso para vincularte"
+        else -> null
+    }
+}
+
 /** Registra una cuenta nueva. */
 class RegistrarseUseCase @Inject constructor(
     private val repositorio: AuthRepository

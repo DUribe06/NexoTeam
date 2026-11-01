@@ -45,15 +45,13 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
     override suspend fun asegurarChat(
         chatId: String,
         nombre: String,
-        colorPrimario: Long,
-        colorSecundario: Long,
         enLinea: Boolean,
         comoTutor: Boolean
     ) {
         chats.update { actual ->
             if (actual.any { it.id == chatId }) actual
             else listOf(
-                Chat(chatId, nombre, "Inicia la conversación", "", 0, enLinea, colorPrimario, colorSecundario, comoTutor = comoTutor)
+                Chat(chatId, nombre, "Inicia la conversación", "", 0, enLinea, comoTutor = comoTutor)
             ) + actual
         }
     }

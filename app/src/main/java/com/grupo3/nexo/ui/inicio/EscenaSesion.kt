@@ -32,7 +32,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import android.content.pm.ApplicationInfo
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -107,17 +111,22 @@ import com.grupo3.nexo.ui.theme.SombraSuelo
  * "Ya casi" y "En sesión" cambian según la modalidad: presencial o virtual. En presencial, como al pedir un
  * carro: primero el tutor va en camino y, cuando llega, ella le muestra el PIN para iniciar la sesión.
  */
-enum class FaseSesion(val titulo: String, val detalle: String) {
+enum class FaseSesion(
+    val titulo: String,
+    val detalle: String,
+    val tituloTutor: String = titulo,
+    val detalleTutor: String = detalle
+) {
     SOLA("Sin sesiones por ahora", "Cuando agendes una, la seguirás aquí paso a paso."),
-    ENVIADA("Solicitud enviada", "Esperando la respuesta del tutor."),
-    AGENDADA("Sesión agendada", "El tutor aceptó: ya está en tu calendario."),
+    ENVIADA("Solicitud enviada", "Esperando la respuesta del tutor.", "Solicitud recibida", "Un estudiante espera tu respuesta."),
+    AGENDADA("Sesión agendada", "El tutor aceptó: ya está en tu calendario.", detalleTutor = "Aceptaste la solicitud: ya está en tu calendario."),
     HOY("Hoy es tu sesión", "Revisa la hora y deja listo lo que necesitas."),
-    YA_CASI("Ya casi", "Faltan 30 minutos: tu tutor va en camino."),
-    LLEGO("Tu tutor llegó", "Faltan 2 minutos: muéstrale el PIN para empezar."),
+    YA_CASI("Ya casi", "Faltan 30 minutos: tu tutor va en camino.", detalleTutor = "Faltan 30 minutos: tu estudiante te espera."),
+    LLEGO("Tu tutor llegó", "Faltan 2 minutos: muéstrale el PIN para empezar.", "Ya llegaste", "Faltan 2 minutos: pídele el PIN al estudiante para empezar."),
     EN_SESION("Sesión en curso", "Concéntrate: el chat sigue abierto si lo necesitas."),
     YA_CASI_VIRTUAL("Ya casi", "Faltan 30 minutos: la videollamada estará lista."),
-    EN_SESION_VIRTUAL("Sesión en curso", "Videollamada con tu tutor en curso."),
-    CALIFICAR("¿Cómo te fue?", "Califica la sesión para ayudar a otros estudiantes.");
+    EN_SESION_VIRTUAL("Sesión en curso", "Videollamada con tu tutor en curso.", detalleTutor = "Videollamada con tu estudiante en curso."),
+    CALIFICAR("¿Cómo te fue?", "Califica la sesión para ayudar a otros estudiantes.", detalleTutor = "Califica la sesión: tu opinión también cuenta.");
 
     fun siguiente() = entries[(ordinal + 1) % entries.size]
 }
@@ -746,9 +755,12 @@ private val movCalificar: Movimiento = { n, i ->
 /* ==================== Composable ==================== */
 
 @Composable
-private fun rememberBitmaps(ids: List<Int>): List<ImageBitmap?> {
+private fun rememberBitmaps(ids: List<Int>): List<ImageBitmap?>? {
     val recursos = LocalContext.current.resources
-    return remember(ids) { ids.map { if (it == 0) null else ImageBitmap.imageResource(recursos, it) } }
+    // Se decodifican fuera del hilo principal; null mientras cargan (la escena no se dibuja)
+    return produceState<List<ImageBitmap?>?>(initialValue = null, ids) {
+        value = withContext(Dispatchers.IO) { ids.map { if (it == 0) null else ImageBitmap.imageResource(recursos, it) } }
+    }.value
 }
 
 /** Escena de cada fase y el instante que la muestra mejor cuando no hay animación. */
@@ -768,12 +780,14 @@ private fun escenaDe(f: FaseSesion): Triple<Rig, Movimiento, Float> = when (f) {
 /**
  * Escena animada de la próxima sesión. Arranca en "agendada" si hay sesiones y en "sola" si no, y se
  * ajusta si el dato cambia. Doble toque rápido: salta a la siguiente fase (control de revisión del
- * flujo mientras no hay horas ni estados reales de la sesión).
+ * flujo mientras no hay horas ni estados reales de la sesión); solo en compilaciones de depuración.
  */
 @Composable
-fun BarraSesion(haySesiones: Boolean, modifier: Modifier = Modifier) {
+fun BarraSesion(haySesiones: Boolean, esTutor: Boolean = false, modifier: Modifier = Modifier) {
     var fase by remember(haySesiones) { mutableStateOf(if (haySesiones) FaseSesion.AGENDADA else FaseSesion.SOLA) }
     val movimiento = !LocalAnimacionesReducidas.current
+    val contexto = LocalContext.current
+    val revision = remember(contexto) { contexto.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0 }
     // Con letra grande el texto necesita más líneas y la franja crece; la escena conserva su alto
     val letraGrande = LocalDensity.current.fontScale > 1f
     val reloj = rememberInfiniteTransition(label = "barraSesion")
@@ -784,11 +798,11 @@ fun BarraSesion(haySesiones: Boolean, modifier: Modifier = Modifier) {
     // El PIN de la nube (de muestra: aún no hay datos reales)
     val medidor = rememberTextMeasurer()
     val estiloPin = MaterialTheme.typography.titleSmall.copy(color = TextoPrimario, letterSpacing = 2.sp)
-    val pin = remember(estiloPin) { PIN_MUESTRA.map { medidor.measure(it.toString(), estiloPin) } }
+    val pin = remember(estiloPin, revision) { if (revision) PIN_MUESTRA.map { medidor.measure(it.toString(), estiloPin) } else emptyList() }
     Column(
         modifier
             .fillMaxWidth()
-            .pointerInput(Unit) { detectTapGestures(onDoubleTap = { fase = fase.siguiente() }) }
+            .then(if (revision) Modifier.pointerInput(Unit) { detectTapGestures(onDoubleTap = { fase = fase.siguiente() }) } else Modifier)
     ) {
         AnimatedContent(
             targetState = fase,
@@ -811,14 +825,14 @@ fun BarraSesion(haySesiones: Boolean, modifier: Modifier = Modifier) {
             ) {
                 Column(Modifier.weight(0.44f).padding(end = EspacioAjustado)) {
                     Text(
-                        f.titulo,
+                        if (esTutor) f.tituloTutor else f.titulo,
                         style = MaterialTheme.typography.titleSmall,
                         color = TextoPrimario,
                         maxLines = if (letraGrande) 2 else 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        f.detalle,
+                        if (esTutor) f.detalleTutor else f.detalle,
                         style = MaterialTheme.typography.bodySmall,
                         color = TextoTercero,
                         maxLines = if (letraGrande) 4 else 2,
@@ -828,7 +842,7 @@ fun BarraSesion(haySesiones: Boolean, modifier: Modifier = Modifier) {
                 }
                 Canvas(Modifier.weight(0.56f).height(62.dp).align(Alignment.Bottom).clipToBounds()) {
                     val t = if (movimiento) tiempo.value - inicio else pose
-                    escena(rig, bmps, t, 1.dp.toPx(), mueve, pin)
+                    if (bmps != null) escena(rig, bmps, t, 1.dp.toPx(), mueve, pin)
                 }
             }
         }

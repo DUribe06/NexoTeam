@@ -1,14 +1,10 @@
 package com.grupo3.nexo.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,7 +20,6 @@ import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueProfundo
-import com.grupo3.nexo.ui.theme.TinteBosque
 
 /** Ícono Phosphor de cada modalidad (cámara o ubicación), la familia de toda la app. */
 val Modalidad.icono: ImageVector

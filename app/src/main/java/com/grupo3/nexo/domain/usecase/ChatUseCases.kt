@@ -6,7 +6,9 @@ import com.grupo3.nexo.domain.repository.ChatRepository
 import kotlinx.coroutines.flow.Flow
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.repository.AuthRepository
+import com.grupo3.nexo.domain.model.Solicitud
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 /** Devuelve la bandeja de conversaciones. */
@@ -48,9 +50,29 @@ class AbrirChatUseCase @Inject constructor(
     private val repositorio: ChatRepository
 ) {
     suspend operator fun invoke(tutor: com.grupo3.nexo.domain.model.Tutor) =
-        repositorio.asegurarChat(tutor.id, tutor.nombre, tutor.colorPrimario, tutor.colorSecundario, tutor.enLinea, comoTutor = false)
+        repositorio.asegurarChat(tutor.id, tutor.nombre, tutor.enLinea, comoTutor = false)
 
     /** Conversación del tutor con un estudiante de una solicitud aceptada. */
     suspend fun conEstudiante(id: String, nombre: String) =
-        repositorio.asegurarChat(id, nombre, 0xFF2F5D7C, 0xFF6A97B5, enLinea = false, comoTutor = true)
+        repositorio.asegurarChat(id, nombre, enLinea = false, comoTutor = true)
+}
+
+/**
+ * Abre el chat de una solicitud aceptada (RF8): el tutor lo abre con el estudiante y el estudiante con el tutor.
+ * Devuelve el id de la conversación, o null si el tutor ya no existe.
+ */
+class AbrirChatDeSolicitudUseCase @Inject constructor(
+    private val abrirChat: AbrirChatUseCase,
+    private val auth: AuthRepository,
+    private val tutores: ObtenerTutoresUseCase
+) {
+    suspend operator fun invoke(solicitud: Solicitud): String? =
+        if (auth.usuarioActual.value.rol == Rol.TUTOR) {
+            abrirChat.conEstudiante(solicitud.estudianteId, solicitud.nombreEstudiante)
+            solicitud.estudianteId
+        } else {
+            val tutor = tutores().first().firstOrNull { it.id == solicitud.tutorId } ?: return null
+            abrirChat(tutor)
+            tutor.id
+        }
 }

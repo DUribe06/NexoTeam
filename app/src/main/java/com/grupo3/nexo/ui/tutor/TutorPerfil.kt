@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +22,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,7 +40,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,7 +60,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.grupo3.nexo.domain.model.Rol
+import com.grupo3.nexo.domain.usecase.DiaSolicitable
+import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
+import com.grupo3.nexo.domain.usecase.diasSolicitables
+import com.grupo3.nexo.domain.usecase.franjaValida
+import com.grupo3.nexo.domain.usecase.modalidadValida
+import com.grupo3.nexo.ui.components.formatoHoras
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.usecase.EnviarSolicitudUseCase
@@ -144,10 +157,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
@@ -161,27 +173,33 @@ class TutorPerfilViewModel @Inject constructor(
     private val obtenerTutor: ObtenerTutorUseCase,
     private val obtenerResenas: ObtenerResenasUseCase,
     private val enviarSolicitud: EnviarSolicitudUseCase,
-    private val reportarTutor: ReportarTutorUseCase
+    private val reportarTutor: ReportarTutorUseCase,
+    obtenerUsuario: ObtenerUsuarioUseCase
 ) : ViewModel() {
 
     data class Estado(
         val tutor: Tutor? = null,
         val resenas: List<Resena> = emptyList(),
-        val aviso: String? = null
+        val aviso: String? = null,
+        /** true hasta que llega la primera respuesta del tutor. */
+        val cargando: Boolean = true,
+        val noEncontrado: Boolean = false,
+        /** Un tutor viendo a otro tutor no puede solicitarle tutorías. */
+        val esTutor: Boolean = false
     )
 
     private val tutorId = MutableStateFlow("")
     private val aviso = MutableStateFlow<String?>(null)
 
     private val tutor: Flow<Tutor?> = tutorId.flatMapLatest { id ->
-        if (id.isEmpty()) flowOf<Tutor?>(null) else obtenerTutor(id)
+        if (id.isEmpty()) emptyFlow() else obtenerTutor(id)
     }
     private val resenas: Flow<List<Resena>> = tutorId.flatMapLatest { id ->
-        if (id.isEmpty()) flowOf<List<Resena>>(emptyList()) else obtenerResenas(id)
+        if (id.isEmpty()) emptyFlow() else obtenerResenas(id)
     }
 
-    val estado = combine(tutor, resenas, aviso) { t, r, a ->
-        Estado(tutor = t, resenas = r, aviso = a)
+    val estado = combine(tutor, resenas, aviso, obtenerUsuario()) { t, r, a, u ->
+        Estado(tutor = t, resenas = r, aviso = a, cargando = false, noEncontrado = t == null, esTutor = u.rol == Rol.TUTOR)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 
     fun cargar(id: String) {
@@ -226,7 +244,7 @@ fun PantallaTutorPerfil(
     viewModel: TutorPerfilViewModel = hiltViewModel()
 ) {
     LaunchedEffect(tutorId) { viewModel.cargar(tutorId) }
-    val estado by viewModel.estado.collectAsState()
+    val estado by viewModel.estado.collectAsStateWithLifecycle()
     val tutor = estado.tutor
 
     var mostrarSolicitud by rememberSaveable { mutableStateOf(false) }
@@ -256,8 +274,9 @@ fun PantallaTutorPerfil(
             }
             // Bajo la cabecera: la silueta del perfil mientras llegan los datos, o el error
             Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(0.62f)) {
-                when (cargaDe(cargando = true, vacia = true)) {
+                when (cargaDe(cargando = estado.cargando, vacia = estado.noEncontrado)) {
                     Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar este perfil")
+                    Carga.VACIO -> ErrorDeLista(titulo = "No encontramos a este tutor")
                     else -> EsqueletoLista(filas = 3)
                 }
             }
@@ -265,7 +284,10 @@ fun PantallaTutorPerfil(
             Column(Modifier.fillMaxSize()) {
                 LazyColumn(
                     state = lista,
-                    contentPadding = PaddingValues(bottom = EspacioAmplio),
+                    // Sin la barra de solicitud (modo tutor), el contenido debe despejar la barra de navegación
+                    contentPadding = PaddingValues(
+                        bottom = EspacioAmplio + if (estado.esTutor) WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() else 0.dp
+                    ),
                     modifier = Modifier.weight(1f)
                 ) {
                     item(key = "portada") {
@@ -296,7 +318,7 @@ fun PantallaTutorPerfil(
                             Spacer(Modifier.height(EspacioAjustado))
                             if (tutor.materias.isEmpty()) {
                                 Text("Aún no publica materias.", color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
-                                if (tutor.horario.isNotEmpty()) BotonTexto("Solicitar tutoría", { mostrarSolicitud = true })
+                                if (tutor.horario.isNotEmpty() && !estado.esTutor) BotonTexto("Solicitar tutoría", { mostrarSolicitud = true })
                             } else {
                                 Materias(tutor.materias)
                             }
@@ -346,7 +368,7 @@ fun PantallaTutorPerfil(
                                 icono = IconosNexo.Resena,
                                 titulo = "Aún sin reseñas",
                                 mensaje = "Tras tu sesión podrás calificar a ${tutor.nombre.substringBefore(' ')}.",
-                                accion = if (tutor.horario.isNotEmpty()) "Solicitar tutoría" else null,
+                                accion = if (tutor.horario.isNotEmpty() && !estado.esTutor) "Solicitar tutoría" else null,
                                 alAccion = { mostrarSolicitud = true }
                             )
                         }
@@ -361,10 +383,12 @@ fun PantallaTutorPerfil(
                     }
                 }
 
-                BarraAcciones(
-                    tutor = tutor,
-                    alSolicitar = { mostrarSolicitud = true }
-                )
+                if (!estado.esTutor) {
+                    BarraAcciones(
+                        tutor = tutor,
+                        alSolicitar = { mostrarSolicitud = true }
+                    )
+                }
             }
 
             // El velo del sistema es translúcido: detrás, un fondo sólido para que el texto no se asome al desplazar
@@ -383,12 +407,12 @@ fun PantallaTutorPerfil(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(bottom = 92.dp)
+                    .padding(bottom = if (estado.esTutor) 0.dp else 92.dp)
             )
         }
     }
 
-    if (mostrarSolicitud && tutor != null) {
+    if (mostrarSolicitud && tutor != null && !estado.esTutor) {
         HojaSolicitud(
             tutor = tutor,
             alCerrar = { mostrarSolicitud = false },
@@ -441,7 +465,7 @@ private fun Identidad(tutor: Tutor, modifier: Modifier = Modifier) {
         Box(
             Modifier
                 .solaparHaciaArriba(64.dp)
-                .background(Color.White, CircleShape)
+                .background(Superficie, CircleShape)
                 .padding(EspacioMinimo)
         ) {
             Avatar(tutor.nombre, tamano = 98.dp)
@@ -474,7 +498,7 @@ private fun Identidad(tutor: Tutor, modifier: Modifier = Modifier) {
             Box(Modifier.size(7.dp).background(if (enLinea) Menta else GrisEstado.copy(alpha = 0.6f), CircleShape))
             Spacer(Modifier.width(7.dp))
             Text(
-                if (enLinea) "Disponible ahora" else "Desconectado",
+                if (enLinea) "En línea" else "Desconectado",
                 color = if (enLinea) VerdeEstado else GrisEstado,
                 style = MaterialTheme.typography.labelMedium
             )
@@ -495,10 +519,11 @@ private fun Cifras(tutor: Tutor, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(78.dp)
+            .heightIn(min = 78.dp)
+            .height(IntrinsicSize.Min)
             .superficie(FormaTarjeta)
     ) {
-        Cifra(formatoValoracion(tutor.rating), "valoración", Modifier.weight(1f), conEstrella = true)
+        Cifra(formatoValoracion(tutor.rating), "calificación", Modifier.weight(1f), conEstrella = true)
         Box(Modifier.fillMaxHeight().padding(vertical = EspacioSuelto).width(1.dp).background(Divisor))
         Cifra("${tutor.sesionesTotales}", "sesiones", Modifier.weight(1f))
         Box(Modifier.fillMaxHeight().padding(vertical = EspacioSuelto).width(1.dp).background(Divisor))
@@ -561,7 +586,7 @@ private fun BarraAcciones(tutor: Tutor, alSolicitar: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(Superficie)
             .drawBehind { drawLine(Divisor, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
             .navigationBarsPadding()
             .padding(start = EspacioMargen, end = EspacioNormal, top = EspacioMedio, bottom = EspacioMedio)
@@ -597,24 +622,11 @@ data class DatosSolicitud(
     val mensaje: String
 )
 
-/** Una fecha concreta en la que el tutor tiene al menos una franja publicada. */
-private data class DiaSolicitable(val fecha: LocalDate, val franjas: List<FranjaTutor>) {
-    val abreviatura: String get() = DiaSemana.desde(fecha.dayOfWeek.value).abreviatura
-    val etiqueta: String get() = fecha.format(formatoFecha).replace(".", "")
-}
+private val DiaSolicitable.abreviatura: String get() = DiaSemana.desde(fecha.dayOfWeek.value).abreviatura
+private val DiaSolicitable.etiqueta: String get() = fecha.format(formatoDiaCorto).replace(".", "")
 
 private val localeColombia = Locale("es", "CO")
-private val formatoFecha = DateTimeFormatter.ofPattern("d MMM", localeColombia)
-
-/** Próximos días (desde mañana, dos semanas) con horario del tutor; la fecha nunca es anterior a hoy (UC5). */
-private fun diasSolicitables(horario: List<FranjaTutor>): List<DiaSolicitable> {
-    val hoy = LocalDate.now()
-    return (1L..14L).mapNotNull { desfase ->
-        val fecha = hoy.plusDays(desfase)
-        val franjas = horario.filter { it.dia.numero == fecha.dayOfWeek.value }.sortedBy { it.hora }
-        if (franjas.isEmpty()) null else DiaSolicitable(fecha, franjas)
-    }
-}
+private val formatoDiaCorto = DateTimeFormatter.ofPattern("d MMM", localeColombia)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -633,11 +645,10 @@ private fun HojaSolicitud(
     var intentoEnviar by rememberSaveable { mutableStateOf(false) }
 
     val dia = dias.getOrNull(indiceDia)
-    val franja = dia?.franjas?.firstOrNull { it.hora == hora } ?: dia?.franjas?.firstOrNull()
+    val franja = franjaValida(dia, hora)
     // Hora y modalidad siempre válidas para el día elegido: si no, se toma la primera disponible.
     val horaElegida = franja?.hora
-    val modalidadElegida = modalidad?.takeIf { franja != null && it in franja.modalidades }
-        ?: franja?.modalidades?.let { m -> Modalidad.entries.first { it in m } }
+    val modalidadElegida = modalidadValida(franja, modalidad)
     val temaFalta = tema.isBlank()
 
     HojaNexo(
@@ -757,12 +768,12 @@ private fun OpcionModalidad(
     alClicar: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val fondo by animateColorAsState(if (seleccionada) BosqueMedio else Color.White, label = "fondoModalidad")
+    val fondo by animateColorAsState(if (seleccionada) BosqueMedio else Superficie, label = "fondoModalidad")
     Row(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .height(52.dp)
+            .heightIn(min = 52.dp)
             .background(fondo, FormaTarjeta)
             .border(1.dp, if (seleccionada) Color.Transparent else Bosque.copy(alpha = 0.10f), FormaTarjeta)
             .selectable(selected = seleccionada, enabled = habilitada, role = Role.RadioButton, onClick = alClicar)
@@ -772,7 +783,7 @@ private fun OpcionModalidad(
         Spacer(Modifier.width(EspacioCorto))
         Text(
             modalidad.etiqueta,
-            color = if (seleccionada) Color.White else TextoPrimario,
+            color = if (seleccionada) SobreOscuro else TextoPrimario,
             style = MaterialTheme.typography.titleSmall
         )
     }
@@ -835,7 +846,7 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
                 Spacer(Modifier.width(EspacioCercano))
             }
             Spacer(Modifier.weight(1f))
-            Text("Sesiones de 1 h", color = TextoTercero, style = MaterialTheme.typography.bodySmall)
+            Text("Sesiones de ${formatoHoras(1.0)}", color = TextoTercero, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -844,13 +855,13 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
 @Composable
 private fun SelectorDia(dia: String, fecha: String, seleccionado: Boolean, alClicar: () -> Unit) {
     val (numero, mes) = fecha.split(" ").let { it[0] to it.getOrElse(1) { "" } }
-    val fondo by animateColorAsState(if (seleccionado) BosqueMedio else Color.White, label = "fondoDia")
-    val texto by animateColorAsState(if (seleccionado) Color.White else TextoPrimario, label = "textoDia")
+    val fondo by animateColorAsState(if (seleccionado) BosqueMedio else Superficie, label = "fondoDia")
+    val texto by animateColorAsState(if (seleccionado) SobreOscuro else TextoPrimario, label = "textoDia")
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
-            .size(width = 58.dp, height = 72.dp)
+            .sizeIn(minWidth = 58.dp, minHeight = 72.dp)
             .background(fondo, FormaTarjeta)
             .border(1.dp, if (seleccionado) Color.Transparent else Bosque.copy(alpha = 0.10f), FormaTarjeta)
             .selectable(selected = seleccionado, role = Role.RadioButton, onClick = alClicar)
@@ -858,7 +869,7 @@ private fun SelectorDia(dia: String, fecha: String, seleccionado: Boolean, alCli
     ) {
         Text(dia, color = if (seleccionado) Menta else TextoTercero, style = MaterialTheme.typography.labelMedium)
         Text(numero, color = texto, style = MaterialTheme.typography.titleLarge.merge(CifrasTabulares))
-        Text(mes, color = if (seleccionado) Color.White.copy(alpha = 0.7f) else TextoTercero, style = MaterialTheme.typography.bodySmall)
+        Text(mes, color = if (seleccionado) SobreOscuro.copy(alpha = 0.7f) else TextoTercero, style = MaterialTheme.typography.bodySmall)
     }
 }
 

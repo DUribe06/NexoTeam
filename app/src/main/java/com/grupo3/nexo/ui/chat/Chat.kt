@@ -1,6 +1,8 @@
 package com.grupo3.nexo.ui.chat
 
 import com.grupo3.nexo.ui.theme.BosqueMedio
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.Superficie
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -32,19 +35,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -88,7 +89,6 @@ import com.grupo3.nexo.ui.components.TextoLinea
 import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
-import com.grupo3.nexo.ui.components.superficiePulsable
 import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
@@ -121,7 +121,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -213,7 +212,7 @@ fun PantallaChats(
     alBuscar: () -> Unit,
     viewModel: ChatsViewModel = hiltViewModel()
 ) {
-    val estado by viewModel.estado.collectAsState()
+    val estado by viewModel.estado.collectAsStateWithLifecycle()
     val sinLeer = estado.chats.sumOf { it.noLeidos }
 
     Column(Modifier.fillMaxSize()) {
@@ -307,7 +306,7 @@ private fun FilaChat(chat: Chat, alAbrir: () -> Unit, modifier: Modifier = Modif
                 )
                 if (sinLeer) {
                     Spacer(Modifier.width(EspacioCorto))
-                    InsigniaConteo(chat.noLeidos, bordeColor = Color.White)
+                    InsigniaConteo(chat.noLeidos, bordeColor = Superficie)
                 }
             }
         }
@@ -335,7 +334,7 @@ fun PantallaConversacion(
     viewModel: ConversacionViewModel = hiltViewModel()
 ) {
     LaunchedEffect(chatId) { viewModel.cargar(chatId) }
-    val estado by viewModel.estado.collectAsState()
+    val estado by viewModel.estado.collectAsStateWithLifecycle()
     val listaEstado = rememberLazyListState()
     var texto by rememberSaveable { mutableStateOf("") }
     var calificando by rememberSaveable { mutableStateOf(false) }
@@ -368,7 +367,7 @@ fun PantallaConversacion(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(Superficie)
                 .drawBehind {
                     drawLine(Divisor, Offset(0f, size.height), Offset(size.width, size.height), 1.dp.toPx())
                 }
@@ -429,7 +428,7 @@ fun PantallaConversacion(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .areaTactilSinCambiarMedida()
-                            .height(48.dp)
+                            .heightIn(min = 48.dp)
                             .pulsable { enviar(sugerencia) }
                     ) {
                     Text(
@@ -504,7 +503,7 @@ fun PantallaConversacion(
                 Icon(
                     IconosNexo.Enviar,
                     contentDescription = null,
-                    tint = if (puedeEnviar) Color.White else TextoTercero,
+                    tint = if (puedeEnviar) SobreOscuro else TextoTercero,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -557,7 +556,7 @@ private fun Burbuja(mensaje: Mensaje, iniciaGrupo: Boolean, cierraGrupo: Boolean
         ) {
             Text(
                 mensaje.texto,
-                color = if (mio) Color.White else TextoPrimario,
+                color = if (mio) SobreOscuro else TextoPrimario,
                 style = MaterialTheme.typography.bodyLarge
             )
         }
@@ -579,7 +578,7 @@ private fun AvisoSoloLectura(nota: Int? = null, motivo: String = "La sesión ter
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(Superficie)
             .drawBehind { drawLine(Divisor, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
             .navigationBarsPadding()
             .padding(horizontal = EspacioMargen, vertical = EspacioNormal)
@@ -632,7 +631,7 @@ private fun PieSesionTerminada(sesion: Sesion?, alCalificar: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(Superficie)
             .drawBehind { drawLine(Divisor, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
             .navigationBarsPadding()
             .padding(start = EspacioMargen, end = EspacioNormal, top = EspacioMedio, bottom = EspacioMedio)

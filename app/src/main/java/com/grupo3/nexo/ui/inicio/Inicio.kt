@@ -36,7 +36,9 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.background
@@ -63,7 +65,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -78,6 +80,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.scaleOut
@@ -181,8 +184,10 @@ import com.grupo3.nexo.ui.components.universidadCorta
 import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.theme.InstrumentSans
-import com.grupo3.nexo.ui.theme.Salvia
 import com.grupo3.nexo.ui.theme.SuperficieClara
+import com.grupo3.nexo.ui.theme.Superficie
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.TextoSobreTinte
 import com.grupo3.nexo.ui.theme.pincelBosque
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.LaunchedEffect
@@ -277,7 +282,7 @@ fun PantallaInicio(
     alAbrirDisponibilidad: () -> Unit,
     viewModel: InicioViewModel = hiltViewModel()
 ) {
-    val estado by viewModel.estado.collectAsState()
+    val estado by viewModel.estado.collectAsStateWithLifecycle()
     val desplazamiento = rememberScrollState()
     val cabeceraVisible by remember { derivedStateOf { desplazamiento.value < 400 } }
     IconosClarosEnBarraDeEstado(activo = cabeceraVisible)
@@ -348,6 +353,7 @@ fun PantallaInicio(
             // Mientras cargan los datos no debe decir "Sin sesiones": arranca en la fase agendada
             BarraSesion(
                 haySesiones = estado.cargando || estado.proximas.isNotEmpty(),
+                esTutor = estado.esTutor,
                 modifier = Modifier.padding(top = EspacioFino)
             )
             Column(
@@ -366,7 +372,8 @@ fun PantallaInicio(
                 // Si la lista se vacía, la tarjeta que se desvanece conserva la última con sesiones
                 // (si no, leería la lista vacía durante el fundido y cerraría la app).
                 val ultimasProximas = remember { mutableStateOf(estado.proximas) }
-                if (estado.proximas.isNotEmpty()) ultimasProximas.value = estado.proximas
+                SideEffect { if (estado.proximas.isNotEmpty()) ultimasProximas.value = estado.proximas }
+                val proximasVisibles = estado.proximas.ifEmpty { ultimasProximas.value }
                 Crossfade(
                     targetState = cargaDe(estado.cargando, estado.proximas.isEmpty()),
                     animationSpec = tween(280),
@@ -374,9 +381,9 @@ fun PantallaInicio(
                 ) { carga ->
                     when (carga) {
                         Carga.CARGANDO -> SesionEsqueleto()
-                        Carga.VACIO -> SinSesiones(alBuscar = { alBuscar(null) })
+                        Carga.VACIO -> SinSesiones(esTutor = estado.esTutor, alBuscar = { alBuscar(null) }, alVerSolicitudes = alVerSolicitudes)
                         Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus sesiones")
-                        Carga.LISTO -> ultimasProximas.value.takeIf { it.isNotEmpty() }?.let { TarjetaProximas(it, alAbrirChat) }
+                        Carga.LISTO -> proximasVisibles.takeIf { it.isNotEmpty() }?.let { TarjetaProximas(it, alAbrirChat) }
                     }
                 }
             }
@@ -440,14 +447,25 @@ private fun Cabecera(
                 )
                 Spacer(Modifier.width(EspacioMinimo))
                 // Anillo blanco fino: hace juego con la insignia blanca del logo
-                Avatar(
-                    nombre = usuario?.nombre ?: "Nexo",
-                    tamano = 36.dp,
-                    anillo = Color.White.copy(alpha = 0.9f),
+                // Área de toque de 48 dp; el avatar y lo que lo rodea miden y se ven igual (36 dp)
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .padding(end = EspacioMinimo)
+                        .layout { medible, _ ->
+                            val lado = 48.dp.roundToPx()
+                            val reducido = 36.dp.roundToPx()
+                            val p = medible.measure(Constraints.fixed(lado, lado))
+                            layout(reducido, reducido) { p.place(-(lado - reducido) / 2, -(lado - reducido) / 2) }
+                        }
                         .pulsable(etiqueta = "Abrir perfil", alClicar = alAbrirPerfil)
-                )
+                ) {
+                    Avatar(
+                        nombre = usuario?.nombre ?: "Nexo",
+                        tamano = 36.dp,
+                        anillo = SobreOscuro.copy(alpha = 0.9f)
+                    )
+                }
             }
 
             // El alto sobrante de la pantalla se ve como más foto entre la marca y el saludo
@@ -460,7 +478,7 @@ private fun Cabecera(
             ) {
                 Text(
                     if (nombre.isBlank()) "Hola" else "Hola, $nombre",
-                    color = Color.White,
+                    color = SobreOscuro,
                     style = MaterialTheme.typography.displaySmall,
                     onTextLayout = layoutSaludo,
                     modifier = modSaludo.semantics { heading() }
@@ -468,7 +486,7 @@ private fun Cabecera(
                 Spacer(Modifier.height(EspacioMicro))
                 Text(
                     if (usuario?.rol == Rol.TUTOR) "Tus estudiantes te esperan." else "¿Qué quieres aprender hoy?",
-                    color = Color.White.copy(alpha = 0.88f),
+                    color = SobreOscuro.copy(alpha = 0.88f),
                     style = MaterialTheme.typography.bodyLarge,
                     onTextLayout = layoutPregunta,
                     modifier = modPregunta
@@ -496,7 +514,7 @@ private fun Buscador(alClicar: () -> Unit, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .height(54.dp)
+            .heightIn(min = 54.dp)
             .shadow(14.dp, forma, ambientColor = BosqueProfundo.copy(alpha = 0.22f), spotColor = BosqueProfundo.copy(alpha = 0.38f))
             .superficiePulsable(forma, etiqueta = "Buscar tutores", alClicar = alClicar)
             .padding(start = EspacioMargen, end = 7.dp)
@@ -518,7 +536,7 @@ private fun Buscador(alClicar: () -> Unit, modifier: Modifier = Modifier) {
                 .size(40.dp)
                 .background(pincelBosque, CircleShape)
         ) {
-            Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+            Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -604,7 +622,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                 // Modalidad como texto con ícono, sin pastilla: el único botón blanco es "Abrir chat"
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.height(24.dp)
+                    modifier = Modifier.heightIn(min = 24.dp)
                 ) {
                     Icon(painterResource(s.modalidad.iconoPh), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(EspacioMinimo))
@@ -636,7 +654,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     TextoLinea(
                         "${formatoHoras(s.duracionHoras)} · hasta las ${horaFin(s.hora, s.duracionHoras)}",
                         CuerpoSesion,
-                        Salvia
+                        TextoSobreTinte
                     )
                 }
             }
@@ -649,7 +667,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                         TextoLinea(
                             "${universidadCorta(t.universidad)} · ${formatoValoracion(t.rating)}",
                             MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                            Salvia
+                            TextoSobreTinte
                         )
                     }
                 }
@@ -658,14 +676,14 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .areaTactilSinCambiarMedida()
-                            .height(48.dp)
+                            .heightIn(min = 48.dp)
                             .pulsable(etiqueta = "Escribir a ${s.conQuien}") { alAbrirChat(id) }
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .height(40.dp)
-                                .background(Color.White, FormaBoton)
+                                .heightIn(min = 40.dp)
+                                .background(Superficie, FormaBoton)
                                 .padding(horizontal = 15.dp)
                         ) {
                             Icon(painterResource(R.drawable.ph_chat), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(17.dp))
@@ -777,7 +795,7 @@ private fun horaFin(hora: String, horas: Double): String {
 }
 
 @Composable
-private fun SinSesiones(alBuscar: () -> Unit) {
+private fun SinSesiones(esTutor: Boolean, alBuscar: () -> Unit, alVerSolicitudes: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -796,10 +814,10 @@ private fun SinSesiones(alBuscar: () -> Unit) {
         Spacer(Modifier.width(EspacioCercano))
         Column(Modifier.weight(1f)) {
             Text("Sin sesiones agendadas", color = TextoPrimario, style = MaterialTheme.typography.titleMedium)
-            Text("Elige un tutor y solicita tu primera sesión.", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
+            Text(if (esTutor) "Cuando aceptes una solicitud, aparecerá aquí." else "Elige un tutor y solicita tu primera sesión.", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
         }
         Spacer(Modifier.width(EspacioCorto))
-        BotonSecundario("Buscar", alBuscar, compacto = true)
+        BotonSecundario(if (esTutor) "Solicitudes" else "Buscar", if (esTutor) alVerSolicitudes else alBuscar, compacto = true)
     }
 }
 
@@ -877,7 +895,7 @@ private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Mo
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .height(54.dp)
+            .heightIn(min = 54.dp)
             .shadow(14.dp, forma, ambientColor = BosqueProfundo.copy(alpha = 0.22f), spotColor = BosqueProfundo.copy(alpha = 0.38f))
             .superficiePulsable(forma, etiqueta = "Ver solicitudes recibidas", alClicar = alRevisar)
             .padding(start = EspacioMargen, end = 7.dp)
@@ -902,7 +920,7 @@ private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Mo
                 .size(40.dp)
                 .background(pincelBosque, CircleShape)
         ) {
-            Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+            Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(18.dp))
         }
     }
 }
