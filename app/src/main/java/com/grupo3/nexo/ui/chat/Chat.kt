@@ -2,7 +2,7 @@ package com.grupo3.nexo.ui.chat
 
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,8 +25,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -43,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -80,7 +81,14 @@ import com.grupo3.nexo.ui.components.Avatar
 import com.grupo3.nexo.ui.components.BotonIcono
 import com.grupo3.nexo.ui.components.Campo
 import com.grupo3.nexo.ui.components.CifrasTabulares
+import com.grupo3.nexo.ui.components.Carga
+import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.EsqueletoLista
+import com.grupo3.nexo.ui.components.cargaDe
+import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
 import com.grupo3.nexo.ui.components.EstadoVacio
+import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
+import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.ui.components.InsigniaConteo
 import com.grupo3.nexo.ui.components.TextoLinea
 import com.grupo3.nexo.ui.components.CabeceraSeccion
@@ -88,6 +96,20 @@ import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.superficiePulsable
 import com.grupo3.nexo.ui.theme.Bosque
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.FormaControl
+import com.grupo3.nexo.ui.theme.FormaOpcion
+import com.grupo3.nexo.ui.theme.cambioContenido
+import com.grupo3.nexo.ui.theme.resorteRebote
+import com.grupo3.nexo.ui.theme.EspacioSuelto
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.Fondo
@@ -114,12 +136,14 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatsViewModel @Inject constructor(
-    obtenerChats: ObtenerChatsUseCase
+    obtenerChats: ObtenerChatsUseCase,
+    obtenerUsuario: ObtenerUsuarioUseCase
 ) : ViewModel() {
-    data class Estado(val cargando: Boolean = true, val chats: List<Chat> = emptyList())
+    data class Estado(val cargando: Boolean = true, val chats: List<Chat> = emptyList(), val esTutor: Boolean = false)
 
-    val estado = obtenerChats()
-        .map { Estado(cargando = false, chats = it) }
+    val estado = combine(obtenerChats(), obtenerUsuario()) { chats, usuario ->
+        Estado(cargando = false, chats = chats, esTutor = usuario.rol == Rol.TUTOR)
+    }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 }
 
@@ -137,6 +161,7 @@ class ConversacionViewModel @Inject constructor(
 ) : ViewModel() {
 
     data class Estado(
+        val cargando: Boolean = true,
         val nombre: String = "",
         val enLinea: Boolean = false,
         val soloLectura: Boolean = false,
@@ -159,6 +184,7 @@ class ConversacionViewModel @Inject constructor(
         val tutor = tutores.firstOrNull { it.id == id }
         val sesion = sesionDeConversacion(sesiones, id, chat?.soloLectura ?: false)
         Estado(
+            cargando = id.isEmpty(),
             nombre = chat?.nombre ?: tutor?.nombre.orEmpty(),
             enLinea = chat?.enLinea ?: tutor?.enLinea ?: false,
             soloLectura = chat?.soloLectura ?: false,
@@ -205,16 +231,34 @@ fun PantallaChats(
             }
         )
 
-        if (estado.chats.isEmpty() && !estado.cargando) {
-            EstadoVacio(
-                icono = Icons.Rounded.ChatBubbleOutline,
-                titulo = "Aún no tienes chats",
-                mensaje = "El chat con un tutor se habilita cuando acepta tu solicitud de tutoría.",
-                accion = "Buscar tutor",
-                alAccion = alBuscar
-            )
-        } else {
-            LazyColumn(contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 24.dp)) {
+        AnimatedContent(
+            targetState = cargaDe(estado.cargando, estado.chats.isEmpty()),
+            transitionSpec = { cambioContenido() },
+            label = "chats",
+            modifier = Modifier.weight(1f)
+        ) { carga ->
+            if (carga == Carga.CARGANDO) {
+                EsqueletoLista()
+            } else if (carga == Carga.ERROR) {
+                ErrorDeLista(titulo = "No pudimos cargar tus chats")
+            } else if (carga == Carga.VACIO) {
+                if (estado.esTutor) {
+                    EstadoVacio(
+                        icono = Icons.Rounded.ChatBubbleOutline,
+                        titulo = "Aún no tienes chats",
+                        mensaje = "El chat con un estudiante se habilita cuando aceptas su solicitud de tutoría."
+                    )
+                } else {
+                    EstadoVacio(
+                        icono = Icons.Rounded.ChatBubbleOutline,
+                        titulo = "Aún no tienes chats",
+                        mensaje = "El chat con un tutor se habilita cuando acepta tu solicitud de tutoría.",
+                        accion = "Buscar tutor",
+                        alAccion = alBuscar
+                    )
+                }
+            } else {
+            LazyColumn(contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto, bottom = EspacioAmplio)) {
                 itemsIndexed(estado.chats, key = { _, c -> c.id }) { i, chat ->
                     FilaChat(
                         chat,
@@ -224,6 +268,7 @@ fun PantallaChats(
                             .filaAgrupada(i, estado.chats.size, sangria = 82.dp)
                     )
                 }
+            }
             }
         }
     }
@@ -237,14 +282,14 @@ private fun FilaChat(chat: Chat, alAbrir: () -> Unit, modifier: Modifier = Modif
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClickLabel = "Abrir chat con ${chat.nombre}", role = Role.Button, onClick = alAbrir)
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
     ) {
         Avatar(chat.nombre, tamano = 50.dp, enLinea = chat.enLinea)
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(EspacioNormal))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextoLinea(chat.nombre, MaterialTheme.typography.titleMedium, TextoPrimario, Modifier.weight(1f))
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(EspacioCorto))
                 Text(
                     formatoFecha(chat.hora),
                     color = if (sinLeer) VerdeEstado else TextoTercero,
@@ -266,7 +311,7 @@ private fun FilaChat(chat: Chat, alAbrir: () -> Unit, modifier: Modifier = Modif
                     Modifier.weight(1f)
                 )
                 if (sinLeer) {
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(EspacioCorto))
                     InsigniaConteo(chat.noLeidos, bordeColor = Color.White)
                 }
             }
@@ -275,6 +320,12 @@ private fun FilaChat(chat: Chat, alAbrir: () -> Unit, modifier: Modifier = Modif
 }
 
 /* ==================== Conversación ==================== */
+
+private val respuestasRapidasTutor = listOf(
+    "Hola, ya acepté tu solicitud",
+    "¿Qué tema quieres repasar?",
+    "¿Tienes algún ejercicio que traer?"
+)
 
 private val respuestasRapidas = listOf(
     "Hola, ¿tienes disponibilidad esta semana?",
@@ -294,8 +345,16 @@ fun PantallaConversacion(
     var texto by rememberSaveable { mutableStateOf("") }
     var calificando by rememberSaveable { mutableStateOf(false) }
 
+    // Al abrir, el chat ya aparece en el último mensaje; solo se anima lo que llega después
+    var yaPosicionado by remember { mutableStateOf(false) }
     LaunchedEffect(estado.mensajes.size) {
-        if (estado.mensajes.isNotEmpty()) listaEstado.animateScrollToItem(estado.mensajes.lastIndex)
+        if (estado.mensajes.isEmpty()) return@LaunchedEffect
+        if (yaPosicionado) {
+            listaEstado.animateScrollToItem(estado.mensajes.lastIndex)
+        } else {
+            listaEstado.scrollToItem(estado.mensajes.lastIndex)
+            yaPosicionado = true
+        }
     }
 
     fun enviar(valor: String) {
@@ -319,12 +378,12 @@ fun PantallaConversacion(
                     drawLine(Divisor, Offset(0f, size.height), Offset(size.width, size.height), 1.dp.toPx())
                 }
                 .statusBarsPadding()
-                .padding(start = 8.dp, end = 16.dp, top = 6.dp, bottom = 10.dp)
+                .padding(start = EspacioCorto, end = EspacioNormal, top = EspacioFino, bottom = EspacioAjustado)
         ) {
             BotonIcono(Icons.AutoMirrored.Rounded.ArrowBack, "Volver", alVolver)
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(EspacioFino))
             Avatar(estado.nombre.ifBlank { "Nexo" }, tamano = 42.dp, enLinea = estado.enLinea)
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(EspacioMedio))
             Column(Modifier.weight(1f)) {
                 TextoLinea(estado.nombre, MaterialTheme.typography.titleMedium, TextoPrimario)
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -351,7 +410,14 @@ fun PantallaConversacion(
         }
 
         // Mensajes
-        if (estado.mensajes.isEmpty()) {
+        val cargaMensajes = cargaDe(estado.cargando, estado.mensajes.isEmpty())
+        if (cargaMensajes == Carga.CARGANDO) {
+            Box(Modifier.weight(1f).fillMaxWidth()) { EsqueletoLista(filas = 3) }
+        } else if (cargaMensajes == Carga.ERROR) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                ErrorDeLista(titulo = "No pudimos cargar los mensajes")
+            }
+        } else if (estado.mensajes.isEmpty()) {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 EstadoVacio(
                     icono = Icons.Rounded.ChatBubbleOutline,
@@ -360,25 +426,32 @@ fun PantallaConversacion(
                 )
             }
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp)
+                horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
+                contentPadding = PaddingValues(horizontal = EspacioNormal)
             ) {
-                items(respuestasRapidas, key = { it }) { sugerencia ->
+                items(if (estado.esTutor) respuestasRapidasTutor else respuestasRapidas, key = { it }) { sugerencia ->
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .areaTactilSinCambiarMedida()
+                            .height(48.dp)
+                            .pulsable { enviar(sugerencia) }
+                    ) {
                     Text(
                         sugerencia,
                         color = BosqueProfundo,
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier
-                            .pulsable { enviar(sugerencia) }
-                            .superficie(RoundedCornerShape(8.dp))
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                            .superficie(FormaOpcion)
+                            .padding(horizontal = EspacioCercano, vertical = EspacioAjustado)
                     )
+                    }
                 }
             }
         } else {
             LazyColumn(
                 state = listaEstado,
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                contentPadding = PaddingValues(horizontal = EspacioNormal, vertical = EspacioNormal),
                 modifier = Modifier.weight(1f)
             ) {
                 itemsIndexed(estado.mensajes, key = { _, m -> m.id }) { indice, mensaje ->
@@ -401,13 +474,13 @@ fun PantallaConversacion(
 
         // Entrada de texto
         val puedeEnviar = texto.isNotBlank()
-        val escalaEnviar by animateFloatAsState(if (puedeEnviar) 1f else 0.9f, spring(dampingRatio = 0.6f, stiffness = 600f), label = "enviar")
+        val escalaEnviar by animateFloatAsState(if (puedeEnviar) 1f else 0.9f, resorteRebote(), label = "enviar")
         Row(
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 10.dp)
+                .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioAjustado, bottom = EspacioAjustado)
         ) {
             Campo(
                 valor = texto,
@@ -417,7 +490,7 @@ fun PantallaConversacion(
                 teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.weight(1f)
             )
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(EspacioAjustado))
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -428,8 +501,8 @@ fun PantallaConversacion(
                     }
                     .pulsable(habilitado = puedeEnviar) { enviar(texto) }
                     .then(
-                        if (puedeEnviar) Modifier.background(BosqueMedio, RoundedCornerShape(10.dp))
-                        else Modifier.background(Bosque.copy(alpha = 0.07f), RoundedCornerShape(10.dp))
+                        if (puedeEnviar) Modifier.background(BosqueMedio, FormaControl)
+                        else Modifier.background(Bosque.copy(alpha = 0.07f), FormaControl)
                     )
                     .semantics { contentDescription = "Enviar mensaje" }
             ) {
@@ -476,7 +549,7 @@ private fun Burbuja(mensaje: Mensaje, iniciaGrupo: Boolean, cierraGrupo: Boolean
         horizontalAlignment = if (mio) Alignment.End else Alignment.Start,
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = if (iniciaGrupo) 10.dp else 3.dp)
+            .padding(top = if (iniciaGrupo) EspacioAjustado else 3.dp)
     ) {
         Box(
             modifier = Modifier
@@ -485,7 +558,7 @@ private fun Burbuja(mensaje: Mensaje, iniciaGrupo: Boolean, cierraGrupo: Boolean
                     if (mio) Modifier.background(BosqueMedio, forma)
                     else Modifier.superficie(forma)
                 )
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .padding(horizontal = EspacioCercano, vertical = EspacioAjustado)
         ) {
             Text(
                 mensaje.texto,
@@ -498,7 +571,7 @@ private fun Burbuja(mensaje: Mensaje, iniciaGrupo: Boolean, cierraGrupo: Boolean
                 formatoFecha(mensaje.hora),
                 color = TextoTercero,
                 style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares),
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = EspacioFino, vertical = EspacioMinimo)
             )
         }
     }
@@ -514,10 +587,10 @@ private fun AvisoSoloLectura(nota: Int? = null, motivo: String = "La sesión ter
             .background(Color.White)
             .drawBehind { drawLine(Divisor, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = EspacioMargen, vertical = EspacioNormal)
     ) {
         Icon(Icons.Rounded.Lock, contentDescription = null, tint = TextoTercero, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(EspacioAjustado))
         Column {
             Text(
                 "$motivo Puedes consultar la conversación, pero ya no enviar mensajes.",
@@ -528,13 +601,13 @@ private fun AvisoSoloLectura(nota: Int? = null, motivo: String = "La sesión ter
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .padding(top = 4.dp)
+                        .padding(top = EspacioMinimo)
                         .semantics(mergeDescendants = true) {
                             contentDescription = "Calificaste con $nota ${if (nota == 1) "estrella" else "estrellas"}"
                         }
                 ) {
                     Text("Calificaste", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(EspacioMinimo))
                     Icon(Icons.Rounded.Star, contentDescription = null, tint = Miel, modifier = Modifier.size(14.dp))
                     Text("$nota", color = TextoSecundario, style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares))
                 }
@@ -567,13 +640,13 @@ private fun PieSesionTerminada(sesion: Sesion?, alCalificar: () -> Unit) {
             .background(Color.White)
             .drawBehind { drawLine(Divisor, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
             .navigationBarsPadding()
-            .padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+            .padding(start = EspacioMargen, end = EspacioNormal, top = EspacioMedio, bottom = EspacioMedio)
     ) {
         Column(Modifier.weight(1f)) {
             Text("La sesión terminó", color = TextoPrimario, style = MaterialTheme.typography.titleSmall)
             Text("Ya no se pueden enviar mensajes.", color = TextoTercero, style = MaterialTheme.typography.bodySmall)
         }
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(EspacioMedio))
         BotonSecundario(
             "Calificar", alCalificar,
             icono = Icons.Rounded.Star, compacto = true, colorIcono = Miel, alto = 48.dp,

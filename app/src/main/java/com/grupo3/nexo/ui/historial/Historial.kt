@@ -2,11 +2,6 @@ package com.grupo3.nexo.ui.historial
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,7 +24,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Star
@@ -79,7 +73,12 @@ import com.grupo3.nexo.ui.components.BotonSecundario
 import com.grupo3.nexo.ui.components.Campo
 import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.FiltroOpcion
+import com.grupo3.nexo.ui.components.Carga
+import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.EsqueletoLista
 import com.grupo3.nexo.ui.components.EstadoVacio
+import com.grupo3.nexo.ui.components.cargaDe
+import com.grupo3.nexo.ui.theme.cambioContenido
 import com.grupo3.nexo.ui.components.Estrellas
 import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.RotuloGrupo
@@ -104,6 +103,15 @@ import com.grupo3.nexo.ui.theme.MielOscura
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioExtenso
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.FormaBoton
 import javax.inject.Inject
 
 /* ==================== ViewModel ==================== */
@@ -174,44 +182,62 @@ fun PantallaHistorial(
         Column(Modifier.fillMaxSize()) {
             CabeceraSeccion(if (estado.esTutor) "Tutorías dadas" else "Tus tutorías", alVolver = alVolver)
 
-            if (estado.todas.isEmpty() && !estado.cargando) {
-                EstadoVacio(
-                    icono = Icons.Rounded.History,
-                    titulo = "Aún no hay sesiones",
-                    mensaje = if (estado.esTutor) "Las tutorías que des aparecerán aquí para que califiques a tus estudiantes."
-                              else "Tus tutorías completadas aparecerán aquí para que puedas calificarlas.",
-                    accion = if (estado.esTutor) null else "Buscar tutor",
-                    alAccion = if (estado.esTutor) null else alBuscar
-                )
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 28.dp)
-                ) {
-                    item(key = "resumen") { Resumen(estado) }
-                    item(key = "rotulo") {
-                        RotuloGrupo(if (estado.esTutor) "Sesiones dadas" else "Tus sesiones", Modifier.padding(start = 4.dp, top = 12.dp))
-                    }
-                    if (estado.materias.size > 1) {
-                        item(key = "filtros") {
-                            FiltrosMateria(estado.materias, estado.materia, viewModel::filtrar)
+            val carga = cargaDe(estado.cargando, estado.todas.isEmpty())
+            AnimatedContent(
+                targetState = carga,
+                transitionSpec = { cambioContenido() },
+                label = "historial",
+                modifier = Modifier.weight(1f)
+            ) { fase ->
+                when (fase) {
+                    Carga.CARGANDO -> EsqueletoLista()
+                    Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tu historial")
+                    Carga.VACIO -> EstadoVacio(
+                        icono = Icons.Rounded.History,
+                        titulo = "Aún no hay sesiones",
+                        mensaje = if (estado.esTutor) "Las tutorías que des aparecerán aquí para que califiques a tus estudiantes."
+                                  else "Tus tutorías completadas aparecerán aquí para que puedas calificarlas.",
+                        accion = if (estado.esTutor) null else "Buscar tutor",
+                        alAccion = if (estado.esTutor) null else alBuscar
+                    )
+                    Carga.LISTO -> LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(EspacioAjustado),
+                        contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioCorto, bottom = EspacioExtenso)
+                    ) {
+                        item(key = "resumen") { Resumen(estado) }
+                        item(key = "rotulo") {
+                            RotuloGrupo(if (estado.esTutor) "Sesiones dadas" else "Tus sesiones", Modifier.padding(start = EspacioMinimo, top = EspacioMedio))
                         }
-                    }
-                    items(estado.sesiones, key = { it.id }) { sesion ->
-                        TarjetaHistorial(sesion, estado.esTutor, alCalificar = { porCalificarId = sesion.id }, modifier = Modifier.animateItem())
-                    }
-                    if (estado.esTutor && estado.resenas.isNotEmpty()) {
-                        item(key = "resenas") {
-                            Column(Modifier.padding(top = 14.dp)) {
-                                EncabezadoSeccion("Lo que dicen de ti")
-                                ListaResenas(estado.resenas)
+                        if (estado.materias.size > 1) {
+                            item(key = "filtros") {
+                                FiltrosMateria(estado.materias, estado.materia, viewModel::filtrar)
+                            }
+                        }
+                        items(estado.sesiones, key = { it.id }) { sesion ->
+                            TarjetaHistorial(sesion, estado.esTutor, alCalificar = { porCalificarId = sesion.id }, modifier = Modifier.animateItem())
+                        }
+                        if (estado.esTutor) {
+                            item(key = "resenas") {
+                                Column(Modifier.padding(top = EspacioCercano)) {
+                                    EncabezadoSeccion("Lo que dicen de ti")
+                                    if (estado.resenas.isEmpty()) {
+                                        Text(
+                                            "Aún no tienes reseñas. Aparecerán aquí cuando tus estudiantes te califiquen.",
+                                            color = TextoTercero,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            modifier = Modifier.padding(horizontal = EspacioMinimo)
+                                        )
+                                    } else {
+                                        ListaResenas(estado.resenas)
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
         }
-        AvisoNexo(avisos, Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp))
+        AvisoNexo(avisos, Modifier.align(Alignment.BottomCenter).padding(bottom = EspacioAmplio))
     }
 
     porCalificar?.let { sesion ->
@@ -234,9 +260,9 @@ fun PantallaHistorial(
 @Composable
 private fun FiltrosMateria(materias: List<String>, actual: String?, alElegir: (String?) -> Unit) {
     FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(vertical = 4.dp)
+        horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
+        verticalArrangement = Arrangement.spacedBy(EspacioCorto),
+        modifier = Modifier.padding(vertical = EspacioMinimo)
     ) {
         FiltroOpcion("Todas", actual == null, { alElegir(null) }, conMarca = false)
         materias.forEach { m -> FiltroOpcion(m, actual == m, { alElegir(m) }, conMarca = false) }
@@ -260,9 +286,9 @@ private fun Resumen(estado: HistorialViewModel.Estado) {
             },
             Modifier.weight(1f)
         )
-        Box(Modifier.fillMaxHeight().padding(vertical = 10.dp).width(1.dp).background(Divisor))
+        Box(Modifier.fillMaxHeight().padding(vertical = EspacioAjustado).width(1.dp).background(Divisor))
         CifraResumen(formatoHoras(estado.horas), if (estado.esTutor) "dadas" else "de estudio", Modifier.weight(1f))
-        Box(Modifier.fillMaxHeight().padding(vertical = 10.dp).width(1.dp).background(Divisor))
+        Box(Modifier.fillMaxHeight().padding(vertical = EspacioAjustado).width(1.dp).background(Divisor))
         if (estado.esTutor) {
             CifraResumen(estado.resumen?.promedioRecibido?.let(::formatoValoracion) ?: "–", "calificación", Modifier.weight(1f))
         } else {
@@ -295,8 +321,8 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .superficie(RoundedCornerShape(20.dp))
-            .padding(14.dp)
+            .superficie(FormaBoton)
+            .padding(EspacioCercano)
     ) {
         // Solo el avatar se atenúa en sesiones sin completar: el texto conserva su contraste
         Avatar(
@@ -304,7 +330,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
             tamano = 40.dp,
             modifier = Modifier.graphicsLayer { alpha = if (sesion.estado == EstadoSesion.COMPLETADA) 1f else 0.6f }
         )
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
             TextoLinea(sesion.materia, MaterialTheme.typography.titleMedium, TextoPrimario)
             TextoLinea(sesion.conQuien, MaterialTheme.typography.bodyMedium, TextoSecundario)
@@ -317,13 +343,13 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .padding(top = 4.dp)
+                        .padding(top = EspacioMinimo)
                         .semantics(mergeDescendants = true) {
                             contentDescription = "Te calificó con $nota ${if (nota == 1) "estrella" else "estrellas"}"
                         }
                 ) {
                     Text("Te calificó", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(EspacioMinimo))
                     Icon(Icons.Rounded.Star, contentDescription = null, tint = Miel, modifier = Modifier.size(13.dp))
                     Text("$nota", color = TextoSecundario, style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares))
                 }
@@ -334,11 +360,11 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
                     color = TextoSecundario,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 2,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = EspacioMinimo)
                 )
             }
         }
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(EspacioCorto))
         if (sesion.estado != EstadoSesion.COMPLETADA) {
             // Cancelada o sin asistencia: no se califica; el estado se lee como texto discreto
             Text(sesion.estado.etiqueta, color = TextoTercero, style = MaterialTheme.typography.labelMedium)
@@ -346,7 +372,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
         }
         AnimatedContent(
             targetState = sesion.calificacion,
-            transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(120)) },
+            transitionSpec = { cambioContenido() },
             label = "calificacion"
         ) { nota ->
             if (nota != null) {

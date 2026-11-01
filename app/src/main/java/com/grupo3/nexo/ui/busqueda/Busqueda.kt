@@ -1,14 +1,10 @@
 package com.grupo3.nexo.ui.busqueda
 
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import androidx.compose.foundation.border
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.WindowInsets
@@ -79,6 +75,10 @@ import com.grupo3.nexo.ui.components.BotonPrimario
 import com.grupo3.nexo.ui.components.BotonTexto
 import com.grupo3.nexo.ui.components.Campo
 import com.grupo3.nexo.ui.components.CifrasTabulares
+import com.grupo3.nexo.ui.components.Carga
+import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.EsqueletoLista
+import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.FiltroOpcion
 import com.grupo3.nexo.ui.components.HojaNexo
@@ -97,6 +97,18 @@ import com.grupo3.nexo.ui.components.superficiePulsable
 import com.grupo3.nexo.ui.components.universidadCorta
 import com.grupo3.nexo.ui.navigation.Rutas
 import com.grupo3.nexo.ui.theme.BosqueMedio
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioHolgado
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.FormaOpcion
+import com.grupo3.nexo.ui.theme.cambioContenido
 import com.grupo3.nexo.ui.theme.Menta
 import com.grupo3.nexo.ui.theme.Salvia
 import com.grupo3.nexo.ui.theme.TextoPrimario
@@ -223,23 +235,27 @@ fun PantallaBusqueda(
             limpiable = true,
             teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Search),
             acciones = KeyboardActions(onSearch = { focos.clearFocus() }),
-            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 14.dp)
+            modifier = Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioCercano)
         )
 
         Pestanas(
             opciones = listOf("Todas") + AreaEstudio.entries.map { it.etiqueta },
             seleccionada = estado.area?.let { it.ordinal + 1 } ?: 0,
             alElegir = { i -> if (i == 0) estado.area?.let(viewModel::alternarArea) else viewModel.alternarArea(AreaEstudio.entries[i - 1]) },
-            modifier = Modifier.padding(top = 8.dp)
+            modifier = Modifier.padding(top = EspacioCorto)
         )
 
         AnimatedContent(
-            targetState = estado.resultados.isEmpty() && !estado.cargando,
-            transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(120)) },
+            targetState = cargaDe(estado.cargando, estado.resultados.isEmpty()),
+            transitionSpec = { cambioContenido() },
             label = "resultados",
             modifier = Modifier.weight(1f)
-        ) { vacio ->
-            if (vacio) {
+        ) { carga ->
+            if (carga == Carga.CARGANDO) {
+                EsqueletoLista()
+            } else if (carga == Carga.ERROR) {
+                ErrorDeLista(titulo = "No pudimos cargar los tutores")
+            } else if (carga == Carga.VACIO) {
                 EstadoVacio(
                     icono = Icons.Rounded.SearchOff,
                     titulo = "Ningún tutor coincide",
@@ -250,13 +266,13 @@ fun PantallaBusqueda(
             } else {
                 // Sin barra inferior en esta pantalla: el final de la lista respeta la barra del sistema
                 val margenSistema = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-                LazyColumn(contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 24.dp + margenSistema)) {
+                LazyColumn(contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioNormal, bottom = EspacioAmplio + margenSistema)) {
                     item(key = "conteo") {
                         Text(
                             resumenResultados(estado),
                             color = TextoTercero,
                             style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = 4.dp, bottom = 10.dp)
+                            modifier = Modifier.padding(start = EspacioMinimo, bottom = EspacioAjustado)
                         )
                     }
                     itemsIndexed(estado.resultados, key = { _, t -> t.id }) { i, tutor ->
@@ -308,23 +324,23 @@ private fun HojaFiltros(
     alCerrar: () -> Unit
 ) {
     HojaNexo(titulo = "Filtros", subtitulo = "Encuentra a quien pueda cuando tú puedes.", alCerrar = alCerrar) {
-        RotuloGrupo("Modalidad", Modifier.padding(top = 22.dp, bottom = 10.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        RotuloGrupo("Modalidad", Modifier.padding(top = EspacioHolgado, bottom = EspacioAjustado))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(EspacioCorto), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
             FiltroOpcion("Cualquiera", estado.modalidad == null, { alElegirModalidad(null) }, conMarca = false)
             Modalidad.entries.forEach { m ->
                 FiltroIcono(m.etiqueta, m.icono, estado.modalidad == m) { alElegirModalidad(m) }
             }
         }
 
-        RotuloGrupo("Horario", Modifier.padding(top = 20.dp, bottom = 10.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        RotuloGrupo("Horario", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(EspacioCorto), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
             FiltroOpcion("Cualquiera", estado.franja == null, { alElegirFranja(null) }, conMarca = false)
             Franja.entries.forEach { f ->
                 FiltroOpcion("${f.etiqueta} · ${"%02d".format(f.desde)}:00–${"%02d".format(f.hasta + 1)}:00", estado.franja == f, { alElegirFranja(f) }, conMarca = false)
             }
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(EspacioMargen))
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -332,7 +348,7 @@ private fun HojaFiltros(
                 .superficie()
                 .toggleable(value = estado.soloEnLinea, role = Role.Switch, onValueChange = alCambiarEnLinea)
                 .heightIn(min = 60.dp)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = EspacioNormal)
         ) {
             Column(Modifier.weight(1f)) {
                 Text("Solo en línea ahora", color = TextoPrimario, style = MaterialTheme.typography.titleMedium)
@@ -352,10 +368,10 @@ private fun HojaFiltros(
             )
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(EspacioAmplio))
         Row(verticalAlignment = Alignment.CenterVertically) {
             BotonTexto("Limpiar", alLimpiar, color = TextoSecundario)
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(EspacioCorto))
             BotonPrimario(
                 texto = when (estado.resultados.size) {
                     0 -> "Sin resultados"
@@ -385,13 +401,13 @@ private fun FiltroIcono(texto: String, icono: ImageVector, seleccionado: Boolean
             modifier = Modifier
                 .height(40.dp)
                 .then(
-                    if (seleccionado) Modifier.background(TinteBosque, RoundedCornerShape(8.dp)).border(1.dp, BosqueAcento.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
-                    else Modifier.superficie(RoundedCornerShape(8.dp))
+                    if (seleccionado) Modifier.background(TinteBosque, FormaOpcion).border(1.dp, BosqueAcento.copy(alpha = 0.55f), FormaOpcion)
+                    else Modifier.superficie(FormaOpcion)
                 )
-                .padding(horizontal = 14.dp)
+                .padding(horizontal = EspacioCercano)
         ) {
             Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(17.dp))
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(EspacioFino))
             Text(texto, color = TextoPrimario, style = MaterialTheme.typography.titleSmall.copy(fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Medium))
         }
     }
@@ -409,23 +425,25 @@ fun FilaTutor(tutor: Tutor, alAbrir: () -> Unit, modifier: Modifier = Modifier) 
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClickLabel = "Ver perfil de ${tutor.nombre}", role = Role.Button, onClick = alAbrir)
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
     ) {
         Avatar(tutor.nombre, tamano = 50.dp, enLinea = tutor.enLinea)
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(EspacioNormal))
         Column(Modifier.weight(1f)) {
             TextoLinea(tutor.nombre, MaterialTheme.typography.titleMedium, TextoPrimario)
             TextoLinea(tutor.materias.joinToString(" · "), MaterialTheme.typography.bodyMedium, TextoSecundario)
-            TextoLinea(
+            Text(
                 listOf(universidadCorta(tutor.universidad), tutor.modalidades.descripcion()).joinToString(" · "),
-                MaterialTheme.typography.bodySmall,
-                TextoTercero
+                color = TextoTercero,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(EspacioMedio))
         Column(horizontalAlignment = Alignment.End) {
             Valoracion(tutor.rating)
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(EspacioMinimo))
             Text(
                 formatoPrecio(tutor.precioHora),
                 color = TextoPrimario,

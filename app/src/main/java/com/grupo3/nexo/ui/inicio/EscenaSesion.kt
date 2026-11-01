@@ -1,8 +1,12 @@
 package com.grupo3.nexo.ui.inicio
 
-import android.provider.Settings
+import com.grupo3.nexo.ui.theme.CurvaEstandar
+import com.grupo3.nexo.ui.theme.DuracionNormal
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMicro
+import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -20,7 +24,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -746,16 +751,6 @@ private fun rememberBitmaps(ids: List<Int>): List<ImageBitmap?> {
     return remember(ids) { ids.map { if (it == 0) null else ImageBitmap.imageResource(recursos, it) } }
 }
 
-/** Si el usuario desactivó las animaciones del sistema, cada escena queda en una pose quieta y clara. */
-@Composable
-private fun animacionesActivas(): Boolean {
-    val resolver = LocalContext.current.contentResolver
-    return remember {
-        runCatching { Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f }.getOrDefault(true)
-    }
-}
-
-
 /** Escena de cada fase y el instante que la muestra mejor cuando no hay animación. */
 private fun escenaDe(f: FaseSesion): Triple<Rig, Movimiento, Float> = when (f) {
     FaseSesion.SOLA -> Triple(rigSola, movSola, 1.5f)
@@ -771,13 +766,16 @@ private fun escenaDe(f: FaseSesion): Triple<Rig, Movimiento, Float> = when (f) {
 }
 
 /**
- * Escena animada de la próxima sesión. Doble toque rápido: salta a la siguiente fase (para revisar
- * el flujo mientras no hay datos reales).
+ * Escena animada de la próxima sesión. Arranca en "agendada" si hay sesiones y en "sola" si no, y se
+ * ajusta si el dato cambia. Doble toque rápido: salta a la siguiente fase (control de revisión del
+ * flujo mientras no hay horas ni estados reales de la sesión).
  */
 @Composable
-fun BarraSesion(modifier: Modifier = Modifier) {
-    var fase by remember { mutableStateOf(FaseSesion.SOLA) }
-    val movimiento = animacionesActivas()
+fun BarraSesion(haySesiones: Boolean, modifier: Modifier = Modifier) {
+    var fase by remember(haySesiones) { mutableStateOf(if (haySesiones) FaseSesion.AGENDADA else FaseSesion.SOLA) }
+    val movimiento = !LocalAnimacionesReducidas.current
+    // Con letra grande el texto necesita más líneas y la franja crece; la escena conserva su alto
+    val letraGrande = LocalDensity.current.fontScale > 1f
     val reloj = rememberInfiniteTransition(label = "barraSesion")
     // Un reloj de 20 minutos: el reinicio llega tan tarde que no se nota
     val tiempo = reloj.animateFloat(
@@ -796,8 +794,8 @@ fun BarraSesion(modifier: Modifier = Modifier) {
             targetState = fase,
             // La escena nueva entra por la derecha y la anterior sale por la izquierda, como un paso más
             transitionSpec = {
-                (fadeIn(tween(300, delayMillis = 120)) + slideInHorizontally(tween(460, easing = FastOutSlowInEasing)) { it / 3 }) togetherWith
-                    (fadeOut(tween(200)) + slideOutHorizontally(tween(460, easing = FastOutSlowInEasing)) { -it / 3 })
+                (fadeIn(tween(DuracionNormal, delayMillis = 120)) + slideInHorizontally(tween(460, easing = CurvaEstandar)) { it / 3 }) togetherWith
+                    (fadeOut(tween(200)) + slideOutHorizontally(tween(460, easing = CurvaEstandar)) { -it / 3 })
             },
             label = "escena"
         ) { f ->
@@ -808,27 +806,27 @@ fun BarraSesion(modifier: Modifier = Modifier) {
             val bmps = rememberBitmaps(rig.capas.map { it.id })
             // A la izquierda, en qué paso va la sesión; a la derecha, la escena que lo cuenta
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(62.dp),
+                Modifier.fillMaxWidth().padding(horizontal = EspacioMargen).heightIn(min = 62.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(Modifier.weight(0.44f).padding(end = 10.dp)) {
+                Column(Modifier.weight(0.44f).padding(end = EspacioAjustado)) {
                     Text(
                         f.titulo,
                         style = MaterialTheme.typography.titleSmall,
                         color = TextoPrimario,
-                        maxLines = 1,
+                        maxLines = if (letraGrande) 2 else 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         f.detalle,
                         style = MaterialTheme.typography.bodySmall,
                         color = TextoTercero,
-                        maxLines = 2,
+                        maxLines = if (letraGrande) 4 else 2,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp)
+                        modifier = Modifier.padding(top = EspacioMicro)
                     )
                 }
-                Canvas(Modifier.weight(0.56f).fillMaxHeight().clipToBounds()) {
+                Canvas(Modifier.weight(0.56f).height(62.dp).align(Alignment.Bottom).clipToBounds()) {
                     val t = if (movimiento) tiempo.value - inicio else pose
                     escena(rig, bmps, t, 1.dp.toPx(), mueve, pin)
                 }

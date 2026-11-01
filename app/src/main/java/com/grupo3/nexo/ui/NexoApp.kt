@@ -6,7 +6,6 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -48,7 +47,20 @@ import com.grupo3.nexo.ui.navigation.Rutas
 import com.grupo3.nexo.ui.navigation.rutasDeBarra
 import com.grupo3.nexo.ui.perfil.PantallaPerfil
 import com.grupo3.nexo.ui.solicitudes.PantallaSolicitudes
+import com.grupo3.nexo.ui.theme.CurvaEnfatizada
+import com.grupo3.nexo.ui.theme.CurvaEntrada
+import com.grupo3.nexo.ui.theme.CurvaSalida
+import com.grupo3.nexo.ui.theme.DuracionCorta
+import com.grupo3.nexo.ui.theme.DuracionLarga
+import com.grupo3.nexo.ui.theme.DuracionMedia
+import com.grupo3.nexo.ui.theme.DuracionNormal
+import com.grupo3.nexo.ui.theme.DuracionPestana
 import com.grupo3.nexo.ui.theme.Fondo
+import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
+import com.grupo3.nexo.ui.theme.RetrasoInicial
+import com.grupo3.nexo.ui.theme.especColor
+import com.grupo3.nexo.ui.theme.especFundidoEntrada
+import com.grupo3.nexo.ui.theme.especFundidoSalida
 import com.grupo3.nexo.ui.tutor.PantallaTutorPerfil
 import kotlinx.coroutines.delay
 
@@ -58,10 +70,6 @@ import kotlinx.coroutines.delay
  * - hacia un detalle: eje compartido horizontal (entra desde la derecha y vuelve hacia ella);
  * - del acceso al Inicio: fundido breve; la entrada la hacen los bloques del Inicio, escalonados.
  * Con el gesto de atrás predictivo, estas mismas transiciones se recorren al arrastrar. */
-private const val DURACION = 340
-private val EntradaEnfatizada = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
-private val SalidaEnfatizada = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f)
-private val Enfatizada = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
 private val ordenPestanas = listOf(Rutas.Inicio.ruta, Rutas.Solicitudes.ruta, Rutas.Chat.ruta, Rutas.Perfil.ruta)
 
@@ -75,35 +83,35 @@ private fun AnimatedContentTransitionScope<NavBackStackEntry>.sentido(): Int =
 private val entrada: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
     if (esPestana()) {
         val s = sentido()
-        fadeIn(tween(240, delayMillis = 60)) +
-            slideInHorizontally(tween(DURACION, delayMillis = 30, easing = EntradaEnfatizada)) { s * it / 14 }
+        fadeIn(especFundidoEntrada()) +
+            slideInHorizontally(tween(DuracionPestana, delayMillis = RetrasoInicial, easing = CurvaEntrada)) { s * it / 14 }
     } else {
-        slideInHorizontally(tween(380, easing = EntradaEnfatizada)) { it / 4 } + fadeIn(tween(220))
+        slideInHorizontally(tween(DuracionLarga, easing = CurvaEntrada)) { it / 4 } + fadeIn(tween(DuracionMedia))
     }
 }
 private val salida: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
     if (esPestana()) {
         val s = sentido()
-        fadeOut(tween(120)) + slideOutHorizontally(tween(200, easing = SalidaEnfatizada)) { -s * it / 20 }
+        fadeOut(especFundidoSalida()) + slideOutHorizontally(tween(DuracionMedia, easing = CurvaSalida)) { -s * it / 20 }
     } else {
-        slideOutHorizontally(tween(380, easing = EntradaEnfatizada)) { -it / 10 } + fadeOut(tween(240))
+        slideOutHorizontally(tween(DuracionLarga, easing = CurvaEntrada)) { -it / 10 } + fadeOut(tween(DuracionMedia))
     }
 }
 private val entradaAtras: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
     if (esPestana()) {
         val s = sentido()
-        fadeIn(tween(240, delayMillis = 60)) +
-            slideInHorizontally(tween(DURACION, delayMillis = 30, easing = EntradaEnfatizada)) { s * it / 14 }
+        fadeIn(especFundidoEntrada()) +
+            slideInHorizontally(tween(DuracionPestana, delayMillis = RetrasoInicial, easing = CurvaEntrada)) { s * it / 14 }
     } else {
-        slideInHorizontally(tween(380, easing = EntradaEnfatizada)) { -it / 10 } + fadeIn(tween(300, delayMillis = 40))
+        slideInHorizontally(tween(DuracionLarga, easing = CurvaEntrada)) { -it / 10 } + fadeIn(tween(DuracionNormal, delayMillis = RetrasoInicial))
     }
 }
 private val salidaAtras: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
     if (esPestana()) {
         val s = sentido()
-        fadeOut(tween(120)) + slideOutHorizontally(tween(200, easing = SalidaEnfatizada)) { -s * it / 20 }
+        fadeOut(especFundidoSalida()) + slideOutHorizontally(tween(DuracionMedia, easing = CurvaSalida)) { -s * it / 20 }
     } else {
-        slideOutHorizontally(tween(300, easing = Enfatizada)) { it / 4 } + fadeOut(tween(200))
+        slideOutHorizontally(tween(DuracionNormal, easing = CurvaEnfatizada)) { it / 4 } + fadeOut(tween(DuracionMedia))
     }
 }
 
@@ -113,6 +121,7 @@ private val salidaAtras: AnimatedContentTransitionScope<NavBackStackEntry>.() ->
 @Composable
 fun NexoApp() {
     val controlador = rememberNavController()
+    val reducidas = LocalAnimacionesReducidas.current
     val barraViewModel: BarraViewModel = hiltViewModel()
     val pendientes by barraViewModel.pendientes.collectAsState()
     val noLeidos by barraViewModel.noLeidos.collectAsState()
@@ -139,17 +148,17 @@ fun NexoApp() {
         NavHost(
             navController = controlador,
             startDestination = Rutas.Login.ruta,
-            enterTransition = entrada,
-            exitTransition = salida,
-            popEnterTransition = entradaAtras,
-            popExitTransition = salidaAtras,
+            enterTransition = { if (reducidas) EnterTransition.None else entrada() },
+            exitTransition = { if (reducidas) ExitTransition.None else salida() },
+            popEnterTransition = { if (reducidas) EnterTransition.None else entradaAtras() },
+            popExitTransition = { if (reducidas) ExitTransition.None else salidaAtras() },
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
         ) {
             composable(
                 Rutas.Login.ruta,
-                exitTransition = { fadeOut(tween(180, easing = SalidaEnfatizada)) }
+                exitTransition = { if (reducidas) ExitTransition.None else fadeOut(tween(DuracionCorta, easing = CurvaSalida)) }
             ) {
                 PantallaLogin(alEntrar = {
                     vieneDelAcceso = true
@@ -159,8 +168,9 @@ fun NexoApp() {
             composable(
                 Rutas.Inicio.ruta,
                 enterTransition = {
-                    if (initialState.destination.route == Rutas.Login.ruta) {
-                        fadeIn(tween(240, delayMillis = 60))
+                    if (reducidas) EnterTransition.None
+                    else if (initialState.destination.route == Rutas.Login.ruta) {
+                        fadeIn(especFundidoEntrada())
                     } else entrada()
                 }
             ) {
@@ -235,10 +245,10 @@ fun NexoApp() {
 
         AnimatedVisibility(
             visible = mostrarBarra,
-            enter = slideInVertically(
-                tween(380, delayMillis = if (vieneDelAcceso) 320 else 0, easing = EntradaEnfatizada)
-            ) { it } + fadeIn(tween(240, delayMillis = if (vieneDelAcceso) 320 else 0)),
-            exit = slideOutVertically(tween(200, easing = SalidaEnfatizada)) { it } + fadeOut(tween(160))
+            enter = if (reducidas) EnterTransition.None else slideInVertically(
+                tween(DuracionLarga, delayMillis = if (vieneDelAcceso) 320 else 0, easing = CurvaEntrada)
+            ) { it } + fadeIn(tween(DuracionMedia, delayMillis = if (vieneDelAcceso) 320 else 0)),
+            exit = if (reducidas) ExitTransition.None else slideOutVertically(tween(DuracionMedia, easing = CurvaSalida)) { it } + fadeOut(especColor())
         ) {
             BarraNavegacion(
                 actual = rutaActual.orEmpty(),

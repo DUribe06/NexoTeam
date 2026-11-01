@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -60,6 +63,7 @@ import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueMedio
+import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.Menta
 import com.grupo3.nexo.ui.theme.TextoPrimario
@@ -67,6 +71,15 @@ import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
 import com.grupo3.nexo.ui.theme.VerdeEstado
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioExtenso
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.FormaOpcion
+import com.grupo3.nexo.ui.theme.FormaTarjeta
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -121,35 +134,36 @@ fun PantallaDisponibilidad(
         CabeceraSeccion("Mi disponibilidad", alVolver = alVolver)
 
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 28.dp)
+            verticalArrangement = Arrangement.spacedBy(EspacioMedio),
+            contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioCorto, bottom = EspacioExtenso + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
         ) {
             item(key = "resumen") {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(BosqueMedio, RoundedCornerShape(12.dp))
-                        .padding(20.dp)
+                        .background(TinteBosque, FormaTarjeta)
+                        .border(1.dp, BosqueAcento.copy(alpha = 0.14f), FormaTarjeta)
+                        .padding(EspacioMargen)
                 ) {
                     Row(verticalAlignment = Alignment.Bottom) {
-                        Text("$total", color = Color.White, style = MaterialTheme.typography.displaySmall.merge(CifrasTabulares))
-                        Spacer(Modifier.width(8.dp))
+                        Text("$total", color = BosqueProfundo, style = MaterialTheme.typography.displaySmall.merge(CifrasTabulares))
+                        Spacer(Modifier.width(EspacioCorto))
                         Text(
                             if (total == 1) "hora publicada" else "horas publicadas",
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = TextoSecundario,
                             style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                            modifier = Modifier.padding(bottom = EspacioMinimo)
                         )
                     }
                     Text(
                         "en $diasActivos ${if (diasActivos == 1) "día" else "días"} · $virtuales virtuales · $presenciales presenciales",
-                        color = Color.White.copy(alpha = 0.72f),
+                        color = TextoSecundario,
                         style = MaterialTheme.typography.bodyMedium
                     )
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(EspacioMedio))
                     Text(
                         "Toca una hora para elegir si la ofreces virtual, presencial o ambas. Los estudiantes solo pueden solicitarte tutorías en tus horas publicadas.",
-                        color = Color.White.copy(alpha = 0.78f),
+                        color = TextoSecundario,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -160,8 +174,8 @@ fun PantallaDisponibilidad(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .superficie(RoundedCornerShape(12.dp))
-                        .padding(16.dp)
+                        .superficie(FormaTarjeta)
+                        .padding(EspacioNormal)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(dia.dia, color = TextoPrimario, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -174,10 +188,10 @@ fun PantallaDisponibilidad(
                             style = MaterialTheme.typography.labelMedium
                         )
                     }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(EspacioMedio))
                     FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
+                        verticalArrangement = Arrangement.spacedBy(EspacioCorto)
                     ) {
                         dia.horas.forEach { hora ->
                             ChipHora(hora, alClicar = { enEdicion = HoraEnEdicion(dia.dia, hora.hora) })
@@ -195,11 +209,11 @@ fun PantallaDisponibilidad(
             subtitulo = "¿Cómo ofreces esta hora?",
             alCerrar = { enEdicion = null }
         ) {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(EspacioNormal))
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .superficie(RoundedCornerShape(12.dp))
+                    .superficie(FormaTarjeta)
                     .selectableGroup()
             ) {
                 opcionesHora.forEachIndexed { i, (texto, modalidades) ->
@@ -236,10 +250,10 @@ private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
             modifier = Modifier
                 .height(40.dp)
                 .then(
-                    if (activa) Modifier.background(BosqueMedio, RoundedCornerShape(8.dp))
+                    if (activa) Modifier.background(BosqueMedio, FormaOpcion)
                     else Modifier
-                        .background(Color.White, RoundedCornerShape(8.dp))
-                        .border(1.dp, Bosque.copy(alpha = 0.16f), RoundedCornerShape(8.dp))
+                        .background(Color.White, FormaOpcion)
+                        .border(1.dp, Bosque.copy(alpha = 0.16f), FormaOpcion)
                 )
                 .semantics(mergeDescendants = true) {
                     contentDescription = "${hora.hora}, ${if (activa) hora.modalidades.descripcion() else "no disponible"}"
@@ -248,7 +262,7 @@ private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
         ) {
             Text(hora.hora, color = colorTexto, style = MaterialTheme.typography.titleSmall.merge(CifrasTabulares))
             if (activa) {
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(EspacioFino))
                 Modalidad.entries.filter { it in hora.modalidades }.forEach {
                     Icon(it.icono, contentDescription = null, tint = Menta, modifier = Modifier.size(15.dp))
                 }
@@ -266,7 +280,7 @@ private fun OpcionHora(texto: String, modalidades: Set<Modalidad>, seleccionada:
             .heightIn(min = 56.dp)
             .selectable(selected = seleccionada, role = Role.RadioButton, onClick = alClicar)
             .background(if (seleccionada) TinteBosque.copy(alpha = 0.5f) else Color.Transparent)
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = EspacioNormal)
     ) {
         Box(
             contentAlignment = Alignment.Center,
@@ -276,11 +290,11 @@ private fun OpcionHora(texto: String, modalidades: Set<Modalidad>, seleccionada:
         ) {
             if (seleccionada) Box(Modifier.size(9.dp).background(Menta, CircleShape))
         }
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(EspacioNormal))
         Text(texto, color = TextoPrimario, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         Modalidad.entries.filter { it in modalidades }.forEach {
             Icon(it.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(EspacioMinimo))
         }
         if (modalidades.isEmpty()) {
             Text("Oculta en búsquedas", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)

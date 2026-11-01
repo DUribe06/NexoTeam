@@ -1,5 +1,7 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioCorto
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,10 +41,10 @@ fun ListaResenas(resenas: List<Resena>, modifier: Modifier = Modifier) {
 
 @Composable
 fun FilaResena(resena: Resena) {
-    Column(Modifier.padding(16.dp)) {
+    Column(Modifier.padding(EspacioNormal)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Avatar(resena.autor, tamano = 32.dp)
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(EspacioAjustado))
             Column(Modifier.weight(1f)) {
                 TextoLinea(resena.autor, MaterialTheme.typography.titleSmall, TextoPrimario)
                 TextoLinea(resena.fecha, MaterialTheme.typography.bodySmall, TextoTercero)
@@ -54,7 +56,7 @@ fun FilaResena(resena: Resena) {
             color = TextoSecundario,
             style = MaterialTheme.typography.bodyMedium,
             maxLines = 3,
-            modifier = Modifier.padding(top = 8.dp)
+            modifier = Modifier.padding(top = EspacioCorto)
         )
     }
 }

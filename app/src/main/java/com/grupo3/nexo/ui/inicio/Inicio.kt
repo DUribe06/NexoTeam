@@ -1,5 +1,26 @@
 package com.grupo3.nexo.ui.inicio
 
+import com.grupo3.nexo.ui.theme.CurvaEnfatizada
+import com.grupo3.nexo.ui.theme.DuracionLarga
+import com.grupo3.nexo.ui.theme.DuracionNormal
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioHolgado
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMicro
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.FormaBoton
+import com.grupo3.nexo.ui.theme.FormaCampoAlto
+import com.grupo3.nexo.ui.theme.FormaCapaInferior
+import com.grupo3.nexo.ui.theme.FormaControl
+import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.FormaTarjeta
+import com.grupo3.nexo.ui.theme.resorteCascada
 import com.grupo3.nexo.ui.components.SesionEsqueleto
 import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.ErrorDeLista
@@ -64,7 +85,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.Lifecycle
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.scaleIn
@@ -165,6 +185,7 @@ import com.grupo3.nexo.ui.components.Onda
 import com.grupo3.nexo.ui.components.formatoValoracion
 import com.grupo3.nexo.ui.components.universidadCorta
 import com.grupo3.nexo.ui.theme.Fondo
+import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.theme.InstrumentSans
 import com.grupo3.nexo.ui.theme.Salvia
 import com.grupo3.nexo.ui.theme.SuperficieClara
@@ -286,7 +307,7 @@ fun PantallaInicio(
                     val natural = tamano.height - aireCabecera - aireSesiones
                     sobrante = (altoVisible - natural).coerceAtLeast(0)
                 }
-                .padding(bottom = 20.dp)
+                .padding(bottom = EspacioMargen)
         ) {
             Cabecera(
                 usuario = estado.usuario,
@@ -300,7 +321,7 @@ fun PantallaInicio(
             // Sobre la onda va lo primero que cada modo necesita: buscar tutor o responder solicitudes
             val montado = Modifier
                 .solaparHaciaArriba(30.dp)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = EspacioMargen)
                 .aparicion(2, iniciado)
             if (estado.esTutor) {
                 AccesoSolicitudes(estado.pendientes, alVerSolicitudes, montado)
@@ -312,28 +333,32 @@ fun PantallaInicio(
             val tira = rememberLazyListState()
             // Debajo del control flotante, una tira del mismo molde en ambos modos: materias para buscar
             // (estudiante) o los días de la semana con horario publicado (tutor).
-            if (estado.esTutor) Column(Modifier.padding(top = 12.dp).aparicion(3, iniciado)) {
+            if (estado.esTutor) Column(Modifier.padding(top = EspacioMedio).aparicion(3, iniciado)) {
                 TiraDisponibilidad(estado.horasPublicadas, estado.diasPublicados, alAbrirDisponibilidad)
-                Box(Modifier.fillMaxWidth().padding(top = 2.dp).height(1.dp).background(Divisor))
-            } else Column(Modifier.padding(top = 12.dp).aparicion(3, iniciado)) {
+                Box(Modifier.fillMaxWidth().padding(top = EspacioMicro).height(1.dp).background(Divisor))
+            } else Column(Modifier.padding(top = EspacioMedio).aparicion(3, iniciado)) {
                 LazyRow(
                     state = tira,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(EspacioMicro),
+                    contentPadding = PaddingValues(horizontal = EspacioCercano),
                     modifier = Modifier.desvanecerBordes(tira)
                 ) {
                     items(AreaEstudio.entries, key = { it.name }) { area ->
                         AccesoArea(area, alClicar = { alBuscar(area.name) })
                     }
                 }
-                Box(Modifier.fillMaxWidth().padding(top = 2.dp).height(1.dp).background(Divisor))
+                Box(Modifier.fillMaxWidth().padding(top = EspacioMicro).height(1.dp).background(Divisor))
             }
 
-            BarraSesion(Modifier.padding(top = 6.dp)) // Provisional: doble toque cambia de fase
+            // Mientras cargan los datos no debe decir "Sin sesiones": arranca en la fase agendada
+            BarraSesion(
+                haySesiones = estado.cargando || estado.proximas.isNotEmpty(),
+                modifier = Modifier.padding(top = EspacioFino)
+            )
             Column(
                 Modifier
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 14.dp + with(densidad) { aireSesiones.toDp() })
+                    .padding(horizontal = EspacioMargen)
+                    .padding(top = EspacioCercano + with(densidad) { aireSesiones.toDp() })
                     .aparicion(4, iniciado)
             ) {
                 EncabezadoSeccion(
@@ -341,7 +366,7 @@ fun PantallaInicio(
                     accion = if (estado.proximas.isNotEmpty()) "Ver todas" else null,
                     alAccion = alVerSolicitudes
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(EspacioMicro))
                 // Mientras llegan los datos, la silueta de la tarjeta; luego, la tarjeta o el estado vacío.
                 // Si la lista se vacía, la tarjeta que se desvanece conserva la última con sesiones
                 // (si no, leería la lista vacía durante el fundido y cerraría la app).
@@ -407,7 +432,7 @@ private fun Cabecera(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 20.dp, end = 12.dp, top = 8.dp)
+                    .padding(start = EspacioMargen, end = EspacioMedio, top = EspacioCorto)
             ) {
                 MarcaComelon(comelon)
                 Spacer(Modifier.weight(1f))
@@ -418,14 +443,14 @@ private fun Cabecera(
                     sobreOscuro = true,
                     insignia = pendientes
                 )
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(EspacioMinimo))
                 // Anillo blanco fino: hace juego con la insignia blanca del logo
                 Avatar(
                     nombre = usuario?.nombre ?: "Nexo",
                     tamano = 36.dp,
                     anillo = Color.White.copy(alpha = 0.9f),
                     modifier = Modifier
-                        .padding(end = 4.dp)
+                        .padding(end = EspacioMinimo)
                         .pulsable(etiqueta = "Abrir perfil", alClicar = alAbrirPerfil)
                 )
             }
@@ -435,7 +460,7 @@ private fun Cabecera(
             val nombre = usuario?.nombre?.substringBefore(' ').orEmpty()
             Column(
                 Modifier
-                    .padding(start = 24.dp, end = 24.dp, top = 22.dp, bottom = 20.dp)
+                    .padding(start = EspacioAmplio, end = EspacioAmplio, top = EspacioHolgado, bottom = EspacioMargen)
                     .aparicion(0, iniciado)
             ) {
                 Text(
@@ -445,7 +470,7 @@ private fun Cabecera(
                     onTextLayout = layoutSaludo,
                     modifier = modSaludo.semantics { heading() }
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(EspacioMicro))
                 Text(
                     if (usuario?.rol == Rol.TUTOR) "Tus estudiantes te esperan." else "¿Qué quieres aprender hoy?",
                     color = Color.White.copy(alpha = 0.88f),
@@ -471,7 +496,7 @@ private fun Cabecera(
 /** Botón con forma de campo: abre Buscar (no se escribe aquí para no duplicar la pantalla). */
 @Composable
 private fun Buscador(alClicar: () -> Unit, modifier: Modifier = Modifier) {
-    val forma = RoundedCornerShape(27.dp)
+    val forma = FormaCampoAlto
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -479,10 +504,10 @@ private fun Buscador(alClicar: () -> Unit, modifier: Modifier = Modifier) {
             .height(54.dp)
             .shadow(14.dp, forma, ambientColor = BosqueProfundo.copy(alpha = 0.22f), spotColor = BosqueProfundo.copy(alpha = 0.38f))
             .superficiePulsable(forma, etiqueta = "Buscar tutores", alClicar = alClicar)
-            .padding(start = 20.dp, end = 7.dp)
+            .padding(start = EspacioMargen, end = 7.dp)
     ) {
         Icon(painterResource(R.drawable.ph_lupa), contentDescription = null, tint = Bosque.copy(alpha = 0.5f), modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(EspacioMedio))
         Text(
             "Busca un tutor o una materia",
             color = Marcador,
@@ -510,9 +535,9 @@ private fun AccesoArea(area: AreaEstudio, alClicar: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .widthIn(min = 62.dp)
-            .clip(RoundedCornerShape(10.dp))
+            .clip(FormaControl)
             .clickable(onClickLabel = "Buscar en ${area.etiqueta}", role = Role.Button, onClick = alClicar)
-            .padding(horizontal = 8.dp, vertical = 8.dp)
+            .padding(horizontal = EspacioCorto, vertical = EspacioCorto)
     ) {
         Icon(painterResource(area.iconoPh), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(26.dp))
         Spacer(Modifier.height(5.dp))
@@ -534,9 +559,6 @@ private val Modalidad.iconoPh: Int
  * angosta y más translúcida que la de arriba, para que se lean como "lo que viene después".
  */
 
-/** Salida suave con frenada larga: el movimiento arranca rápido y se asienta sin rebote. */
-private val EnfaticaPila = CubicBezierEasing(0.2f, 0f, 0f, 1f)
-
 @Composable
 private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbrirChat: (String) -> Unit) {
     // Tocar una capa de atrás la pasa al frente; las demás se reacomodan en orden (como un mazo de cartas)
@@ -546,7 +568,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
     val orden = remember(proximas, inicio) { proximas.drop(inicio) + proximas.take(inicio) }
     val primera = orden.first()
     val s = primera.sesion
-    val formaFrente = RoundedCornerShape(22.dp)
+    val formaFrente = FormaOrganica
     Column(Modifier.fillMaxWidth()) {
         // Sin sombra (la única sombra de la pantalla es la del buscador): el borde fino la recorta del fondo
         Column(
@@ -559,19 +581,19 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                 )
                 .background(TinteBosque, formaFrente)
                 .border(1.dp, BosqueAcento.copy(alpha = 0.14f), formaFrente)
-                .padding(start = 16.dp, end = 14.dp, top = 14.dp, bottom = 12.dp)
+                .padding(start = EspacioNormal, end = EspacioCercano, top = EspacioCercano, bottom = EspacioMedio)
         ) {
           AnimatedContent(
             targetState = primera,
             // La elegida SUBE desde abajo y crece hasta su sitio; la que estaba al frente BAJA, se achica y se apaga
             transitionSpec = {
                 (fadeIn(tween(240, delayMillis = 90)) +
-                    slideInVertically(tween(460, easing = EnfaticaPila)) { it / 4 } +
-                    scaleIn(tween(460, easing = EnfaticaPila), initialScale = .94f)) togetherWith
+                    slideInVertically(tween(460, easing = CurvaEnfatizada)) { it / 4 } +
+                    scaleIn(tween(460, easing = CurvaEnfatizada), initialScale = .94f)) togetherWith
                     (fadeOut(tween(170)) +
-                        slideOutVertically(tween(380, easing = EnfaticaPila)) { it / 5 } +
-                        scaleOut(tween(380, easing = EnfaticaPila), targetScale = .94f)) using
-                    SizeTransform(clip = false) { _, _ -> tween(420, easing = EnfaticaPila) }
+                        slideOutVertically(tween(DuracionLarga, easing = CurvaEnfatizada)) { it / 5 } +
+                        scaleOut(tween(DuracionLarga, easing = CurvaEnfatizada), targetScale = .94f)) using
+                    SizeTransform(clip = false) { _, _ -> tween(420, easing = CurvaEnfatizada) }
             },
             label = "sesionFrente"
           ) { primera ->
@@ -590,14 +612,14 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     modifier = Modifier.height(24.dp)
                 ) {
                     Icon(painterResource(s.modalidad.iconoPh), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(14.dp))
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(EspacioMinimo))
                     Text(s.modalidad.etiqueta, color = BosqueAcento, style = EtiquetaArea)
                 }
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .padding(top = 6.dp, bottom = 12.dp)
+                    .padding(top = EspacioFino, bottom = EspacioMedio)
                     .height(IntrinsicSize.Min)
             ) {
                 Text(
@@ -605,15 +627,15 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     color = BosqueProfundo,
                     style = CifraHora.merge(CifrasTabulares)
                 )
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(EspacioCercano))
                 Box(
                     Modifier
-                        .padding(vertical = 4.dp)
+                        .padding(vertical = EspacioMinimo)
                         .width(1.dp)
                         .fillMaxHeight()
                         .background(BosqueAcento.copy(alpha = 0.18f))
                 )
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(EspacioCercano))
                 Column(Modifier.weight(1f)) {
                     TextoLinea(s.materia, TituloMateria, BosqueProfundo)
                     TextoLinea(
@@ -625,7 +647,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Avatar(s.conQuien, tamano = 28.dp)
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(EspacioAjustado))
                 Column(Modifier.weight(1f)) {
                     TextoLinea(s.conQuien, CuerpoNombre, BosqueProfundo)
                     primera.tutor?.let { t ->
@@ -648,11 +670,11 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .height(40.dp)
-                                .background(Color.White, RoundedCornerShape(20.dp))
+                                .background(Color.White, FormaBoton)
                                 .padding(horizontal = 15.dp)
                         ) {
                             Icon(painterResource(R.drawable.ph_chat), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(17.dp))
-                            Spacer(Modifier.width(6.dp))
+                            Spacer(Modifier.width(EspacioFino))
                             Text("Abrir chat", color = BosqueProfundo, style = EtiquetaBoton)
                         }
                     }
@@ -671,7 +693,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
             LaunchedEffect(Unit) { delay(260L + n * 110L); salio = true }
             val salida by animateFloatAsState(
                 if (salio) 1f else 0f,
-                spring(dampingRatio = 0.68f, stiffness = 320f),
+                resorteCascada(),
                 label = "capa$n"
             )
             Row(
@@ -681,10 +703,10 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     .zIndex(2f - n)
                     .padding(horizontal = (8 * (n + 1)).dp)
                     .fillMaxWidth()
-                    .height(if (n == 0) 46.dp else 44.dp)
+                    .heightIn(min = if (n == 0) 46.dp else 44.dp)
                     .pulsable(etiqueta = "Pasar al frente la sesión de ${p.sesion.materia}") { inicio = (inicio + 1 + n) % proximas.size }
-                    .background(fondo, RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
-                    .padding(start = 14.dp, end = 14.dp, top = 14.dp)
+                    .background(fondo, FormaCapaInferior)
+                    .padding(start = EspacioCercano, end = EspacioCercano, top = EspacioCercano)
                     .graphicsLayer {
                         // Invisible mientras sigue detrás de la capa anterior: su texto no se transparenta encima
                         alpha = tinta * ((salida - .45f) / .45f).coerceIn(0f, 1f)
@@ -695,8 +717,8 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     targetState = p,
                     // La que llega a la capa viene de arriba (bajó desde el frente); la que sube sale hacia arriba
                     transitionSpec = {
-                        (fadeIn(tween(240, delayMillis = 80)) + slideInVertically(tween(420, easing = EnfaticaPila)) { -it / 2 }) togetherWith
-                            (fadeOut(tween(140)) + slideOutVertically(tween(300, easing = EnfaticaPila)) { -it / 2 })
+                        (fadeIn(tween(240, delayMillis = 80)) + slideInVertically(tween(420, easing = CurvaEnfatizada)) { -it / 2 }) togetherWith
+                            (fadeOut(tween(140)) + slideOutVertically(tween(DuracionNormal, easing = CurvaEnfatizada)) { -it / 2 })
                     },
                     label = "capa${n}Contenido"
                 ) { q ->
@@ -706,16 +728,17 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     color = BosqueProfundo,
                     style = MaterialTheme.typography.titleSmall.merge(CifrasTabulares)
                 )
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(EspacioAjustado))
                 Text(
                     "${q.sesion.materia} · ${q.sesion.conQuien}",
                     color = BosqueProfundo,
                     style = CuerpoSesion,
-                    maxLines = 1,
+                    // Con letra grande el texto baja a una segunda línea en vez de cortarse
+                    maxLines = if (LocalDensity.current.fontScale > 1f) 2 else 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(EspacioAjustado))
                 Icon(painterResource(q.sesion.modalidad.iconoPh), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(16.dp))
                     }
                 }
@@ -764,23 +787,23 @@ private fun SinSesiones(alBuscar: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .superficie(RoundedCornerShape(12.dp))
-            .padding(16.dp)
+            .superficie(FormaTarjeta)
+            .padding(EspacioNormal)
     ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(48.dp)
-                .background(TinteBosque, RoundedCornerShape(10.dp))
+                .background(TinteBosque, FormaControl)
         ) {
             Icon(Icons.Rounded.EventAvailable, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(22.dp))
         }
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(EspacioCercano))
         Column(Modifier.weight(1f)) {
             Text("Sin sesiones agendadas", color = TextoPrimario, style = MaterialTheme.typography.titleMedium)
             Text("Elige un tutor y solicita tu primera sesión.", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
         }
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(EspacioCorto))
         BotonSecundario("Buscar", alBuscar, compacto = true)
     }
 }
@@ -799,12 +822,12 @@ private fun TiraDisponibilidad(horas: Int, dias: List<String>, alEditar: () -> U
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 22.dp).heightIn(min = 32.dp)
+            modifier = Modifier.padding(horizontal = EspacioHolgado).heightIn(min = 32.dp)
         ) {
             Text(
                 if (horas == 0) "Publica tus horarios para aparecer en las búsquedas"
-                else "Tu disponibilidad · ${if (horas == 1) "1 hora" else "$horas horas"} a la semana",
-                color = Salvia,
+                else "Tu disponibilidad · ${formatoHoras(horas.toDouble())} a la semana",
+                color = TextoSecundario,
                 style = EtiquetaDisponibilidad,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -816,14 +839,14 @@ private fun TiraDisponibilidad(horas: Int, dias: List<String>, alEditar: () -> U
                 style = EtiquetaFecha
             )
         }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = EspacioCercano)) {
             listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom").forEach { d ->
                 val activo = d in dias
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 4.dp, vertical = 8.dp)
+                        .padding(horizontal = EspacioMinimo, vertical = EspacioCorto)
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -854,7 +877,7 @@ private fun TiraDisponibilidad(horas: Int, dias: List<String>, alEditar: () -> U
  */
 @Composable
 private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Modifier = Modifier) {
-    val forma = RoundedCornerShape(27.dp)
+    val forma = FormaCampoAlto
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -862,10 +885,10 @@ private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Mo
             .height(54.dp)
             .shadow(14.dp, forma, ambientColor = BosqueProfundo.copy(alpha = 0.22f), spotColor = BosqueProfundo.copy(alpha = 0.38f))
             .superficiePulsable(forma, etiqueta = "Ver solicitudes recibidas", alClicar = alRevisar)
-            .padding(start = 20.dp, end = 7.dp)
+            .padding(start = EspacioMargen, end = 7.dp)
     ) {
         Icon(painterResource(R.drawable.ph_campana), contentDescription = null, tint = Bosque.copy(alpha = 0.5f), modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(EspacioMedio))
         Text(
             when (cantidad) {
                 0 -> "Todo al día: sin solicitudes nuevas"

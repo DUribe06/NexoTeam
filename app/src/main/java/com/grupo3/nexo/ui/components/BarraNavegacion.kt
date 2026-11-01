@@ -1,6 +1,5 @@
 package com.grupo3.nexo.ui.components
 
-import android.provider.Settings
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
@@ -64,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.R
 import com.grupo3.nexo.ui.navigation.Rutas
 import com.grupo3.nexo.ui.theme.Bosque
+import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Salvia
 import com.grupo3.nexo.ui.theme.TrazoEslabon
@@ -312,10 +312,7 @@ fun BarraNavegacion(
     if (indiceRuta >= 0) ultimoIndice.intValue = indiceRuta
     val activo = ultimoIndice.intValue
 
-    val contexto = LocalContext.current
-    val sinAnimaciones = remember {
-        Settings.Global.getFloat(contexto.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
-    }
+    val sinAnimaciones = LocalAnimacionesReducidas.current
     val haptica = LocalHapticFeedback.current
 
     val e1 = remember { Pieza() }

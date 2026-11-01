@@ -1,7 +1,10 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioMedio
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.horizontalScroll
@@ -34,6 +37,9 @@ import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
+import com.grupo3.nexo.ui.theme.DuracionMedia
+import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
+import com.grupo3.nexo.ui.theme.especColor
 import com.grupo3.nexo.ui.theme.TextoSecundario
 
 /**
@@ -49,6 +55,7 @@ fun Pestanas(
     margen: Dp = 20.dp
 ) {
     val desplazamiento = rememberScrollState()
+    val reducidas = LocalAnimacionesReducidas.current
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -57,13 +64,13 @@ fun Pestanas(
             }
             .desvanecerBordes(desplazamiento)
             .horizontalScroll(desplazamiento)
-            .padding(horizontal = margen - 12.dp)
+            .padding(horizontal = margen - EspacioMedio)
             .selectableGroup()
     ) {
         opciones.forEachIndexed { i, texto ->
             val activa = i == seleccionada
-            val color by animateColorAsState(if (activa) BosqueProfundo else TextoSecundario, tween(160), label = "pestana")
-            val progreso by animateFloatAsState(if (activa) 1f else 0f, tween(200), label = "filete")
+            val color by animateColorAsState(if (activa) BosqueProfundo else TextoSecundario, especColor(), label = "pestana")
+            val progreso by animateFloatAsState(if (activa) 1f else 0f, if (reducidas) snap() else tween(DuracionMedia), label = "filete")
             Text(
                 texto,
                 color = color,
@@ -84,7 +91,7 @@ fun Pestanas(
                             )
                         }
                     }
-                    .padding(horizontal = 12.dp, vertical = 14.dp)
+                    .padding(horizontal = EspacioMedio, vertical = EspacioCercano)
             )
         }
     }

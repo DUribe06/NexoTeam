@@ -1,10 +1,6 @@
 package com.grupo3.nexo.ui.solicitudes
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.EventNote
@@ -71,7 +66,12 @@ import com.grupo3.nexo.ui.components.BotonTexto
 import com.grupo3.nexo.ui.components.Campo
 import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.DialogoConfirmacion
+import com.grupo3.nexo.ui.components.Carga
+import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.EsqueletoLista
 import com.grupo3.nexo.ui.components.EstadoVacio
+import com.grupo3.nexo.ui.components.cargaDe
+import com.grupo3.nexo.ui.theme.cambioContenido
 import com.grupo3.nexo.ui.components.FiltroOpcion
 import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.InsigniaEstado
@@ -106,6 +106,16 @@ import androidx.compose.ui.res.vectorResource
 import com.grupo3.nexo.R
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueProfundo
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.FormaBoton
 import javax.inject.Inject
 
 /* ==================== ViewModel ==================== */
@@ -120,6 +130,7 @@ class SolicitudesViewModel @Inject constructor(
 ) : ViewModel() {
 
     data class Estado(
+        val cargando: Boolean = true,
         val esTutor: Boolean = false,
         val filtro: EstadoSolicitud? = null,
         val solicitudes: List<Solicitud> = emptyList(),
@@ -134,8 +145,11 @@ class SolicitudesViewModel @Inject constructor(
     private val filtro = MutableStateFlow<Pair<Rol, EstadoSolicitud>?>(null)
 
     val estado = combine(obtenerMisSolicitudes(), obtenerUsuario(), obtenerTutores(), filtro) { propias, usuario, tutores, elegido ->
+        // Si el estado elegido se queda sin solicitudes (p. ej. se aceptó la última pendiente), vuelve a "Todas"
         val f = elegido?.takeIf { it.first == usuario.rol }?.second
+            ?.takeIf { filtrado -> propias.any { it.estado == filtrado } }
         Estado(
+            cargando = false,
             esTutor = usuario.rol == Rol.TUTOR,
             filtro = f,
             solicitudes = propias.filter { f == null || it.estado == f },
@@ -212,17 +226,22 @@ fun PantallaSolicitudes(
                     opciones = opciones,
                     seleccionada = estado.filtro?.let { estados.indexOf(it) + 1 } ?: 0,
                     alElegir = { i -> viewModel.filtrar(if (i == 0) null else estados[i - 1]) },
-                    modifier = Modifier.padding(top = 6.dp)
+                    modifier = Modifier.padding(top = EspacioFino)
                 )
             }
 
+            val carga = cargaDe(estado.cargando, estado.solicitudes.isEmpty())
             AnimatedContent(
-                targetState = estado.solicitudes.isEmpty(),
-                transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(120)) },
+                targetState = carga,
+                transitionSpec = { cambioContenido() },
                 label = "lista",
                 modifier = Modifier.weight(1f)
-            ) { vacia ->
-                if (vacia) {
+            ) { fase ->
+                if (fase == Carga.CARGANDO) {
+                    EsqueletoLista()
+                } else if (fase == Carga.ERROR) {
+                    ErrorDeLista(titulo = "No pudimos cargar tus solicitudes")
+                } else if (fase == Carga.VACIO) {
                     EstadoVacio(
                         icono = Icons.AutoMirrored.Rounded.EventNote,
                         titulo = if (estado.esTutor) "Aún no recibes solicitudes" else "Aún no has pedido tutorías",
@@ -233,8 +252,8 @@ fun PantallaSolicitudes(
                     )
                 } else {
                     LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 24.dp)
+                        verticalArrangement = Arrangement.spacedBy(EspacioMedio),
+                        contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioNormal, bottom = EspacioAmplio)
                     ) {
                         items(estado.solicitudes, key = { it.id }) { solicitud ->
                             TarjetaSolicitud(
@@ -260,7 +279,7 @@ fun PantallaSolicitudes(
             avisos,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 12.dp)
+                .padding(bottom = EspacioMedio)
         )
     }
 
@@ -321,33 +340,33 @@ private fun TarjetaSolicitud(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .superficie(RoundedCornerShape(20.dp))
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
+            .superficie(FormaBoton)
+            .padding(start = EspacioNormal, end = EspacioNormal, top = EspacioNormal, bottom = EspacioCorto)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Avatar(otraParte, tamano = 40.dp)
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(EspacioMedio))
             Column(Modifier.weight(1f)) {
                 TextoLinea(otraParte, MaterialTheme.typography.titleMedium, if (activa) TextoPrimario else TextoSecundario)
                 TextoLinea(solicitud.materia, MaterialTheme.typography.bodyMedium, TextoSecundario)
             }
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(EspacioCorto))
             InsigniaEstado(solicitud.estado)
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(EspacioMedio))
         Text(solicitud.tema, color = TextoPrimario, style = MaterialTheme.typography.titleSmall)
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(EspacioFino))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Dato(ImageVector.vectorResource(R.drawable.ph_calendario), formatoFecha(solicitud.fecha))
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(EspacioCercano))
             Dato(ImageVector.vectorResource(R.drawable.ph_reloj), solicitud.hora)
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(EspacioCercano))
             Dato(solicitud.modalidad.icono, solicitud.modalidad.etiqueta)
         }
 
         if (solicitud.mensaje.isNotBlank()) {
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(EspacioAjustado))
             Text(
                 "“${solicitud.mensaje}”",
                 color = TextoTercero,
@@ -357,7 +376,7 @@ private fun TarjetaSolicitud(
 
         val motivo = solicitud.motivoRechazo
         if (solicitud.estado == EstadoSolicitud.RECHAZADA && !motivo.isNullOrBlank()) {
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(EspacioAjustado))
             Text(
                 buildAnnotatedString {
                     withStyle(SpanStyle(color = Rojo, fontWeight = FontWeight.SemiBold)) { append("Motivo: ") }
@@ -370,28 +389,28 @@ private fun TarjetaSolicitud(
 
         when {
             esTutor && solicitud.estado == EstadoSolicitud.PENDIENTE -> {
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(EspacioMedio))
                 AvisoPlazo("Responde antes de $PLAZO_RESPUESTA")
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BotonTonal("Aceptar", alAceptar, icono = Icons.Rounded.Check)
                     Spacer(Modifier.weight(1f))
                     BotonTexto("Rechazar", alRechazar, color = TextoSecundario)
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(EspacioMinimo))
             }
             esTutor && solicitud.estado == EstadoSolicitud.ACEPTADA -> {
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(EspacioMedio))
                 BotonTonal("Abrir chat", alEscribir, icono = Icons.Rounded.ChatBubbleOutline)
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(EspacioMinimo))
             }
             !esTutor && solicitud.estado == EstadoSolicitud.ACEPTADA -> {
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(EspacioMedio))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BotonTonal("Abrir chat", alEscribir, icono = Icons.Rounded.ChatBubbleOutline)
                     Spacer(Modifier.weight(1f))
                     BotonTexto("Cancelar", alCancelar, color = Rojo)
                 }
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(EspacioMinimo))
             }
             !esTutor && solicitud.estado == EstadoSolicitud.PENDIENTE -> {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -402,7 +421,7 @@ private fun TarjetaSolicitud(
             !esTutor && solicitud.estado == EstadoSolicitud.RECHAZADA -> {
                 BotonTexto("Ver otros tutores de ${solicitud.materia}", alVerOtros, modifier = Modifier.offset(x = (-12).dp))
             }
-            else -> Spacer(Modifier.height(8.dp))
+            else -> Spacer(Modifier.height(EspacioCorto))
         }
     }
 }
@@ -412,10 +431,10 @@ private fun TarjetaSolicitud(
 private fun AvisoPlazo(texto: String, modifier: Modifier = Modifier, conAire: Boolean = true) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(top = if (conAire) 12.dp else 0.dp)
+        modifier = modifier.padding(top = if (conAire) EspacioMedio else 0.dp)
     ) {
         Icon(ImageVector.vectorResource(R.drawable.ph_reloj), contentDescription = null, tint = MielOscura, modifier = Modifier.size(15.dp))
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(EspacioFino))
         Text(texto, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
     }
 }
@@ -446,13 +465,13 @@ private fun HojaRechazo(solicitud: Solicitud, alCerrar: () -> Unit, alConfirmar:
         subtitulo = "${solicitud.nombreEstudiante} · ${solicitud.materia} · ${formatoFecha(solicitud.fecha)}, ${solicitud.hora}. A ${solicitud.nombreEstudiante.substringBefore(' ')} le sugeriremos otros tutores de ${solicitud.materia}.",
         alCerrar = alCerrar
     ) {
-        RotuloGrupo("Motivo (opcional)", Modifier.padding(top = 20.dp, bottom = 10.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        RotuloGrupo("Motivo (opcional)", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(EspacioCorto), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
             motivosRapidos.forEach { m ->
                 FiltroOpcion(m, motivo == m, { motivo = if (motivo == m) "" else m }, conMarca = false)
             }
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(EspacioMedio))
         Campo(
             valor = motivo,
             alCambiar = { motivo = it },
@@ -460,10 +479,10 @@ private fun HojaRechazo(solicitud: Solicitud, alCerrar: () -> Unit, alConfirmar:
             lineasMaximas = 3,
             teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
         )
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(EspacioAmplio))
         Row(verticalAlignment = Alignment.CenterVertically) {
             BotonTexto("Volver", alCerrar, color = TextoSecundario)
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(EspacioCorto))
             BotonPrimario(
                 "Rechazar solicitud",
                 alClicar = { alConfirmar(motivo.ifBlank { null }) },

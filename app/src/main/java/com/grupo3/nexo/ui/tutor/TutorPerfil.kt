@@ -37,7 +37,6 @@ import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.RateReview
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -122,6 +121,29 @@ import com.grupo3.nexo.ui.theme.Rojo
 import com.grupo3.nexo.ui.theme.SuperficieClara
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.graphics.graphicsLayer
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioHolgado
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EspacioSuelto
+import com.grupo3.nexo.ui.theme.FormaMinima
+import com.grupo3.nexo.ui.theme.FormaTarjeta
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsTopHeight
+import com.grupo3.nexo.ui.components.BotonTexto
+import com.grupo3.nexo.ui.components.Carga
+import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.EsqueletoLista
+import com.grupo3.nexo.ui.components.cargaDe
+import com.grupo3.nexo.ui.theme.especColor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -234,22 +256,22 @@ fun PantallaTutorPerfil(
     Box(Modifier.fillMaxSize().background(Fondo)) {
         if (tutor == null) {
             CabeceraBosque(alturaOnda = 44.dp) {
-                Box(Modifier.padding(start = 12.dp, top = 6.dp).height(140.dp)) {
+                Box(Modifier.padding(start = EspacioMedio, top = EspacioFino).height(140.dp)) {
                     BotonIcono(Icons.AutoMirrored.Rounded.ArrowBack, "Volver", alVolver, sobreOscuro = true)
                 }
             }
-            CircularProgressIndicator(
-                color = BosqueAcento,
-                strokeWidth = 2.dp,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(28.dp)
-            )
+            // Bajo la cabecera: la silueta del perfil mientras llegan los datos, o el error
+            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(0.62f)) {
+                when (cargaDe(cargando = true, vacia = true)) {
+                    Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar este perfil")
+                    else -> EsqueletoLista(filas = 3)
+                }
+            }
         } else {
             Column(Modifier.fillMaxSize()) {
                 LazyColumn(
                     state = lista,
-                    contentPadding = PaddingValues(bottom = 24.dp),
+                    contentPadding = PaddingValues(bottom = EspacioAmplio),
                     modifier = Modifier.weight(1f)
                 ) {
                     item(key = "portada") {
@@ -262,30 +284,35 @@ fun PantallaTutorPerfil(
                         Cifras(
                             tutor,
                             Modifier
-                                .padding(start = 20.dp, end = 20.dp, top = 22.dp)
+                                .padding(start = EspacioMargen, end = EspacioMargen, top = EspacioHolgado)
                                 .aparicion(1, iniciado)
                         )
                     }
                     item(key = "sobre") {
                         Column(
                             Modifier
-                                .padding(horizontal = 20.dp)
-                                .padding(top = 18.dp)
+                                .padding(horizontal = EspacioMargen)
+                                .padding(top = EspacioSuelto)
                                 .aparicion(2, iniciado)
                         ) {
                             EncabezadoSeccion("Sobre ${tutor.nombre.substringBefore(' ')}")
                             Text(tutor.bio, color = TextoSecundario, style = MaterialTheme.typography.bodyLarge)
-                            Spacer(Modifier.height(18.dp))
+                            Spacer(Modifier.height(EspacioSuelto))
                             RotuloGrupo("Enseña")
-                            Spacer(Modifier.height(10.dp))
-                            Materias(tutor.materias)
+                            Spacer(Modifier.height(EspacioAjustado))
+                            if (tutor.materias.isEmpty()) {
+                                Text("Aún no publica materias.", color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
+                                if (tutor.horario.isNotEmpty()) BotonTexto("Solicitar tutoría", { mostrarSolicitud = true })
+                            } else {
+                                Materias(tutor.materias)
+                            }
                         }
                     }
                     item(key = "horario") {
                         Column(
                             Modifier
-                                .padding(horizontal = 20.dp)
-                                .padding(top = 22.dp)
+                                .padding(horizontal = EspacioMargen)
+                                .padding(top = EspacioHolgado)
                         ) {
                             EncabezadoSeccion("Horarios disponibles")
                             HorarioSemanal(tutor.horario)
@@ -295,8 +322,8 @@ fun PantallaTutorPerfil(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .padding(horizontal = 20.dp)
-                                .padding(top = 22.dp, bottom = 6.dp)
+                                .padding(horizontal = EspacioMargen)
+                                .padding(top = EspacioHolgado, bottom = EspacioFino)
                         ) {
                             Text(
                                 "Reseñas",
@@ -307,7 +334,7 @@ fun PantallaTutorPerfil(
                                     .semantics { heading() }
                             )
                             Estrellas(Math.round(tutor.rating).toInt(), tamano = 14.dp)
-                            Spacer(Modifier.width(6.dp))
+                            Spacer(Modifier.width(EspacioFino))
                             Text(
                                 "${formatoValoracion(tutor.rating)} · ${tutor.totalResenas}",
                                 color = TextoSecundario,
@@ -315,21 +342,26 @@ fun PantallaTutorPerfil(
                             )
                         }
                     }
-                    if (estado.resenas.isEmpty()) {
-                        item(key = "sinResenas") {
+                    when (cargaDe(cargando = false, vacia = estado.resenas.isEmpty())) {
+                        Carga.CARGANDO -> item(key = "cargandoResenas") { EsqueletoLista(filas = 2) }
+                        Carga.ERROR -> item(key = "errorResenas") {
+                            ErrorDeLista(titulo = "No pudimos cargar las reseñas")
+                        }
+                        Carga.VACIO -> item(key = "sinResenas") {
                             EstadoVacio(
                                 icono = Icons.Rounded.RateReview,
                                 titulo = "Aún sin reseñas",
-                                mensaje = "Tras tu sesión podrás calificar a ${tutor.nombre.substringBefore(' ')}."
+                                mensaje = "Tras tu sesión podrás calificar a ${tutor.nombre.substringBefore(' ')}.",
+                                accion = if (tutor.horario.isNotEmpty()) "Solicitar tutoría" else null,
+                                alAccion = { mostrarSolicitud = true }
                             )
                         }
-                    } else {
-                        items(estado.resenas, key = { it.autor + it.fecha }) { resena ->
+                        Carga.LISTO -> items(estado.resenas, key = { it.autor + it.fecha }) { resena ->
                             TarjetaResena(
                                 resena = resena,
                                 modifier = Modifier
-                                    .padding(horizontal = 20.dp)
-                                    .padding(bottom = 10.dp)
+                                    .padding(horizontal = EspacioMargen)
+                                    .padding(bottom = EspacioAjustado)
                             )
                         }
                     }
@@ -341,6 +373,15 @@ fun PantallaTutorPerfil(
                 )
             }
 
+            // El velo del sistema es translúcido: detrás, un fondo sólido para que el texto no se asome al desplazar
+            val fondoBarra by animateFloatAsState(if (portadaVisible) 0f else 1f, especColor(), label = "fondoBarra")
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .windowInsetsTopHeight(WindowInsets.statusBars)
+                    .graphicsLayer { alpha = fondoBarra }
+                    .background(Fondo)
+            )
             VeloBarraEstado(visible = !portadaVisible)
 
             AvisoNexo(
@@ -384,7 +425,7 @@ private fun Portada(alVolver: () -> Unit, alReportar: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .padding(horizontal = EspacioMedio, vertical = EspacioFino)
         ) {
             BotonIcono(Icons.AutoMirrored.Rounded.ArrowBack, "Volver", alVolver, sobreOscuro = true)
             Spacer(Modifier.weight(1f))
@@ -401,17 +442,17 @@ private fun Identidad(tutor: Tutor, modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = EspacioAmplio)
     ) {
         Box(
             Modifier
                 .solaparHaciaArriba(64.dp)
                 .background(Color.White, CircleShape)
-                .padding(4.dp)
+                .padding(EspacioMinimo)
         ) {
             Avatar(tutor.nombre, tamano = 98.dp)
         }
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(EspacioCercano))
         Text(
             tutor.nombre,
             color = TextoPrimario,
@@ -419,10 +460,10 @@ private fun Identidad(tutor: Tutor, modifier: Modifier = Modifier) {
             textAlign = TextAlign.Center,
             modifier = Modifier.semantics { heading() }
         )
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(EspacioMinimo))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.School, contentDescription = null, tint = TextoTercero, modifier = Modifier.size(15.dp))
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(EspacioFino))
             Text(
                 tutor.universidad,
                 color = TextoSecundario,
@@ -430,11 +471,11 @@ private fun Identidad(tutor: Tutor, modifier: Modifier = Modifier) {
                 textAlign = TextAlign.Center
             )
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(EspacioMedio))
         val enLinea = tutor.enLinea
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(vertical = 4.dp)
+            modifier = Modifier.padding(vertical = EspacioMinimo)
         ) {
             Box(Modifier.size(7.dp).background(if (enLinea) Menta else GrisEstado.copy(alpha = 0.6f), CircleShape))
             Spacer(Modifier.width(7.dp))
@@ -446,8 +487,8 @@ private fun Identidad(tutor: Tutor, modifier: Modifier = Modifier) {
             Text("  ·  ${tutor.handle}", color = TextoTercero, style = MaterialTheme.typography.labelMedium)
         }
         if (tutor.modalidades.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Spacer(Modifier.height(EspacioCorto))
+            Row(horizontalArrangement = Arrangement.spacedBy(EspacioCorto)) {
                 Modalidad.entries.filter { it in tutor.modalidades }.forEach { EtiquetaModalidad(it) }
             }
         }
@@ -461,12 +502,12 @@ private fun Cifras(tutor: Tutor, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .height(78.dp)
-            .superficie(RoundedCornerShape(12.dp))
+            .superficie(FormaTarjeta)
     ) {
         Cifra(formatoValoracion(tutor.rating), "valoración", Modifier.weight(1f), conEstrella = true)
-        Box(Modifier.fillMaxHeight().padding(vertical = 18.dp).width(1.dp).background(Divisor))
+        Box(Modifier.fillMaxHeight().padding(vertical = EspacioSuelto).width(1.dp).background(Divisor))
         Cifra("${tutor.sesionesTotales}", "sesiones", Modifier.weight(1f))
-        Box(Modifier.fillMaxHeight().padding(vertical = 18.dp).width(1.dp).background(Divisor))
+        Box(Modifier.fillMaxHeight().padding(vertical = EspacioSuelto).width(1.dp).background(Divisor))
         Cifra("${tutor.estudiantes}", "estudiantes", Modifier.weight(1f))
     }
 }
@@ -483,7 +524,7 @@ private fun Cifra(valor: String, etiqueta: String, modifier: Modifier = Modifier
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (conEstrella) {
                 Icon(Icons.Rounded.Star, contentDescription = null, tint = Miel, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(EspacioMinimo))
             }
             Text(valor, color = TextoPrimario, style = MaterialTheme.typography.titleLarge.merge(CifrasTabulares))
         }
@@ -502,19 +543,19 @@ private fun TarjetaResena(resena: Resena, modifier: Modifier = Modifier) {
     Column(
         modifier
             .fillMaxWidth()
-            .superficie(RoundedCornerShape(12.dp))
-            .padding(16.dp)
+            .superficie(FormaTarjeta)
+            .padding(EspacioNormal)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Avatar(resena.autor, tamano = 38.dp)
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(EspacioMedio))
             Column(Modifier.weight(1f)) {
                 TextoLinea(resena.autor, MaterialTheme.typography.titleSmall, TextoPrimario)
                 TextoLinea(resena.fecha, MaterialTheme.typography.bodySmall, TextoTercero)
             }
             Estrellas(resena.estrellas, tamano = 13.dp)
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(EspacioAjustado))
         Text(resena.texto, color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
     }
 }
@@ -529,7 +570,7 @@ private fun BarraAcciones(tutor: Tutor, alSolicitar: () -> Unit) {
             .background(Color.White)
             .drawBehind { drawLine(Divisor, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
             .navigationBarsPadding()
-            .padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
+            .padding(start = EspacioMargen, end = EspacioNormal, top = EspacioMedio, bottom = EspacioMedio)
     ) {
         Column {
             Text(
@@ -539,7 +580,7 @@ private fun BarraAcciones(tutor: Tutor, alSolicitar: () -> Unit) {
             )
             Text("por hora", color = TextoTercero, style = MaterialTheme.typography.bodySmall)
         }
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(EspacioNormal))
         BotonPrimario(
             "Solicitar tutoría",
             alSolicitar,
@@ -610,12 +651,12 @@ private fun HojaSolicitud(
         subtitulo = "con ${tutor.nombre} · ${formatoPrecio(tutor.precioHora)} la hora",
         alCerrar = alCerrar
     ) {
-        RotuloGrupo("Materia", Modifier.padding(top = 22.dp, bottom = 10.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        RotuloGrupo("Materia", Modifier.padding(top = EspacioHolgado, bottom = EspacioAjustado))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(EspacioCorto), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
             tutor.materias.forEach { FiltroOpcion(it, it == materia, { materia = it }) }
         }
 
-        RotuloGrupo("Tema a reforzar", Modifier.padding(top = 20.dp, bottom = 10.dp))
+        RotuloGrupo("Tema a reforzar", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))
         Campo(
             valor = tema,
             alCambiar = { tema = it },
@@ -627,7 +668,7 @@ private fun HojaSolicitud(
                 "Cuéntale al tutor qué tema quieres reforzar.",
                 color = Rojo,
                 style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = 20.dp, top = 6.dp)
+                modifier = Modifier.padding(start = EspacioMargen, top = EspacioFino)
             )
         }
 
@@ -636,12 +677,12 @@ private fun HojaSolicitud(
                 "${tutor.nombre.substringBefore(' ')} no tiene horarios publicados por ahora.",
                 color = TextoSecundario,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 20.dp)
+                modifier = Modifier.padding(top = EspacioMargen)
             )
         } else {
-            RotuloGrupo("Día", Modifier.padding(top = 20.dp, bottom = 10.dp))
+            RotuloGrupo("Día", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
                 modifier = Modifier.selectableGroup()
             ) {
                 items(dias.size, key = { dias[it].fecha.toString() }) { i ->
@@ -657,15 +698,15 @@ private fun HojaSolicitud(
                 }
             }
 
-            RotuloGrupo("Hora", Modifier.padding(top = 20.dp, bottom = 10.dp))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            RotuloGrupo("Hora", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(EspacioCorto), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
                 dia?.franjas?.forEach { f ->
                     FiltroOpcion(f.hora, f.hora == horaElegida, { hora = f.hora }, conMarca = false)
                 }
             }
 
-            RotuloGrupo("Modalidad", Modifier.padding(top = 20.dp, bottom = 10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            RotuloGrupo("Modalidad", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))
+            Row(horizontalArrangement = Arrangement.spacedBy(EspacioCorto)) {
                 Modalidad.entries.forEach { m ->
                     val disponible = franja != null && m in franja.modalidades
                     OpcionModalidad(
@@ -679,7 +720,7 @@ private fun HojaSolicitud(
             }
         }
 
-        RotuloGrupo("Mensaje (opcional)", Modifier.padding(top = 20.dp, bottom = 10.dp))
+        RotuloGrupo("Mensaje (opcional)", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))
         Campo(
             valor = mensaje,
             alCambiar = { mensaje = it },
@@ -688,7 +729,7 @@ private fun HojaSolicitud(
             teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
         )
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(EspacioAmplio))
         BotonPrimario(
             texto = "Enviar solicitud",
             conFlecha = true,
@@ -708,7 +749,7 @@ private fun HojaSolicitud(
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp)
+                .padding(top = EspacioMedio)
         )
     }
 }
@@ -728,13 +769,13 @@ private fun OpcionModalidad(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .height(52.dp)
-            .background(fondo, RoundedCornerShape(12.dp))
-            .border(1.dp, if (seleccionada) Color.Transparent else Bosque.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
+            .background(fondo, FormaTarjeta)
+            .border(1.dp, if (seleccionada) Color.Transparent else Bosque.copy(alpha = 0.10f), FormaTarjeta)
             .selectable(selected = seleccionada, enabled = habilitada, role = Role.RadioButton, onClick = alClicar)
             .graphicsLayer { alpha = if (habilitada) 1f else 0.4f }
     ) {
         Icon(modalidad.icono, contentDescription = null, tint = if (seleccionada) Menta else BosqueAcento, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(EspacioCorto))
         Text(
             modalidad.etiqueta,
             color = if (seleccionada) Color.White else TextoPrimario,
@@ -754,29 +795,29 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
     Column(
         Modifier
             .fillMaxWidth()
-            .superficie(RoundedCornerShape(12.dp))
+            .superficie(FormaTarjeta)
     ) {
         val porDia = horario.groupBy { it.dia }.toSortedMap(compareBy { it.numero })
         porDia.entries.forEachIndexed { i, (dia, franjas) ->
-            if (i > 0) Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(Divisor))
+            if (i > 0) Box(Modifier.fillMaxWidth().padding(horizontal = EspacioNormal).height(1.dp).background(Divisor))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = EspacioNormal, vertical = EspacioMedio)
             ) {
                 Text(dia.nombre, color = TextoPrimario, style = MaterialTheme.typography.titleSmall, modifier = Modifier.width(92.dp))
                 FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(EspacioFino),
+                    verticalArrangement = Arrangement.spacedBy(EspacioFino),
                     modifier = Modifier.weight(1f)
                 ) {
                     franjas.sortedBy { it.hora }.forEach { f ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .background(SuperficieClara, RoundedCornerShape(6.dp))
-                                .padding(start = 8.dp, end = 6.dp, top = 4.dp, bottom = 4.dp)
+                                .background(SuperficieClara, FormaMinima)
+                                .padding(start = EspacioCorto, end = EspacioFino, top = EspacioMinimo, bottom = EspacioMinimo)
                         ) {
                             Text(f.hora, color = TextoPrimario, style = MaterialTheme.typography.labelMedium.merge(CifrasTabulares))
                             Spacer(Modifier.width(5.dp))
@@ -791,13 +832,13 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(SuperficieClara.copy(alpha = 0.5f))
-                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .padding(horizontal = EspacioNormal, vertical = EspacioAjustado)
         ) {
             Modalidad.entries.forEach { m ->
                 Icon(m.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(13.dp))
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(EspacioMinimo))
                 Text(m.etiqueta, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(EspacioCercano))
             }
             Spacer(Modifier.weight(1f))
             Text("Sesiones de 1 h", color = TextoTercero, style = MaterialTheme.typography.bodySmall)
@@ -816,8 +857,8 @@ private fun SelectorDia(dia: String, fecha: String, seleccionado: Boolean, alCli
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
             .size(width = 58.dp, height = 72.dp)
-            .background(fondo, RoundedCornerShape(12.dp))
-            .border(1.dp, if (seleccionado) Color.Transparent else Bosque.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
+            .background(fondo, FormaTarjeta)
+            .border(1.dp, if (seleccionado) Color.Transparent else Bosque.copy(alpha = 0.10f), FormaTarjeta)
             .selectable(selected = seleccionado, role = Role.RadioButton, onClick = alClicar)
             .semantics(mergeDescendants = true) { }
     ) {
@@ -836,11 +877,11 @@ private fun HojaReporte(nombre: String, alCerrar: () -> Unit, alEnviar: (String)
         subtitulo = "Cuéntanos qué ocurrió. Un administrador revisará el caso; ${nombre.substringBefore(' ')} no sabrá quién lo reportó.",
         alCerrar = alCerrar
     ) {
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(EspacioNormal))
         Column(
             Modifier
                 .fillMaxWidth()
-                .superficie(RoundedCornerShape(12.dp))
+                .superficie(FormaTarjeta)
                 .selectableGroup()
         ) {
             motivosReporte.forEachIndexed { i, opcion ->
@@ -848,7 +889,7 @@ private fun HojaReporte(nombre: String, alCerrar: () -> Unit, alEnviar: (String)
                 OpcionRadio(opcion, opcion == motivo) { motivo = opcion }
             }
         }
-        Spacer(Modifier.height(22.dp))
+        Spacer(Modifier.height(EspacioHolgado))
         BotonPrimario(
             texto = "Enviar reporte",
             habilitado = motivo != null,
@@ -869,7 +910,7 @@ private fun OpcionRadio(texto: String, seleccionada: Boolean, alClicar: () -> Un
             .heightIn(min = 56.dp)
             .selectable(selected = seleccionada, role = Role.RadioButton, onClick = alClicar)
             .background(if (seleccionada) TinteBosque.copy(alpha = 0.5f) else Color.Transparent)
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = EspacioNormal)
     ) {
         Box(
             contentAlignment = Alignment.Center,
@@ -879,7 +920,7 @@ private fun OpcionRadio(texto: String, seleccionada: Boolean, alClicar: () -> Un
         ) {
             if (seleccionada) Box(Modifier.size(9.dp).background(Menta, CircleShape))
         }
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(EspacioNormal))
         Text(texto, color = TextoPrimario, style = MaterialTheme.typography.bodyLarge)
     }
 }

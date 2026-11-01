@@ -82,6 +82,14 @@ import com.grupo3.nexo.domain.usecase.CerrarSesionUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerMisResenasUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerResumenActividadUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
+import com.grupo3.nexo.ui.components.BotonTexto
+import com.grupo3.nexo.ui.components.Carga
+import com.grupo3.nexo.ui.components.EsqueletoLista
+import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.EstadoVacio
+import com.grupo3.nexo.ui.components.cargaDe
+import com.grupo3.nexo.ui.theme.cambioContenido
+import com.grupo3.nexo.ui.theme.resorteIndicador
 import com.grupo3.nexo.ui.components.Avatar
 import com.grupo3.nexo.ui.components.CabeceraBosque
 import com.grupo3.nexo.ui.components.CifrasTabulares
@@ -91,6 +99,7 @@ import com.grupo3.nexo.ui.components.DialogoConfirmacion
 import com.grupo3.nexo.ui.components.EncabezadoSeccion
 import com.grupo3.nexo.ui.components.Estrellas
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.RateReview
 import androidx.compose.material.icons.rounded.Star
 import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
 import com.grupo3.nexo.ui.components.Onda
@@ -104,6 +113,7 @@ import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.universidadCorta
 import com.grupo3.nexo.ui.theme.BosqueAcento
+import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.Fondo
@@ -115,6 +125,19 @@ import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
 import com.grupo3.nexo.ui.theme.pincelBosque
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioExtenso
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMicro
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EspacioSuelto
+import com.grupo3.nexo.ui.theme.FormaBoton
+import com.grupo3.nexo.ui.theme.FormaCampoAlto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
@@ -153,6 +176,9 @@ class PerfilViewModel @Inject constructor(
 
 /* ==================== Pantalla ==================== */
 
+/** Alto aproximado del nombre y la carrera sobre el selector, con dos líneas de nombre. */
+private val ALTO_NOMBRE_SOBRE_SELECTOR = 130.dp
+
 /**
  * Perfil propio, derivado del Inicio: foto con el nombre como saludo, el selector de modo montado
  * sobre la onda (en el lugar del buscador) y, debajo, lo que define al usuario en el modo actual.
@@ -171,7 +197,9 @@ fun PantallaPerfil(
     // El velo aparece cuando el selector llega a la barra de estado, sea cual sea el alto de la foto
     val altoBarra = WindowInsets.statusBars.getTop(LocalDensity.current)
     var arribaSelector by remember { mutableFloatStateOf(Float.MAX_VALUE) }
-    val cabeceraVisible by remember { derivedStateOf { arribaSelector > altoBarra } }
+    // El nombre queda por encima del selector: el velo debe cubrirlo antes de que llegue a la barra
+    val altoNombre = with(LocalDensity.current) { ALTO_NOMBRE_SOBRE_SELECTOR.roundToPx() }
+    val cabeceraVisible by remember { derivedStateOf { arribaSelector > altoBarra + altoNombre } }
     IconosClarosEnBarraDeEstado(activo = cabeceraVisible)
     val iniciado = rememberPrimeraVez()
     var confirmarSalida by remember { mutableStateOf(false) }
@@ -186,7 +214,7 @@ fun PantallaPerfil(
                 .verticalScroll(desplazamiento),
             cabecera = { Cabecera(usuario, iniciado) }
         ) {
-            Column(Modifier.padding(bottom = 28.dp)) {
+            Column(Modifier.padding(bottom = EspacioExtenso)) {
                 // El selector ocupa el lugar del buscador: montado sobre la onda, con la única sombra
                 SelectorModo(
                     actual = usuario.rol,
@@ -194,36 +222,36 @@ fun PantallaPerfil(
                     modifier = Modifier
                         .solaparHaciaArriba(30.dp)
                         .onGloballyPositioned { arribaSelector = it.positionInRoot().y }
-                        .padding(horizontal = 20.dp)
+                        .padding(horizontal = EspacioMargen)
                         .aparicion(1, iniciado)
                 )
 
                 // Lo propio de cada modo se funde al cambiar, sin saltos de la cabecera ni del selector
                 AnimatedContent(
                     targetState = estado.esTutor,
-                    transitionSpec = { fadeIn(tween(260, delayMillis = 60)) togetherWith fadeOut(tween(140)) },
+                    transitionSpec = { cambioContenido() },
                     label = "contenidoModo",
                     modifier = Modifier.aparicion(2, iniciado)
                 ) { esTutor ->
                     Column(Modifier.fillMaxWidth()) {
                         // Lo accionable va primero; las cifras y materias quedan como contexto
                         if (esTutor) {
-                            Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp)) {
+                            Column(Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto)) {
                                 TarjetaDisponibilidad(alAbrirDisponibilidad)
                             }
-                            Cifras(estado.resumen, true, Modifier.padding(horizontal = 20.dp, vertical = 18.dp))
-                            BloqueTutor(usuario, estado.resenas, alVerTodas = alAbrirHistorial)
+                            Cifras(estado.resumen, true, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto))
+                            BloqueTutor(usuario, estado.resenas, cargando = estado.resumen == null, alVerTodas = alAbrirHistorial, alPublicarHorario = alAbrirDisponibilidad)
                         } else {
                             val pendientes = estado.resumen?.porCalificar ?: 0
                             if (pendientes > 0) {
-                                AvisoPorCalificar(pendientes, alAbrirHistorial, Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp))
+                                AvisoPorCalificar(pendientes, alAbrirHistorial, Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto))
                             }
-                            Cifras(estado.resumen, false, Modifier.padding(horizontal = 20.dp, vertical = 18.dp))
+                            Cifras(estado.resumen, false, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto))
                             estado.resumen?.materias?.takeIf { it.isNotEmpty() }?.let {
-                                Materias("Has estudiado", it, Modifier.padding(horizontal = 20.dp))
+                                Materias("Has estudiado", it, Modifier.padding(horizontal = EspacioMargen))
                             }
                         }
-                        Spacer(Modifier.height(24.dp))
+                        Spacer(Modifier.height(EspacioAmplio))
                         Menu(alAbrirHistorial = alAbrirHistorial, alSalir = { confirmarSalida = true })
                     }
                 }
@@ -282,7 +310,7 @@ private fun BotonIr(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
         modifier = modifier
             .size(36.dp)
-            .background(pincelBosque, CircleShape)
+            .background(BosqueMedio, CircleShape)
     ) {
         Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
     }
@@ -300,7 +328,7 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
                 contentAlignment = Alignment.CenterStart,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 24.dp, end = 16.dp, top = 8.dp)
+                    .padding(start = EspacioAmplio, end = EspacioNormal, top = EspacioCorto)
                     .height(52.dp)
             ) {
                 Text(
@@ -312,7 +340,7 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
             Spacer(Modifier.weight(1f).heightIn(min = 40.dp))
             Column(
                 Modifier
-                    .padding(start = 24.dp, end = 24.dp, bottom = 20.dp)
+                    .padding(start = EspacioAmplio, end = EspacioAmplio, bottom = EspacioMargen)
                     .aparicion(0, iniciado)
             ) {
                 Text(
@@ -322,7 +350,7 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
                     maxLines = 2,
                     modifier = Modifier.semantics { heading() }
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(EspacioMicro))
                 val detalle = listOf(usuario.carrera, universidadCorta(usuario.universidad)).filter { it.isNotBlank() }
                 Text(
                     detalle.joinToString(" · ").ifBlank { usuario.correo },
@@ -368,7 +396,7 @@ private fun Cifras(resumen: ResumenActividad?, esTutor: Boolean, modifier: Modif
             .height(IntrinsicSize.Min)
     ) {
         cifras.forEachIndexed { i, (valor, etiqueta, conEstrella) ->
-            if (i > 0) Box(Modifier.padding(vertical = 6.dp).width(1.dp).fillMaxHeight().background(Divisor))
+            if (i > 0) Box(Modifier.padding(vertical = EspacioFino).width(1.dp).fillMaxHeight().background(Divisor))
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
@@ -395,30 +423,48 @@ private fun Cifras(resumen: ResumenActividad?, esTutor: Boolean, modifier: Modif
 /** Modo tutor: verificación, materias que enseña y las últimas reseñas recibidas. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BloqueTutor(usuario: Usuario, resenas: List<Resena>, alVerTodas: () -> Unit) {
-    Column(Modifier.padding(horizontal = 20.dp)) {
+private fun BloqueTutor(
+    usuario: Usuario,
+    resenas: List<Resena>,
+    cargando: Boolean,
+    alVerTodas: () -> Unit,
+    alPublicarHorario: () -> Unit
+) {
+    val carga = cargaDe(cargando, resenas.isEmpty())
+    Column(Modifier.padding(horizontal = EspacioMargen)) {
         if (usuario.materias.isNotEmpty()) {
             Materias("Enseñas", usuario.materias)
+        } else {
+            EncabezadoSeccion("Enseñas")
+            Text("Aún no tienes materias publicadas.", color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
+            BotonTexto("Publicar mi horario", alPublicarHorario)
         }
         if (usuario.bio.isNotBlank()) {
             Text(
                 usuario.bio,
                 color = TextoSecundario,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 12.dp)
+                modifier = Modifier.padding(top = EspacioMedio)
             )
         }
 
-        if (resenas.isNotEmpty()) {
-            EncabezadoSeccion("Lo que dicen de ti", Modifier.padding(top = 10.dp), accion = "Ver todas", alAccion = alVerTodas)
-            ListaResenas(resenas.take(2))
-        } else {
-            EncabezadoSeccion("Lo que dicen de ti", Modifier.padding(top = 10.dp))
-            Text(
-                "Aún no tienes reseñas. Aparecerán aquí cuando los estudiantes califiquen tus tutorías.",
-                color = TextoSecundario,
-                style = MaterialTheme.typography.bodyMedium
+        EncabezadoSeccion(
+            "Lo que dicen de ti",
+            Modifier.padding(top = EspacioAjustado),
+            accion = if (carga == Carga.LISTO) "Ver todas" else null,
+            alAccion = alVerTodas
+        )
+        when (carga) {
+            Carga.CARGANDO -> EsqueletoLista(filas = 2)
+            Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus reseñas")
+            Carga.VACIO -> EstadoVacio(
+                icono = Icons.Rounded.RateReview,
+                titulo = "Aún sin reseñas",
+                mensaje = "Aparecerán aquí cuando los estudiantes califiquen tus tutorías.",
+                accion = "Ver mi historial",
+                alAccion = alVerTodas
             )
+            Carga.LISTO -> ListaResenas(resenas.take(2))
         }
     }
 }
@@ -433,12 +479,12 @@ private fun Materias(titulo: String, materias: List<String>, modifier: Modifier 
             color = TextoPrimario,
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier
-                .padding(bottom = 12.dp)
+                .padding(bottom = EspacioMedio)
                 .semantics { heading() }
         )
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
+            verticalArrangement = Arrangement.spacedBy(EspacioCorto)
         ) {
             materias.forEach { materia ->
                 Text(
@@ -446,8 +492,8 @@ private fun Materias(titulo: String, materias: List<String>, modifier: Modifier 
                     color = BosqueProfundo,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     modifier = Modifier
-                        .border(1.dp, BosqueAcento.copy(alpha = 0.22f), RoundedCornerShape(50))
-                        .padding(horizontal = 12.dp, vertical = 5.dp)
+                        .border(1.dp, BosqueAcento.copy(alpha = 0.22f), CircleShape)
+                        .padding(horizontal = EspacioMedio, vertical = 5.dp)
                 )
             }
         }
@@ -465,17 +511,17 @@ private fun AvisoPorCalificar(cantidad: Int, alCalificar: () -> Unit, modifier: 
             .border(1.dp, BosqueAcento.copy(alpha = 0.14f), FormaOrganica)
             .clip(FormaOrganica)
             .clickable(role = Role.Button, onClickLabel = "Calificar sesiones", onClick = alCalificar)
-            .padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 14.dp)
+            .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioCercano, bottom = EspacioCercano)
     ) {
         Icon(Icons.Rounded.Star, contentDescription = null, tint = Miel, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
             Text(
                 if (cantidad == 1) "1 sesión por calificar" else "$cantidad sesiones por calificar",
                 color = BosqueProfundo,
                 style = MaterialTheme.typography.titleSmall
             )
-            Text("Tu opinión ayuda a otros a elegir tutor.", color = Salvia, style = MaterialTheme.typography.bodySmall)
+            Text("Tu opinión ayuda a otros a elegir tutor.", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
         }
         BotonIr()
     }
@@ -486,7 +532,7 @@ private fun Menu(alAbrirHistorial: () -> Unit, alSalir: () -> Unit) {
     // Tarjeta con los mismos márgenes que el resto del perfil, como la de reseñas
     Column(
         Modifier
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = EspacioMargen)
             .fillMaxWidth()
             .superficie(FormaOrganica)
     ) {
@@ -498,7 +544,7 @@ private fun Menu(alAbrirHistorial: () -> Unit, alSalir: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
         modifier = Modifier
-            .padding(start = 20.dp, end = 20.dp, top = 14.dp)
+            .padding(start = EspacioMargen, end = EspacioMargen, top = EspacioCercano)
             .fillMaxWidth()
             .height(50.dp)
             .clip(CircleShape)
@@ -506,7 +552,7 @@ private fun Menu(alAbrirHistorial: () -> Unit, alSalir: () -> Unit) {
             .clickable(role = Role.Button, onClick = alSalir)
     ) {
         Icon(painterResource(R.drawable.ph_salir), contentDescription = null, tint = rojo, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(EspacioCorto))
         Text("Cerrar sesión", color = rojo, style = MaterialTheme.typography.titleSmall)
     }
 }
@@ -520,13 +566,13 @@ private fun TarjetaDisponibilidad(alAbrir: () -> Unit) {
             .fillMaxWidth()
             .superficie(FormaOrganica)
             .clickable(role = Role.Button, onClick = alAbrir)
-            .padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 14.dp)
+            .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioCercano, bottom = EspacioCercano)
     ) {
         Icon(painterResource(R.drawable.ph_calendario), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
             Text("Mi disponibilidad horaria", color = BosqueProfundo, style = MaterialTheme.typography.titleSmall)
-            Text("Define cuándo puedes dar tutorías.", color = Salvia, style = MaterialTheme.typography.bodySmall)
+            Text("Define cuándo puedes dar tutorías.", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
         }
         BotonIr()
     }
@@ -540,7 +586,7 @@ private fun TarjetaDisponibilidad(alAbrir: () -> Unit) {
 private fun SelectorModo(actual: Rol, alElegir: (Rol) -> Unit, modifier: Modifier = Modifier) {
     val opciones = Rol.entries
     val indice = opciones.indexOf(actual).coerceAtLeast(0)
-    val forma = RoundedCornerShape(27.dp)
+    val forma = FormaCampoAlto
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
@@ -552,7 +598,7 @@ private fun SelectorModo(actual: Rol, alElegir: (Rol) -> Unit, modifier: Modifie
         val anchoOpcion = maxWidth / opciones.size
         val desplazamiento by animateDpAsState(
             anchoOpcion * indice,
-            spring(dampingRatio = 0.78f, stiffness = 500f),
+            resorteIndicador(),
             label = "indicadorModo"
         )
         Box(
@@ -560,7 +606,7 @@ private fun SelectorModo(actual: Rol, alElegir: (Rol) -> Unit, modifier: Modifie
                 .offset(x = desplazamiento)
                 .width(anchoOpcion)
                 .fillMaxHeight()
-                .background(pincelBosque, RoundedCornerShape(20.dp))
+                .background(pincelBosque, FormaBoton)
         )
         Row(Modifier.fillMaxSize().selectableGroup()) {
             opciones.forEach { rol ->
@@ -601,13 +647,13 @@ private fun FilaMenu(
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .clickable(enabled = habilitada, role = Role.Button, onClick = alClicar)
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .padding(horizontal = EspacioNormal, vertical = EspacioAjustado)
             .alpha(if (habilitada) 1f else 0.5f)
     ) {
         // Rojo atenuado: avisa sin gritar en una pantalla sobria
         val colorPeligro = Rojo.copy(alpha = 0.85f)
         Icon(icono, contentDescription = null, tint = if (peligro) colorPeligro else BosqueAcento, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(EspacioNormal))
         Column(Modifier.weight(1f)) {
             Text(
                 titulo,

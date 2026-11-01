@@ -1,11 +1,26 @@
 package com.grupo3.nexo.ui.auth
 
+import com.grupo3.nexo.ui.theme.CurvaAparicion
+import com.grupo3.nexo.ui.theme.CurvaEstandar
+import com.grupo3.nexo.ui.theme.DuracionCorta
+import com.grupo3.nexo.ui.theme.DuracionInstante
+import com.grupo3.nexo.ui.theme.DuracionMedia
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioExtenso
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.FormaAmplia
+import com.grupo3.nexo.ui.theme.resorteRebote
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.EaseOutCubic
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
@@ -123,7 +138,8 @@ import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.ErrorBosque
 import com.grupo3.nexo.ui.theme.InstrumentSans
 import com.grupo3.nexo.ui.theme.Lienzo
-import com.grupo3.nexo.ui.theme.Salvia
+import com.grupo3.nexo.ui.theme.TextoSecundario
+import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.pincelBosque
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -305,9 +321,9 @@ private fun ContenidoAcceso(
                         modifier = Modifier
                             .widthIn(max = 440.dp)
                             .fillMaxWidth()
-                            .padding(horizontal = 28.dp)
+                            .padding(horizontal = EspacioExtenso)
                     ) {
-                        Spacer(Modifier.height(14.dp))
+                        Spacer(Modifier.height(EspacioCercano))
                         Text(
                             "Nexo",
                             style = LocalTextStyle.current.merge(TituloMarca),
@@ -315,24 +331,24 @@ private fun ContenidoAcceso(
                                 .semantics { heading() }
                                 .entrada(1, iniciado)
                         )
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(EspacioMinimo))
                         AnimatedContent(
                             targetState = estado.esRegistro,
-                            transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) },
+                            transitionSpec = { fadeIn(tween(DuracionMedia)) togetherWith fadeOut(tween(DuracionCorta)) },
                             label = "subtitulo",
                             modifier = Modifier.entrada(1, iniciado)
                         ) { esRegistro ->
                             Text(
                                 if (esRegistro) "Acceso a la red colaborativa de tutorías."
                                 else "Qué bueno verte de nuevo. Inicia sesión.",
-                                color = Salvia,
+                                color = TextoSecundario,
                                 style = LocalTextStyle.current.merge(MaterialTheme.typography.bodyMedium),
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.widthIn(max = 300.dp)
                             )
                         }
 
-                        Spacer(Modifier.height(24.dp))
+                        Spacer(Modifier.height(EspacioAmplio))
 
                         // Formulario
                         AnimatedVisibility(
@@ -350,7 +366,7 @@ private fun ContenidoAcceso(
                                     imeAction = ImeAction.Next
                                 ),
                                 modifier = Modifier
-                                    .padding(bottom = 12.dp)
+                                    .padding(bottom = EspacioMedio)
                                     .entrada(2, iniciado)
                             )
                         }
@@ -362,7 +378,7 @@ private fun ContenidoAcceso(
                             teclado = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                             modifier = Modifier.entrada(3, iniciado)
                         )
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(EspacioMedio))
                         CampoPildora(
                             valor = estado.contrasena,
                             alCambiar = alCambiarContrasena,
@@ -383,7 +399,7 @@ private fun ContenidoAcceso(
                                 CasillaCondiciones(
                                     aceptado = estado.aceptaCondiciones,
                                     alCambiar = alCambiarCondiciones,
-                                    modifier = Modifier.padding(top = 6.dp)
+                                    modifier = Modifier.padding(top = EspacioFino)
                                 )
                             }
                         }
@@ -400,11 +416,11 @@ private fun ContenidoAcceso(
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 10.dp)
+                                    .padding(top = EspacioAjustado)
                             )
                         }
 
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(EspacioNormal))
                         BotonVincularse(
                             texto = if (estado.esRegistro) "Vincularse" else "Iniciar sesión",
                             cargando = estado.cargando,
@@ -414,20 +430,20 @@ private fun ContenidoAcceso(
 
                         Spacer(Modifier.height(26.dp))
                         SeparadorSocial(Modifier.entrada(6, iniciado))
-                        Spacer(Modifier.height(14.dp))
+                        Spacer(Modifier.height(EspacioCercano))
                         BotonGoogle(
                             habilitado = !estado.cargando,
                             alClicar = alEntrarConGoogle,
                             modifier = Modifier.entrada(6, iniciado)
                         )
 
-                        Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(EspacioAjustado))
                         EnlaceCambioModo(
                             esRegistro = estado.esRegistro,
                             alClicar = alAlternarModo,
                             modifier = Modifier.entrada(7, iniciado)
                         )
-                        Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(EspacioNormal))
                     }
                 }
             }
@@ -469,12 +485,13 @@ private fun PortadaAjustable(
 @Composable
 private fun Portada() {
     // Zoom muy lento (efecto Ken Burns) para dar vida a la foto sin distraer.
-    val zoom by rememberInfiniteTransition(label = "portada").animateFloat(
+    // Con las animaciones del sistema apagadas la foto queda quieta.
+    val zoom = if (LocalAnimacionesReducidas.current) 1f else rememberInfiniteTransition(label = "portada").animateFloat(
         initialValue = 1f,
         targetValue = 1.07f,
         animationSpec = infiniteRepeatable(tween(18_000, easing = LinearEasing), RepeatMode.Reverse),
         label = "zoom"
-    )
+    ).value
     Box(
         Modifier
             .fillMaxSize()
@@ -519,13 +536,13 @@ private fun Portada() {
 /** Logo de Nexo en una insignia blanca que flota suavemente sobre la onda. */
 @Composable
 private fun InsigniaLogo(modifier: Modifier = Modifier) {
-    val forma = RoundedCornerShape(24.dp)
-    val flotacion by rememberInfiniteTransition(label = "logo").animateFloat(
+    val forma = FormaAmplia
+    val flotacion = if (LocalAnimacionesReducidas.current) 0f else rememberInfiniteTransition(label = "logo").animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(3_000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(3_000, easing = CurvaEstandar), RepeatMode.Reverse),
         label = "flotacion"
-    )
+    ).value
     // Rebote al tocarlo: se aplasta un poco y vuelve con un resorte elástico.
     val rebote = remember { Animatable(1f) }
     val alcance = rememberCoroutineScope()
@@ -543,7 +560,7 @@ private fun InsigniaLogo(modifier: Modifier = Modifier) {
                 onClickLabel = "Animar logo"
             ) {
                 alcance.launch {
-                    rebote.animateTo(0.82f, tween(90, easing = FastOutSlowInEasing))
+                    rebote.animateTo(0.82f, tween(90, easing = CurvaEstandar))
                     rebote.animateTo(1f, spring(dampingRatio = 0.3f, stiffness = 500f))
                 }
             }
@@ -604,10 +621,10 @@ private fun CampoPildora(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .heightIn(min = 54.dp)
-                    .padding(start = 20.dp, end = if (esContrasena) 6.dp else 20.dp)
+                    .padding(start = EspacioMargen, end = if (esContrasena) EspacioFino else EspacioMargen)
             ) {
                 Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(19.dp))
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(EspacioMedio))
                 Box(Modifier.weight(1f)) {
                     if (valor.isEmpty()) {
                         Text(marcador, color = Bosque.copy(alpha = 0.50f), style = LocalTextStyle.current.merge(MarcadorCampo))
@@ -635,7 +652,7 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
     val relleno by animateColorAsState(if (aceptado) BosqueMedio else Color.White, label = "relleno")
     val borde by animateColorAsState(if (aceptado) BosqueMedio else Bosque.copy(alpha = 0.3f), label = "borde")
     val escalaMarca by animateFloatAsState(
-        if (aceptado) 1f else 0f, spring(dampingRatio = 0.5f, stiffness = 600f), label = "marca"
+        if (aceptado) 1f else 0f, resorteRebote(), label = "marca"
     )
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -643,7 +660,7 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
             .clip(CircleShape)
             .toggleable(value = aceptado, role = Role.Checkbox, onValueChange = alCambiar)
             .heightIn(min = 40.dp)
-            .padding(horizontal = 12.dp)
+            .padding(horizontal = EspacioMedio)
     ) {
         Box(
             contentAlignment = Alignment.Center,
@@ -664,7 +681,7 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
                     }
             )
         }
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(EspacioCorto))
         Text(
             buildAnnotatedString {
                 append("Acepto las ")
@@ -672,7 +689,7 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
                     SpanStyle(color = Bosque, fontWeight = FontWeight.SemiBold, textDecoration = TextDecoration.Underline)
                 ) { append("condiciones de uso") }
             },
-            color = Salvia,
+            color = TextoSecundario,
             style = LocalTextStyle.current.merge(CuerpoEnlace)
         )
     }
@@ -708,7 +725,7 @@ private fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> Un
     ) {
         AnimatedContent(
             targetState = cargando,
-            transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(120)) },
+            transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(DuracionInstante)) },
             label = "contenidoBoton"
         ) { estaCargando ->
             if (estaCargando) {
@@ -716,7 +733,7 @@ private fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> Un
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(texto, color = Color.White, style = LocalTextStyle.current.merge(TextoBotonPrincipal))
-                    Spacer(Modifier.width(10.dp + desplazamientoFlecha))
+                    Spacer(Modifier.width(EspacioAjustado + desplazamientoFlecha))
                     Icon(
                         Icons.AutoMirrored.Rounded.ArrowForward,
                         contentDescription = null,
@@ -741,7 +758,7 @@ private fun SeparadorSocial(modifier: Modifier = Modifier) {
             "O CONÉCTATE CON",
             color = Bosque.copy(alpha = 0.55f),
             style = LocalTextStyle.current.merge(EtiquetaSeparador),
-            modifier = Modifier.padding(horizontal = 12.dp)
+            modifier = Modifier.padding(horizontal = EspacioMedio)
         )
         Box(Modifier.width(52.dp).height(1.dp).background(Bosque.copy(alpha = 0.15f)))
     }
@@ -761,7 +778,7 @@ private fun BotonGoogle(habilitado: Boolean, alClicar: () -> Unit, modifier: Mod
             .clickable(enabled = habilitado, role = Role.Button, onClick = alClicar)
     ) {
         Image(painterResource(R.drawable.ic_google), contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(EspacioAjustado))
         Text("Continuar con Google", style = LocalTextStyle.current.merge(TextoBotonSecundario))
     }
 }
@@ -775,7 +792,7 @@ private fun EnlaceCambioModo(esRegistro: Boolean, alClicar: () -> Unit, modifier
                 append(if (esRegistro) "Iniciar sesión" else "Vincúlate")
             }
         },
-        color = Salvia,
+        color = TextoSecundario,
         style = LocalTextStyle.current.merge(CuerpoEnlace),
         modifier = modifier
             .clickable(
@@ -785,7 +802,7 @@ private fun EnlaceCambioModo(esRegistro: Boolean, alClicar: () -> Unit, modifier
                 onClick = alClicar
             )
             .heightIn(min = 44.dp)
-            .padding(horizontal = 14.dp, vertical = 12.dp)
+            .padding(horizontal = EspacioCercano, vertical = EspacioMedio)
     )
 }
 
@@ -796,7 +813,7 @@ private fun EnlaceCambioModo(esRegistro: Boolean, alClicar: () -> Unit, modifier
 private fun Modifier.entrada(orden: Int, iniciado: Boolean): Modifier {
     val progreso by animateFloatAsState(
         targetValue = if (iniciado) 1f else 0f,
-        animationSpec = tween(520, delayMillis = 80 + orden * 70, easing = EaseOutCubic),
+        animationSpec = tween(520, delayMillis = 80 + orden * 70, easing = CurvaAparicion),
         label = "entrada$orden"
     )
     return graphicsLayer {

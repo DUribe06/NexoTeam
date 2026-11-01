@@ -1,5 +1,13 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMicro
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.EspacioSuelto
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -97,11 +105,11 @@ fun CabeceraSeccion(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = if (alVolver != null) 8.dp else 20.dp, end = 12.dp, top = 14.dp, bottom = 4.dp)
+                    .padding(start = if (alVolver != null) EspacioCorto else EspacioMargen, end = EspacioMedio, top = EspacioCercano, bottom = EspacioMinimo)
             ) {
                 if (alVolver != null) {
                     BotonIcono(Icons.AutoMirrored.Rounded.ArrowBack, "Volver", alVolver, sobreOscuro = true)
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(EspacioMinimo))
                 }
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -115,7 +123,7 @@ fun CabeceraSeccion(
                             .interruptorDeRevision()
                     )
                     if (subtitulo != null) {
-                        Spacer(Modifier.height(2.dp))
+                        Spacer(Modifier.height(EspacioMicro))
                         Text(subtitulo, color = Color.White.copy(alpha = 0.88f), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -145,7 +153,7 @@ fun TituloPantalla(
         modifier = modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(start = 20.dp, end = 12.dp, top = 18.dp, bottom = 6.dp)
+            .padding(start = EspacioMargen, end = EspacioMedio, top = EspacioSuelto, bottom = EspacioFino)
     ) {
         Column(Modifier.weight(1f)) {
             Text(
@@ -155,7 +163,7 @@ fun TituloPantalla(
                 modifier = Modifier.semantics { heading() }
             )
             if (subtitulo != null) {
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(EspacioMicro))
                 Text(subtitulo, color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
             }
         }
@@ -176,10 +184,10 @@ fun BarraSuperior(
         modifier = modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = EspacioMedio, vertical = EspacioCorto)
     ) {
         BotonIcono(Icons.AutoMirrored.Rounded.ArrowBack, "Volver", alVolver)
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(EspacioCorto))
         Text(
             titulo,
             color = TextoPrimario,

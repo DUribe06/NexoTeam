@@ -1,5 +1,15 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.FormaHoja
+import com.grupo3.nexo.ui.theme.FormaPanel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +25,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -32,7 +41,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -64,11 +72,11 @@ fun HojaNexo(
         containerColor = Superficie,
         contentColor = TextoPrimario,
         scrimColor = BosqueProfundo.copy(alpha = 0.45f),
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+        shape = FormaHoja,
         dragHandle = {
             Box(
                 Modifier
-                    .padding(top = 12.dp, bottom = 8.dp)
+                    .padding(top = EspacioMedio, bottom = EspacioCorto)
                     .size(width = 40.dp, height = 4.dp)
                     .background(Bosque.copy(alpha = 0.16f), CircleShape)
             )
@@ -80,8 +88,8 @@ fun HojaNexo(
                 .imePadding()
                 .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-                .padding(top = 8.dp, bottom = 20.dp)
+                .padding(horizontal = EspacioAmplio)
+                .padding(top = EspacioCorto, bottom = EspacioMargen)
         ) {
             Text(
                 titulo,
@@ -90,7 +98,7 @@ fun HojaNexo(
                 modifier = Modifier.semantics { heading() }
             )
             if (subtitulo != null) {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(EspacioMinimo))
                 Text(subtitulo, color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
             }
             contenido()
@@ -112,7 +120,7 @@ fun DialogoConfirmacion(
     AlertDialog(
         onDismissRequest = alCerrar,
         containerColor = Superficie,
-        shape = RoundedCornerShape(16.dp),
+        shape = FormaPanel,
         title = { Text(titulo, style = MaterialTheme.typography.headlineSmall, color = TextoPrimario) },
         text = { Text(mensaje, style = MaterialTheme.typography.bodyMedium, color = TextoSecundario) },
         confirmButton = {
@@ -131,14 +139,13 @@ fun AvisoNexo(estado: SnackbarHostState, modifier: Modifier = Modifier) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = EspacioNormal, vertical = EspacioCorto)
                 .fillMaxWidth()
-                .shadow(6.dp, FormaControl)
                 .background(BosqueProfundo, FormaControl)
-                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
         ) {
             Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Menta, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(EspacioAjustado))
             Text(datos.visuals.message, color = Color.White, style = MaterialTheme.typography.titleSmall)
         }
     }

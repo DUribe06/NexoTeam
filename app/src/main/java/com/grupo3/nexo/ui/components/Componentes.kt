@@ -1,5 +1,24 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.ui.theme.especColor
+import com.grupo3.nexo.ui.theme.especFundidoSalida
+import com.grupo3.nexo.ui.theme.DuracionCorta
+import com.grupo3.nexo.ui.theme.DuracionMedia
+import com.grupo3.nexo.ui.theme.resortePresion
+import com.grupo3.nexo.ui.theme.EscalaPresionBotonCompacto
+import com.grupo3.nexo.ui.theme.EscalaPresionBoton
+import com.grupo3.nexo.ui.theme.EscalaPresionTarjeta
+import androidx.compose.animation.core.snap
+import androidx.compose.foundation.layout.requiredHeight
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioGrande
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMicro
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.EspacioSuelto
 import kotlin.math.roundToInt
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation.NavBackStackEntry
@@ -9,10 +28,8 @@ import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -20,6 +37,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -175,9 +194,10 @@ fun Modifier.superficiePulsable(
 ): Modifier = composed {
     val interaccion = remember { MutableInteractionSource() }
     val presionado by interaccion.collectIsPressedAsState()
+    val reducidas = LocalAnimacionesReducidas.current
     val escala by animateFloatAsState(
-        if (presionado) 0.98f else 1f,
-        spring(stiffness = 900f),
+        if (presionado && !reducidas) EscalaPresionTarjeta else 1f,
+        resortePresion(),
         label = "escalaTarjeta"
     )
     this
@@ -217,7 +237,8 @@ fun Modifier.pulsable(
 ): Modifier = composed {
     val interaccion = remember { MutableInteractionSource() }
     val presionado by interaccion.collectIsPressedAsState()
-    val escala by animateFloatAsState(if (presionado) 0.96f else 1f, spring(stiffness = 900f), label = "escala")
+    val reducidas = LocalAnimacionesReducidas.current
+    val escala by animateFloatAsState(if (presionado && !reducidas) EscalaPresionBotonCompacto else 1f, resortePresion(), label = "escala")
     this
         .graphicsLayer {
             scaleX = escala
@@ -252,7 +273,8 @@ fun BotonPrimario(
 ) {
     val interaccion = remember { MutableInteractionSource() }
     val presionado by interaccion.collectIsPressedAsState()
-    val escala by animateFloatAsState(if (presionado) 0.97f else 1f, spring(stiffness = 900f), label = "escala")
+    val reducidas = LocalAnimacionesReducidas.current
+    val escala by animateFloatAsState(if (presionado && !reducidas) EscalaPresionBoton else 1f, resortePresion(), label = "escala")
     val desplazamientoFlecha by animateDpAsState(if (presionado) 4.dp else 0.dp, label = "flecha")
     val activo = habilitado && !cargando
 
@@ -273,11 +295,11 @@ fun BotonPrimario(
                 role = Role.Button,
                 onClick = alClicar
             )
-            .padding(horizontal = if (compacto) 18.dp else 24.dp)
+            .padding(horizontal = if (compacto) EspacioSuelto else EspacioAmplio)
     ) {
         AnimatedContent(
             targetState = cargando,
-            transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(120)) },
+            transitionSpec = { fadeIn(tween(DuracionMedia)) togetherWith fadeOut(especFundidoSalida()) },
             label = "contenidoBoton"
         ) { estaCargando ->
             if (estaCargando) {
@@ -287,7 +309,7 @@ fun BotonPrimario(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (icono != null) {
                         Icon(icono, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(EspacioCorto))
                     }
                     Text(
                         texto,
@@ -296,7 +318,7 @@ fun BotonPrimario(
                         maxLines = 1
                     )
                     if (conFlecha) {
-                        Spacer(Modifier.width(10.dp + desplazamientoFlecha))
+                        Spacer(Modifier.width(EspacioAjustado + desplazamientoFlecha))
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowForward,
                             contentDescription = null,
@@ -327,27 +349,36 @@ fun BotonSecundario(
     descripcion: String? = null
 ) {
     val colorTexto = if (peligro) Rojo else TextoPrimario
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
+    // El botón se ve de `alto`, pero el área de toque mide al menos 48 dp
+    Box(
+        contentAlignment = Alignment.Center,
+        propagateMinConstraints = true,
         modifier = modifier
-            .height(alto)
+            .areaTactilSinCambiarMedida(alto)
+            .height(maxOf(alto, 48.dp))
             .pulsable(habilitado = habilitado, alClicar = alClicar)
             .semantics { if (descripcion != null) contentDescription = descripcion }
-            .background(Color.White, FormaControl)
-            .border(1.dp, if (peligro) Rojo.copy(alpha = 0.30f) else Bosque.copy(alpha = 0.16f), FormaControl)
-            .padding(horizontal = if (compacto) 16.dp else 20.dp)
     ) {
-        if (icono != null) {
-            Icon(icono, contentDescription = null, tint = if (peligro) Rojo else colorIcono, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .requiredHeight(alto)
+                .background(Color.White, FormaControl)
+                .border(1.dp, if (peligro) Rojo.copy(alpha = 0.30f) else Bosque.copy(alpha = 0.16f), FormaControl)
+                .padding(horizontal = if (compacto) EspacioNormal else EspacioMargen)
+        ) {
+            if (icono != null) {
+                Icon(icono, contentDescription = null, tint = if (peligro) Rojo else colorIcono, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(EspacioCorto))
+            }
+            Text(
+                texto,
+                color = colorTexto,
+                style = if (compacto) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge,
+                maxLines = 1
+            )
         }
-        Text(
-            texto,
-            color = colorTexto,
-            style = if (compacto) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge,
-            maxLines = 1
-        )
     }
 }
 
@@ -362,7 +393,7 @@ fun BotonTexto(texto: String, alClicar: () -> Unit, modifier: Modifier = Modifie
             .clip(FormaOpcion)
             .clickable(role = Role.Button, onClick = alClicar)
             .heightIn(min = 48.dp)
-            .padding(horizontal = 12.dp, vertical = 14.dp)
+            .padding(horizontal = EspacioMedio, vertical = EspacioCercano)
     )
 }
 
@@ -394,11 +425,11 @@ fun BotonTonal(
                 .heightIn(min = 40.dp)
                 .clip(FormaControl)
                 .background(TinteBosque)
-                .padding(horizontal = 14.dp, vertical = 9.dp)
+                .padding(horizontal = EspacioCercano, vertical = 9.dp)
         ) {
             if (icono != null) {
                 Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(17.dp))
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(EspacioFino))
             }
             Text(texto, color = BosqueProfundo, style = MaterialTheme.typography.titleSmall, maxLines = 1)
         }
@@ -500,7 +531,7 @@ fun BotonIcono(
                 bordeColor = if (sobreOscuro) BosqueProfundo else Color.White,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 2.dp, end = 0.dp)
+                    .padding(top = EspacioMicro, end = 0.dp)
             )
         }
     }
@@ -526,11 +557,11 @@ fun Campo(
 ) {
     var enfocado by remember { mutableStateOf(false) }
     val colorBorde by animateColorAsState(
-        if (enfocado) BosqueAcento else Bosque.copy(alpha = 0.16f), tween(160), label = "borde"
+        if (enfocado) BosqueAcento else Bosque.copy(alpha = 0.16f), especColor(), label = "borde"
     )
-    val grosorBorde by animateDpAsState(if (enfocado) 1.5.dp else 1.dp, tween(160), label = "grosor")
+    val grosorBorde by animateDpAsState(if (enfocado) 1.5.dp else 1.dp, especColor(), label = "grosor")
     val colorIcono by animateColorAsState(
-        if (enfocado) BosqueAcento else Bosque.copy(alpha = 0.45f), tween(160), label = "icono"
+        if (enfocado) BosqueAcento else Bosque.copy(alpha = 0.45f), especColor(), label = "icono"
     )
     val multilinea = lineasMaximas > 1
     val forma = FormaControl
@@ -563,7 +594,7 @@ fun Campo(
             ) {
                 if (icono != null) {
                     Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(19.dp))
-                    Spacer(Modifier.width(12.dp))
+                    Spacer(Modifier.width(EspacioMedio))
                 }
                 Box(Modifier.weight(1f)) {
                     if (valor.isEmpty()) {
@@ -597,19 +628,38 @@ fun FiltroOpcion(
     conMarca: Boolean = true,
     habilitado: Boolean = true
 ) {
-    val fondo by animateColorAsState(if (seleccionado) TinteBosque else Color.White, tween(160), label = "fondoOpcion")
-    val borde by animateColorAsState(if (seleccionado) BosqueAcento.copy(alpha = 0.55f) else BordeSutil, tween(160), label = "bordeOpcion")
+    val fondo by animateColorAsState(if (seleccionado) TinteBosque else Color.White, especColor(), label = "fondoOpcion")
+    val borde by animateColorAsState(if (seleccionado) BosqueAcento.copy(alpha = 0.55f) else BordeSutil, especColor(), label = "bordeOpcion")
+    val interaccion = remember { MutableInteractionSource() }
+    // La zona de toque sobresale 4 dp arriba y abajo (48 dp) sin que la opción ocupe más sitio ni cambie de tamaño,
+    // también con letra grande
+    Box(
+        modifier
+            .layout { medible, restricciones ->
+                val p = medible.measure(restricciones)
+                val sobra = 4.dp.roundToPx()
+                layout(p.width, p.height - sobra * 2) { p.place(0, -sobra) }
+            }
+            .clickable(
+                interactionSource = interaccion,
+                indication = null,
+                enabled = habilitado,
+                role = Role.RadioButton,
+                onClick = alClicar
+            )
+            .semantics { selected = seleccionado }
+            .padding(vertical = EspacioMinimo)
+    ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
+        modifier = Modifier
             .heightIn(min = 40.dp)
             .clip(FormaOpcion)
             .background(fondo)
             .border(1.dp, borde, FormaOpcion)
-            .clickable(enabled = habilitado, role = Role.Checkbox, onClick = alClicar)
-            .semantics { selected = seleccionado }
+            .indication(interaccion, LocalIndication.current)
             .graphicsLayer { alpha = if (habilitado) 1f else 0.4f }
-            .padding(start = if (seleccionado && conMarca) 10.dp else 14.dp, end = 14.dp, top = 9.dp, bottom = 9.dp)
+            .padding(start = if (seleccionado && conMarca) EspacioAjustado else EspacioCercano, end = EspacioCercano, top = 9.dp, bottom = 9.dp)
     ) {
         if (seleccionado && conMarca) {
             Icon(Icons.Rounded.Check, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(16.dp))
@@ -621,6 +671,7 @@ fun FiltroOpcion(
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Medium),
             maxLines = 1
         )
+    }
     }
 }
 
@@ -640,9 +691,9 @@ fun InsigniaConteo(cantidad: Int, modifier: Modifier = Modifier, bordeColor: Col
             .heightIn(min = 18.dp)
             .widthIn(min = 18.dp)
             .border(2.dp, bordeColor, CircleShape)
-            .padding(2.dp)
+            .padding(EspacioMicro)
             .background(Menta, CircleShape)
-            .padding(horizontal = 4.dp)
+            .padding(horizontal = EspacioMinimo)
             .clearAndSetSemantics { }
     ) {
         Text(
@@ -665,7 +716,7 @@ fun InsigniaEstado(estado: EstadoSolicitud, modifier: Modifier = Modifier) {
     }
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         Box(Modifier.size(7.dp).background(punto, CircleShape))
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(EspacioFino))
         Text(estado.etiqueta, color = texto, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold))
     }
 }
@@ -718,7 +769,7 @@ fun Avatar(
                     .align(Alignment.BottomEnd)
                     .size(tamanoPunto)
                     .border(2.dp, anillo ?: Color.White, CircleShape)
-                    .padding(2.dp)
+                    .padding(EspacioMicro)
                     .background(if (enLinea) Menta else PuntoDesconectado, CircleShape)
             )
         }
@@ -729,7 +780,7 @@ fun Avatar(
 @Composable
 fun Estrellas(cantidad: Int, tamano: Dp = 14.dp, modifier: Modifier = Modifier) {
     Row(
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(EspacioMicro),
         modifier = modifier.semantics { contentDescription = "$cantidad de 5 estrellas" }
     ) {
         repeat(5) { indice ->
@@ -838,7 +889,7 @@ fun RotuloGrupo(texto: String, modifier: Modifier = Modifier, color: Color = Tex
         texto.uppercase(),
         color = color,
         style = MaterialTheme.typography.labelSmall,
-        modifier = modifier
+        modifier = modifier.semantics { heading() }
     )
 }
 
@@ -856,7 +907,7 @@ fun EstadoVacio(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 40.dp, vertical = 40.dp)
+            .padding(horizontal = EspacioGrande, vertical = EspacioGrande)
     ) {
         Box(
             contentAlignment = Alignment.Center,
@@ -866,9 +917,9 @@ fun EstadoVacio(
         ) {
             Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(28.dp))
         }
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(EspacioNormal))
         Text(titulo, color = TextoPrimario, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(EspacioFino))
         Text(
             mensaje,
             color = TextoSecundario,
@@ -877,7 +928,7 @@ fun EstadoVacio(
             modifier = Modifier.widthIn(max = 300.dp)
         )
         if (accion != null && alAccion != null) {
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(EspacioMargen))
             BotonSecundario(accion, alAccion, compacto = true, alto = 48.dp)
         }
     }
@@ -901,7 +952,7 @@ fun EstadoError(
         modifier = modifier
             .fillMaxWidth()
             .graphicsLayer { alpha = aparicion.value }
-            .padding(horizontal = 40.dp, vertical = 40.dp)
+            .padding(horizontal = EspacioGrande, vertical = EspacioGrande)
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
     ) {
         Box(
@@ -1001,9 +1052,10 @@ fun rememberPrimeraVez(): Boolean {
 
 @Composable
 fun Modifier.aparicion(orden: Int, iniciado: Boolean): Modifier {
+    val reducidas = LocalAnimacionesReducidas.current
     val progreso by animateFloatAsState(
         targetValue = if (iniciado) 1f else 0f,
-        animationSpec = tween(480, delayMillis = 40 + orden * 60, easing = EaseOutCubic),
+        animationSpec = if (reducidas) snap() else especAparicion(orden),
         label = "aparicion$orden"
     )
     return graphicsLayer {
@@ -1067,7 +1119,7 @@ fun IconosClarosEnBarraDeEstado(activo: Boolean = true) {
  */
 @Composable
 fun VeloBarraEstado(visible: Boolean, modifier: Modifier = Modifier) {
-    val opacidad by animateFloatAsState(if (visible) 1f else 0f, tween(180), label = "velo")
+    val opacidad by animateFloatAsState(if (visible) 1f else 0f, tween(DuracionCorta), label = "velo")
     Box(
         modifier
             .fillMaxWidth()

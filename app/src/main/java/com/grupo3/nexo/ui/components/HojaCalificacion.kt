@@ -1,5 +1,11 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioHolgado
+import com.grupo3.nexo.ui.theme.EspacioMargen
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -59,7 +65,7 @@ fun HojaCalificacion(sesion: Sesion, esTutor: Boolean, alCerrar: () -> Unit, alE
         subtitulo = "${sesion.materia} · ${formatoFecha(sesion.fecha)}",
         alCerrar = alCerrar
     ) {
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(EspacioAmplio))
         Row(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier
@@ -113,10 +119,10 @@ fun HojaCalificacion(sesion: Sesion, esTutor: Boolean, alCerrar: () -> Unit, alE
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp)
+                    .padding(top = EspacioCorto)
             )
         }
-        RotuloGrupo("Reseña (opcional)", Modifier.padding(top = 22.dp, bottom = 10.dp))
+        RotuloGrupo("Reseña (opcional)", Modifier.padding(top = EspacioHolgado, bottom = EspacioAjustado))
         Campo(
             valor = comentario,
             alCambiar = { comentario = it },
@@ -128,9 +134,9 @@ fun HojaCalificacion(sesion: Sesion, esTutor: Boolean, alCerrar: () -> Unit, alE
             "Solo puedes calificar una vez cada sesión.",
             color = TextoTercero,
             style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(start = 20.dp, top = 6.dp)
+            modifier = Modifier.padding(start = EspacioMargen, top = EspacioFino)
         )
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(EspacioMargen))
         BotonPrimario(
             texto = "Enviar calificación",
             habilitado = estrellas > 0,
