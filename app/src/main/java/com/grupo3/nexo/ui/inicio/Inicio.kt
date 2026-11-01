@@ -59,12 +59,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ChatBubbleOutline
-import androidx.compose.material.icons.rounded.EventAvailable
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -205,6 +199,7 @@ import com.grupo3.nexo.ui.theme.TituloMateria
 import com.grupo3.nexo.ui.theme.CuerpoNombre
 import com.grupo3.nexo.ui.theme.EtiquetaBoton
 import com.grupo3.nexo.ui.theme.CifraHora
+import com.grupo3.nexo.ui.components.IconosNexo
 
 /* ==================== ViewModel ==================== */
 
@@ -796,7 +791,7 @@ private fun SinSesiones(alBuscar: () -> Unit) {
                 .size(48.dp)
                 .background(TinteBosque, FormaControl)
         ) {
-            Icon(Icons.Rounded.EventAvailable, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(22.dp))
+            Icon(IconosNexo.CalendarioMarcado, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(22.dp))
         }
         Spacer(Modifier.width(EspacioCercano))
         Column(Modifier.weight(1f)) {

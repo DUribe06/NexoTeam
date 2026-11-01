@@ -33,10 +33,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.SearchOff
-import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -124,6 +120,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
+import com.grupo3.nexo.ui.components.IconosNexo
 
 /* ==================== Áreas de estudio ==================== */
 
@@ -220,7 +217,7 @@ fun PantallaBusqueda(
     Column(Modifier.fillMaxSize()) {
         BarraSuperior("Buscar tutores", alVolver) {
             BotonIcono(
-                Icons.Rounded.Tune,
+                IconosNexo.Filtros,
                 descripcion = if (estado.filtrosHoja > 0) "Filtros, ${estado.filtrosHoja} activos" else "Filtros",
                 alClicar = { mostrarFiltros = true },
                 insignia = estado.filtrosHoja
@@ -231,7 +228,7 @@ fun PantallaBusqueda(
             valor = estado.consulta,
             alCambiar = viewModel::cambiarConsulta,
             marcador = "Materia, tutor o universidad",
-            icono = Icons.Rounded.Search,
+            icono = IconosNexo.Lupa,
             limpiable = true,
             teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Search),
             acciones = KeyboardActions(onSearch = { focos.clearFocus() }),
@@ -257,7 +254,7 @@ fun PantallaBusqueda(
                 ErrorDeLista(titulo = "No pudimos cargar los tutores")
             } else if (carga == Carga.VACIO) {
                 EstadoVacio(
-                    icono = Icons.Rounded.SearchOff,
+                    icono = IconosNexo.SinResultados,
                     titulo = "Ningún tutor coincide",
                     mensaje = "Amplía la búsqueda: prueba otra franja horaria, la otra modalidad o quita el área.",
                     accion = if (estado.hayFiltros) "Quitar todos los filtros" else null,

@@ -26,8 +26,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -144,7 +142,7 @@ fun AvisoNexo(estado: SnackbarHostState, modifier: Modifier = Modifier) {
                 .background(BosqueProfundo, FormaControl)
                 .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
         ) {
-            Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Menta, modifier = Modifier.size(18.dp))
+            Icon(IconosNexo.MarcaCirculo, contentDescription = null, tint = Menta, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(EspacioAjustado))
             Text(datos.visuals.message, color = Color.White, style = MaterialTheme.typography.titleSmall)
         }

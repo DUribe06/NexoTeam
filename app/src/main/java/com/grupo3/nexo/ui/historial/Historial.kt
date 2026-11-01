@@ -24,9 +24,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -113,6 +110,7 @@ import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.FormaBoton
 import javax.inject.Inject
+import com.grupo3.nexo.ui.components.IconosNexo
 
 /* ==================== ViewModel ==================== */
 
@@ -193,7 +191,7 @@ fun PantallaHistorial(
                     Carga.CARGANDO -> EsqueletoLista()
                     Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tu historial")
                     Carga.VACIO -> EstadoVacio(
-                        icono = Icons.Rounded.History,
+                        icono = IconosNexo.Historial,
                         titulo = "Aún no hay sesiones",
                         mensaje = if (estado.esTutor) "Las tutorías que des aparecerán aquí para que califiques a tus estudiantes."
                                   else "Tus tutorías completadas aparecerán aquí para que puedas calificarlas.",
@@ -350,7 +348,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
                 ) {
                     Text("Te calificó", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.width(EspacioMinimo))
-                    Icon(Icons.Rounded.Star, contentDescription = null, tint = Miel, modifier = Modifier.size(13.dp))
+                    Icon(IconosNexo.Estrella, contentDescription = null, tint = Miel, modifier = Modifier.size(13.dp))
                     Text("$nota", color = TextoSecundario, style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares))
                 }
             }
@@ -380,7 +378,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
             } else {
                 BotonSecundario(
                     "Calificar", alCalificar,
-                    icono = Icons.Rounded.Star, compacto = true, colorIcono = Miel, alto = 48.dp,
+                    icono = IconosNexo.Estrella, compacto = true, colorIcono = Miel, alto = 48.dp,
                     descripcion = "Calificar a ${sesion.conQuien}, ${sesion.materia}"
                 )
             }

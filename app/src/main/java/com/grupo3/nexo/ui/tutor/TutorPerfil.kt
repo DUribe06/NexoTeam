@@ -30,13 +30,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.rounded.ChatBubbleOutline
-import androidx.compose.material.icons.rounded.RateReview
-import androidx.compose.material.icons.rounded.School
-import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -158,6 +151,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
+import com.grupo3.nexo.ui.components.IconosNexo
 
 /* ==================== ViewModel ==================== */
 
@@ -257,7 +251,7 @@ fun PantallaTutorPerfil(
         if (tutor == null) {
             CabeceraBosque(alturaOnda = 44.dp) {
                 Box(Modifier.padding(start = EspacioMedio, top = EspacioFino).height(140.dp)) {
-                    BotonIcono(Icons.AutoMirrored.Rounded.ArrowBack, "Volver", alVolver, sobreOscuro = true)
+                    BotonIcono(IconosNexo.Atras, "Volver", alVolver, sobreOscuro = true)
                 }
             }
             // Bajo la cabecera: la silueta del perfil mientras llegan los datos, o el error
@@ -349,7 +343,7 @@ fun PantallaTutorPerfil(
                         }
                         Carga.VACIO -> item(key = "sinResenas") {
                             EstadoVacio(
-                                icono = Icons.Rounded.RateReview,
+                                icono = IconosNexo.Resena,
                                 titulo = "Aún sin reseñas",
                                 mensaje = "Tras tu sesión podrás calificar a ${tutor.nombre.substringBefore(' ')}.",
                                 accion = if (tutor.horario.isNotEmpty()) "Solicitar tutoría" else null,
@@ -427,9 +421,9 @@ private fun Portada(alVolver: () -> Unit, alReportar: () -> Unit) {
                 .fillMaxWidth()
                 .padding(horizontal = EspacioMedio, vertical = EspacioFino)
         ) {
-            BotonIcono(Icons.AutoMirrored.Rounded.ArrowBack, "Volver", alVolver, sobreOscuro = true)
+            BotonIcono(IconosNexo.Atras, "Volver", alVolver, sobreOscuro = true)
             Spacer(Modifier.weight(1f))
-            BotonIcono(Icons.Outlined.Flag, "Reportar tutor", alReportar, sobreOscuro = true)
+            BotonIcono(IconosNexo.Bandera, "Reportar tutor", alReportar, sobreOscuro = true)
         }
         Spacer(Modifier.height(72.dp))
     }
@@ -462,7 +456,7 @@ private fun Identidad(tutor: Tutor, modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(EspacioMinimo))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.School, contentDescription = null, tint = TextoTercero, modifier = Modifier.size(15.dp))
+            Icon(IconosNexo.Graduacion, contentDescription = null, tint = TextoTercero, modifier = Modifier.size(15.dp))
             Spacer(Modifier.width(EspacioFino))
             Text(
                 tutor.universidad,
@@ -523,7 +517,7 @@ private fun Cifra(valor: String, etiqueta: String, modifier: Modifier = Modifier
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (conEstrella) {
-                Icon(Icons.Rounded.Star, contentDescription = null, tint = Miel, modifier = Modifier.size(16.dp))
+                Icon(IconosNexo.Estrella, contentDescription = null, tint = Miel, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(EspacioMinimo))
             }
             Text(valor, color = TextoPrimario, style = MaterialTheme.typography.titleLarge.merge(CifrasTabulares))

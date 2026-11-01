@@ -23,8 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -93,7 +91,7 @@ fun HojaCalificacion(sesion: Sesion, esTutor: Boolean, alCerrar: () -> Unit, alE
                         .semantics { contentDescription = "$valor ${if (valor == 1) "estrella" else "estrellas"}" }
                 ) {
                     Icon(
-                        Icons.Rounded.Star,
+                        IconosNexo.Estrella,
                         contentDescription = null,
                         tint = if (llena) Miel else Bosque.copy(alpha = 0.12f),
                         modifier = Modifier

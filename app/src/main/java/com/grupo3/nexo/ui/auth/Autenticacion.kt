@@ -63,14 +63,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -160,6 +152,7 @@ import com.grupo3.nexo.ui.theme.TextoBotonSecundario
 import com.grupo3.nexo.ui.theme.CampoAcceso
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import com.grupo3.nexo.ui.components.IconosNexo
 
 /* ==================== ViewModel ==================== */
 
@@ -360,7 +353,7 @@ private fun ContenidoAcceso(
                                 valor = estado.nombre,
                                 alCambiar = alCambiarNombre,
                                 marcador = "Nombre o alias",
-                                icono = Icons.Outlined.Person,
+                                icono = IconosNexo.Usuario,
                                 teclado = KeyboardOptions(
                                     capitalization = KeyboardCapitalization.Words,
                                     imeAction = ImeAction.Next
@@ -374,7 +367,7 @@ private fun ContenidoAcceso(
                             valor = estado.correo,
                             alCambiar = alCambiarCorreo,
                             marcador = "correo@ejemplo.com",
-                            icono = Icons.Outlined.Email,
+                            icono = IconosNexo.Correo,
                             teclado = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                             modifier = Modifier.entrada(3, iniciado)
                         )
@@ -383,7 +376,7 @@ private fun ContenidoAcceso(
                             valor = estado.contrasena,
                             alCambiar = alCambiarContrasena,
                             marcador = if (estado.esRegistro) "Contraseña segura" else "Contraseña",
-                            icono = Icons.Outlined.Lock,
+                            icono = IconosNexo.Candado,
                             esContrasena = true,
                             teclado = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                             alPulsarListo = enviar,
@@ -634,7 +627,7 @@ private fun CampoPildora(
                 if (esContrasena) {
                     IconButton(onClick = { visible = !visible }) {
                         Icon(
-                            if (visible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                            if (visible) IconosNexo.OjoTachado else IconosNexo.Ojo,
                             contentDescription = if (visible) "Ocultar contraseña" else "Mostrar contraseña",
                             tint = Bosque.copy(alpha = 0.55f),
                             modifier = Modifier.size(19.dp)
@@ -670,7 +663,7 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
                 .border(1.5.dp, borde, CircleShape)
         ) {
             Icon(
-                Icons.Rounded.Check,
+                IconosNexo.Marca,
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier
@@ -735,7 +728,7 @@ private fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> Un
                     Text(texto, color = Color.White, style = LocalTextStyle.current.merge(TextoBotonPrincipal))
                     Spacer(Modifier.width(EspacioAjustado + desplazamientoFlecha))
                     Icon(
-                        Icons.AutoMirrored.Rounded.ArrowForward,
+                        IconosNexo.Adelante,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(17.dp)

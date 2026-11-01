@@ -28,11 +28,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material.icons.rounded.ChatBubbleOutline
-import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -69,7 +64,6 @@ import com.grupo3.nexo.ui.components.BotonSecundario
 import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.HojaCalificacion
 import com.grupo3.nexo.ui.theme.Miel
-import androidx.compose.material.icons.rounded.Star
 import androidx.compose.ui.text.style.TextOverflow
 import com.grupo3.nexo.domain.model.Mensaje
 import com.grupo3.nexo.domain.usecase.EnviarMensajeUseCase
@@ -131,6 +125,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.grupo3.nexo.ui.components.IconosNexo
 
 /* ==================== ViewModels ==================== */
 
@@ -244,13 +239,13 @@ fun PantallaChats(
             } else if (carga == Carga.VACIO) {
                 if (estado.esTutor) {
                     EstadoVacio(
-                        icono = Icons.Rounded.ChatBubbleOutline,
+                        icono = IconosNexo.Chat,
                         titulo = "Aún no tienes chats",
                         mensaje = "El chat con un estudiante se habilita cuando aceptas su solicitud de tutoría."
                     )
                 } else {
                     EstadoVacio(
-                        icono = Icons.Rounded.ChatBubbleOutline,
+                        icono = IconosNexo.Chat,
                         titulo = "Aún no tienes chats",
                         mensaje = "El chat con un tutor se habilita cuando acepta tu solicitud de tutoría.",
                         accion = "Buscar tutor",
@@ -380,7 +375,7 @@ fun PantallaConversacion(
                 .statusBarsPadding()
                 .padding(start = EspacioCorto, end = EspacioNormal, top = EspacioFino, bottom = EspacioAjustado)
         ) {
-            BotonIcono(Icons.AutoMirrored.Rounded.ArrowBack, "Volver", alVolver)
+            BotonIcono(IconosNexo.Atras, "Volver", alVolver)
             Spacer(Modifier.width(EspacioFino))
             Avatar(estado.nombre.ifBlank { "Nexo" }, tamano = 42.dp, enLinea = estado.enLinea)
             Spacer(Modifier.width(EspacioMedio))
@@ -420,7 +415,7 @@ fun PantallaConversacion(
         } else if (estado.mensajes.isEmpty()) {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 EstadoVacio(
-                    icono = Icons.Rounded.ChatBubbleOutline,
+                    icono = IconosNexo.Chat,
                     titulo = "Empieza la conversación",
                     mensaje = "Coordina el tema, la fecha y el enlace de la sesión."
                 )
@@ -507,7 +502,7 @@ fun PantallaConversacion(
                     .semantics { contentDescription = "Enviar mensaje" }
             ) {
                 Icon(
-                    Icons.AutoMirrored.Rounded.Send,
+                    IconosNexo.Enviar,
                     contentDescription = null,
                     tint = if (puedeEnviar) Color.White else TextoTercero,
                     modifier = Modifier.size(20.dp)
@@ -589,7 +584,7 @@ private fun AvisoSoloLectura(nota: Int? = null, motivo: String = "La sesión ter
             .navigationBarsPadding()
             .padding(horizontal = EspacioMargen, vertical = EspacioNormal)
     ) {
-        Icon(Icons.Rounded.Lock, contentDescription = null, tint = TextoTercero, modifier = Modifier.size(18.dp))
+        Icon(IconosNexo.Candado, contentDescription = null, tint = TextoTercero, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(EspacioAjustado))
         Column {
             Text(
@@ -608,7 +603,7 @@ private fun AvisoSoloLectura(nota: Int? = null, motivo: String = "La sesión ter
                 ) {
                     Text("Calificaste", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.width(EspacioMinimo))
-                    Icon(Icons.Rounded.Star, contentDescription = null, tint = Miel, modifier = Modifier.size(14.dp))
+                    Icon(IconosNexo.Estrella, contentDescription = null, tint = Miel, modifier = Modifier.size(14.dp))
                     Text("$nota", color = TextoSecundario, style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares))
                 }
             }
@@ -649,7 +644,7 @@ private fun PieSesionTerminada(sesion: Sesion?, alCalificar: () -> Unit) {
         Spacer(Modifier.width(EspacioMedio))
         BotonSecundario(
             "Calificar", alCalificar,
-            icono = Icons.Rounded.Star, compacto = true, colorIcono = Miel, alto = 48.dp,
+            icono = IconosNexo.Estrella, compacto = true, colorIcono = Miel, alto = 48.dp,
             descripcion = "Calificar a ${sesion.conQuien}, ${sesion.materia}"
         )
     }

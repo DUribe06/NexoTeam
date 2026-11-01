@@ -98,9 +98,6 @@ import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.components.DialogoConfirmacion
 import com.grupo3.nexo.ui.components.EncabezadoSeccion
 import com.grupo3.nexo.ui.components.Estrellas
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.RateReview
-import androidx.compose.material.icons.rounded.Star
 import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
 import com.grupo3.nexo.ui.components.Onda
 import com.grupo3.nexo.ui.components.TextoLinea
@@ -143,6 +140,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
+import com.grupo3.nexo.ui.components.IconosNexo
 
 /* ==================== ViewModel ==================== */
 
@@ -411,7 +409,7 @@ private fun Cifras(resumen: ResumenActividad?, esTutor: Boolean, modifier: Modif
                     )
                     if (conEstrella) {
                         Spacer(Modifier.width(3.dp))
-                        Icon(Icons.Rounded.Star, contentDescription = null, tint = Miel, modifier = Modifier.size(18.dp))
+                        Icon(IconosNexo.Estrella, contentDescription = null, tint = Miel, modifier = Modifier.size(18.dp))
                     }
                 }
                 Text(etiqueta, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
@@ -458,7 +456,7 @@ private fun BloqueTutor(
             Carga.CARGANDO -> EsqueletoLista(filas = 2)
             Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus reseñas")
             Carga.VACIO -> EstadoVacio(
-                icono = Icons.Rounded.RateReview,
+                icono = IconosNexo.Resena,
                 titulo = "Aún sin reseñas",
                 mensaje = "Aparecerán aquí cuando los estudiantes califiquen tus tutorías.",
                 accion = "Ver mi historial",
@@ -513,7 +511,7 @@ private fun AvisoPorCalificar(cantidad: Int, alCalificar: () -> Unit, modifier: 
             .clickable(role = Role.Button, onClickLabel = "Calificar sesiones", onClick = alCalificar)
             .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioCercano, bottom = EspacioCercano)
     ) {
-        Icon(Icons.Rounded.Star, contentDescription = null, tint = Miel, modifier = Modifier.size(22.dp))
+        Icon(IconosNexo.Estrella, contentDescription = null, tint = Miel, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
             Text(

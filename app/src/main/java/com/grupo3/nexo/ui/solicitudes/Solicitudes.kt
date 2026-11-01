@@ -21,12 +21,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.EventNote
-import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.ChatBubbleOutline
-import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -87,7 +81,6 @@ import com.grupo3.nexo.ui.theme.SuperficieClara
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
@@ -117,6 +110,7 @@ import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.FormaBoton
 import javax.inject.Inject
+import com.grupo3.nexo.ui.components.IconosNexo
 
 /* ==================== ViewModel ==================== */
 
@@ -243,7 +237,7 @@ fun PantallaSolicitudes(
                     ErrorDeLista(titulo = "No pudimos cargar tus solicitudes")
                 } else if (fase == Carga.VACIO) {
                     EstadoVacio(
-                        icono = Icons.AutoMirrored.Rounded.EventNote,
+                        icono = IconosNexo.Calendario,
                         titulo = if (estado.esTutor) "Aún no recibes solicitudes" else "Aún no has pedido tutorías",
                         mensaje = if (estado.esTutor) "Publica tus horarios en Perfil › Mi disponibilidad para aparecer en las búsquedas."
                         else "Busca un tutor por materia, horario y modalidad, y envíale tu primera solicitud.",
@@ -392,7 +386,7 @@ private fun TarjetaSolicitud(
                 Spacer(Modifier.height(EspacioMedio))
                 AvisoPlazo("Responde antes de $PLAZO_RESPUESTA")
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    BotonTonal("Aceptar", alAceptar, icono = Icons.Rounded.Check)
+                    BotonTonal("Aceptar", alAceptar, icono = IconosNexo.Marca)
                     Spacer(Modifier.weight(1f))
                     BotonTexto("Rechazar", alRechazar, color = TextoSecundario)
                 }
@@ -400,13 +394,13 @@ private fun TarjetaSolicitud(
             }
             esTutor && solicitud.estado == EstadoSolicitud.ACEPTADA -> {
                 Spacer(Modifier.height(EspacioMedio))
-                BotonTonal("Abrir chat", alEscribir, icono = Icons.Rounded.ChatBubbleOutline)
+                BotonTonal("Abrir chat", alEscribir, icono = IconosNexo.Chat)
                 Spacer(Modifier.height(EspacioMinimo))
             }
             !esTutor && solicitud.estado == EstadoSolicitud.ACEPTADA -> {
                 Spacer(Modifier.height(EspacioMedio))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    BotonTonal("Abrir chat", alEscribir, icono = Icons.Rounded.ChatBubbleOutline)
+                    BotonTonal("Abrir chat", alEscribir, icono = IconosNexo.Chat)
                     Spacer(Modifier.weight(1f))
                     BotonTexto("Cancelar", alCancelar, color = Rojo)
                 }

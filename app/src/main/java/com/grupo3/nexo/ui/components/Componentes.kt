@@ -70,11 +70,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -320,7 +315,7 @@ fun BotonPrimario(
                     if (conFlecha) {
                         Spacer(Modifier.width(EspacioAjustado + desplazamientoFlecha))
                         Icon(
-                            Icons.AutoMirrored.Rounded.ArrowForward,
+                            IconosNexo.Adelante,
                             contentDescription = null,
                             tint = color,
                             modifier = Modifier.size(17.dp)
@@ -604,7 +599,7 @@ fun Campo(
                 }
                 if (limpiable && valor.isNotEmpty()) {
                     IconButton(onClick = { alCambiar("") }) {
-                        Icon(Icons.Rounded.Close, contentDescription = "Borrar texto", tint = Bosque.copy(alpha = 0.5f), modifier = Modifier.size(19.dp))
+                        Icon(IconosNexo.Cerrar, contentDescription = "Borrar texto", tint = Bosque.copy(alpha = 0.5f), modifier = Modifier.size(19.dp))
                     }
                 }
             }
@@ -662,7 +657,7 @@ fun FiltroOpcion(
             .padding(start = if (seleccionado && conMarca) EspacioAjustado else EspacioCercano, end = EspacioCercano, top = 9.dp, bottom = 9.dp)
     ) {
         if (seleccionado && conMarca) {
-            Icon(Icons.Rounded.Check, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(16.dp))
+            Icon(IconosNexo.Marca, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(5.dp))
         }
         Text(
@@ -785,7 +780,7 @@ fun Estrellas(cantidad: Int, tamano: Dp = 14.dp, modifier: Modifier = Modifier) 
     ) {
         repeat(5) { indice ->
             Icon(
-                Icons.Rounded.Star,
+                IconosNexo.Estrella,
                 contentDescription = null,
                 tint = if (indice < cantidad) Miel else Bosque.copy(alpha = 0.12f),
                 modifier = Modifier.size(tamano)
@@ -801,7 +796,7 @@ fun Valoracion(valor: Double, modifier: Modifier = Modifier, color: Color = Text
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.semantics(mergeDescendants = true) { }
     ) {
-        Icon(Icons.Rounded.Star, contentDescription = "Valoración", tint = Miel, modifier = Modifier.size(14.dp))
+        Icon(IconosNexo.Estrella, contentDescription = "Valoración", tint = Miel, modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(3.dp))
         Text(
             formatoValoracion(valor),

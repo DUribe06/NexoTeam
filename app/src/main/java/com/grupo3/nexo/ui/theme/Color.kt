@@ -55,7 +55,7 @@ val MielFondo = Color(0xFFF8EDD5)
 val VerdeEstado = Color(0xFF0D6B43)
 val VerdeFondo = Color(0xFFDDF2E6)
 val RojoFondo = Color(0xFFFBE4E1)
-val GrisEstado = Color(0xFF6E7A73)
+val GrisEstado = Color(0xFF66716B)
 val GrisFondo = Color(0xFFEDF0EE)
 
 /** Gradiente satinado del botón "Vincularse": botones primarios y estados activos. */
@@ -109,3 +109,8 @@ val CalCelda = Color(0xFFF3F4F1)
 val CalLinea = Color(0xFFA3A89F)
 val VerdeMarca = Color(0xFF3FA874)
 val SombraSuelo = Color(0xFFD5DBD4)
+
+/** Texto pequeño sobre TinteBosque: Salvia y TextoSecundario no llegan a 4,5:1 ahí. */
+val TextoSobreTinte = Color(0xFF4A6B59)
+/** Texto e íconos sobre el verde y sobre la foto. */
+val SobreOscuro = Color.White
