@@ -15,6 +15,13 @@ class ManejadorErroresTest {
     }
 
     @Test
+    void elChoqueConUnReporteAbiertoEsUnReporteDuplicado() {
+        assertEquals("REPORTE_DUPLICADO",
+            codigo("ERROR: duplicate key value violates unique constraint \"uq_reportes_abierto\""));
+        assertEquals("REPORTE_DUPLICADO", codigo("Unique index violation: PUBLIC.UQ_REPORTES_ABIERTO_INDEX_6"));
+    }
+
+    @Test
     void soloElChoqueConElCorreoEsUnCorreoDuplicado() {
         assertEquals("CORREO_DUPLICADO",
             codigo("ERROR: duplicate key value violates unique constraint \"uq_usuarios_correo\""));

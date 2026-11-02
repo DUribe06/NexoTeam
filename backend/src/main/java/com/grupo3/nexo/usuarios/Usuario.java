@@ -27,6 +27,9 @@ import jakarta.persistence.Table;
 @Table(name = "usuarios")
 public class Usuario {
 
+    /** Quien usó la API en este plazo sale como conectado (`enLinea`). */
+    public static final Duration VENTANA_EN_LINEA = Duration.ofMinutes(5);
+
     @Id
     private UUID id;
 
@@ -77,6 +80,14 @@ public class Usuario {
 
     @Column(name = "terminos_aceptados_en")
     private Instant terminosAceptadosEn;
+
+    /** Vacío hasta que el tutor crea su calendario semanal (RF7). */
+    @Column(name = "calendario_creado_en")
+    private Instant calendarioCreadoEn;
+
+    /** Solo la escribe {@link UsuarioRepository#registrarActividad}: guardar la cuenta no debe pisarla con un valor viejo. */
+    @Column(name = "ultima_actividad_en", insertable = false, updatable = false)
+    private Instant ultimaActividadEn;
 
     @ElementCollection
     @CollectionTable(name = "tutor_materias", joinColumns = @JoinColumn(name = "usuario_id"))
@@ -136,6 +147,29 @@ public class Usuario {
             perfilTutorActivo = true;
         }
         rol = modo.comoRol();
+    }
+
+    /** RF16: quien cambia la contraseña con el código demostró ser el dueño, así que también se levanta el bloqueo. */
+    public void cambiarContrasena(String contrasenaHash) {
+        this.contrasenaHash = contrasenaHash;
+        registrarLoginExitoso();
+    }
+
+    public void crearCalendario(Instant ahora) {
+        if (calendarioCreadoEn == null) {
+            calendarioCreadoEn = ahora;
+        }
+    }
+
+    public boolean tieneCalendario() { return calendarioCreadoEn != null; }
+
+    /** Un tutor que los demás pueden ver: con perfil creado y la cuenta en uso. */
+    public boolean esTutorPublico() {
+        return perfilTutorActivo && estadoCuenta == EstadoCuenta.ACTIVA;
+    }
+
+    public boolean estaEnLinea(Instant ahora) {
+        return ultimaActividadEn != null && !ultimaActividadEn.isBefore(ahora.minus(VENTANA_EN_LINEA));
     }
 
     public void cambiarBio(String bio) { this.bio = bio; }

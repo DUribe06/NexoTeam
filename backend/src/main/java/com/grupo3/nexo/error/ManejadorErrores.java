@@ -53,15 +53,22 @@ public class ManejadorErrores {
 
     /**
      * Dos peticiones simultáneas que escriben lo mismo: gana una y la otra choca con una restricción. Solo el choque
-     * con el correo es un correo duplicado; cualquier otro (un handle, una materia) se puede reintentar.
+     * con el correo es un correo duplicado y el de un reporte abierto, un reporte duplicado; cualquier otro (un handle,
+     * una materia) se puede reintentar.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     ResponseEntity<ErrorApi> integridad(DataIntegrityViolationException e) {
         String causa = String.valueOf(e.getMostSpecificCause().getMessage());
         log.warn("Violación de integridad: {}", causa);
-        ErrorApi error = causa.toLowerCase(Locale.ROOT).contains("uq_usuarios_correo")
-            ? ErrorApi.de("CORREO_DUPLICADO", "Ya existe una cuenta con ese correo")
-            : ErrorApi.de("CONFLICTO", "Otra operación cambió estos datos al mismo tiempo; inténtalo de nuevo");
+        String restriccion = causa.toLowerCase(Locale.ROOT);
+        ErrorApi error;
+        if (restriccion.contains("uq_usuarios_correo")) {
+            error = ErrorApi.de("CORREO_DUPLICADO", "Ya existe una cuenta con ese correo");
+        } else if (restriccion.contains("uq_reportes_abierto")) {
+            error = ErrorApi.de("REPORTE_DUPLICADO", "Ya tienes un reporte abierto sobre este tutor");
+        } else {
+            error = ErrorApi.de("CONFLICTO", "Otra operación cambió estos datos al mismo tiempo; inténtalo de nuevo");
+        }
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 }

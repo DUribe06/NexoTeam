@@ -4,6 +4,7 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -62,7 +63,7 @@ public class CodigoVerificacionService {
         Instant ahora = reloj.instant();
         CodigoVerificacion codigo = codigos
             .findFirstByUsuarioIdAndPropositoAndCerradoEnIsNullOrderByCreadoEnDesc(usuario.getId(), proposito)
-            .orElseThrow(() -> error("CODIGO_INVALIDO", "No hay un código activo; pide uno nuevo"));
+            .orElseThrow(CodigoVerificacionService::codigoInvalido);
 
         if (!ahora.isBefore(codigo.getVenceEn())) {
             codigo.cerrar(ahora);
@@ -78,24 +79,34 @@ public class CodigoVerificacionService {
                 codigo.cerrar(ahora);
                 throw error("CODIGO_INTENTOS_AGOTADOS", "Superaste los intentos; pide un código nuevo");
             }
-            throw error("CODIGO_INVALIDO", "El código es incorrecto");
+            throw codigoInvalido();
         }
         codigo.cerrar(ahora);
     }
 
     /** Aplica la espera de 60 s y el tope por hora antes de mandar otro código. */
     public void exigirQuePuedaReenviar(Usuario usuario, PropositoCodigo proposito) {
-        Instant ahora = reloj.instant();
-        codigos.findFirstByUsuarioIdAndPropositoOrderByCreadoEnDesc(usuario.getId(), proposito).ifPresent(ultimo -> {
-            Instant libre = ultimo.getCreadoEn().plus(ESPERA_ENTRE_ENVIOS);
-            if (ahora.isBefore(libre)) {
-                throw demasiadasSolicitudes(Duration.between(ahora, libre));
-            }
+        esperaParaReenviar(usuario, proposito).ifPresent(espera -> {
+            throw demasiadasSolicitudes(espera);
         });
-        long ultimaHora = codigos.countByUsuarioIdAndPropositoAndCreadoEnAfter(usuario.getId(), proposito, ahora.minus(Duration.ofHours(1)));
-        if (ultimaHora >= MAXIMO_ENVIOS_POR_HORA) {
-            throw demasiadasSolicitudes(Duration.ofMinutes(10));
+    }
+
+    /** Cuánto falta para poder mandar otro código; vacío si ya se puede. */
+    public Optional<Duration> esperaParaReenviar(Usuario usuario, PropositoCodigo proposito) {
+        Instant ahora = reloj.instant();
+        Optional<Duration> porEspera = codigos.findFirstByUsuarioIdAndPropositoOrderByCreadoEnDesc(usuario.getId(), proposito)
+            .map(ultimo -> Duration.between(ahora, ultimo.getCreadoEn().plus(ESPERA_ENTRE_ENVIOS)))
+            .filter(espera -> !espera.isNegative() && !espera.isZero());
+        if (porEspera.isPresent()) {
+            return porEspera;
         }
+        long ultimaHora = codigos.countByUsuarioIdAndPropositoAndCreadoEnAfter(usuario.getId(), proposito, ahora.minus(Duration.ofHours(1)));
+        return ultimaHora >= MAXIMO_ENVIOS_POR_HORA ? Optional.of(Duration.ofMinutes(10)) : Optional.empty();
+    }
+
+    /** Dice lo mismo si el código está mal, si no hay ninguno activo o si no hay cuenta: así no delata qué correos existen. */
+    static ErrorNegocio codigoInvalido() {
+        return error("CODIGO_INVALIDO", "El código es incorrecto o ya no está activo");
     }
 
     private static ErrorNegocio demasiadasSolicitudes(Duration espera) {

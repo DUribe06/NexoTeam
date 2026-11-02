@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: API de Nexo
-  version: 0.3.0
+  version: 0.3.1
   description: |
     Contrato entre la app Android y el backend (Spring Boot + PostgreSQL).
     Este archivo es la fuente de verdad: primero se acuerda aquí y luego se implementa.
@@ -252,7 +252,8 @@ paths:
       summary: Pide un código para restablecer la contraseña (RF16)
       description: |
         Siempre responde 204, exista o no la cuenta, para no revelar qué correos están registrados.
-        Usa el mismo mecanismo y los mismos límites que la verificación del correo.
+        Usa el mismo mecanismo y los mismos límites que la verificación del correo, pero al superarlos también
+        responde 204 y no envía nada: un 429 delataría que la cuenta existe, porque solo las cuentas reales acumulan envíos.
       security: []
       requestBody:
         required: true
@@ -262,9 +263,9 @@ paths:
               $ref: "#/components/schemas/SolicitudCorreo"
       responses:
         "204":
-          description: Si la cuenta existe, se envió un código al correo
-        "429":
-          $ref: "#/components/responses/DemasiadasSolicitudes"
+          description: Si la cuenta existe y no superó los límites de envío, se envió un código al correo
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
 
   /api/auth/restablecer:
     post:
@@ -282,13 +283,15 @@ paths:
         "204":
           description: Contraseña actualizada
         "400":
-          description: Código incorrecto, vencido o con intentos agotados
+          description: |
+            Código incorrecto (`CODIGO_INVALIDO`, también si la cuenta no existe), vencido (`CODIGO_VENCIDO`), con
+            intentos agotados (`CODIGO_INTENTOS_AGOTADOS`) o campos con formato incorrecto (`DATOS_INVALIDOS`)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
         "422":
-          description: Contraseña débil (`CONTRASENA_DEBIL`)
+          description: Contraseña débil (`CONTRASENA_DEBIL`); el código no se gasta
           content:
             application/json:
               schema:
@@ -514,6 +517,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaginaResenas"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
         "401":
           $ref: "#/components/responses/NoAutenticado"
         "404":
@@ -1763,7 +1768,7 @@ components:
           format: double
           minimum: 0
           maximum: 5
-          description: Promedio de sus reseñas; 0 si aún no tiene (RF9)
+          description: Promedio de sus reseñas, redondeado a un decimal; 0 si aún no tiene (RF9)
           example: 4.8
         totalResenas:
           type: integer
@@ -1784,7 +1789,7 @@ components:
           example: 35000
         enLinea:
           type: boolean
-          description: Conectado en este momento, según su actividad reciente en la API
+          description: Conectado en este momento; usó la API en los últimos 5 minutos
         horario:
           type: array
           description: Horas publicadas en la semana, en orden de calendario

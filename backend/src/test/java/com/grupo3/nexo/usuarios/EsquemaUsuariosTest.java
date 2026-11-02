@@ -111,14 +111,11 @@ class EsquemaUsuariosTest {
     }
 
     @Test
-    void guardaMateriasYModalidadesDelTutorSinRepetirlas() {
+    void guardaLasMateriasDelTutorSinRepetirlas() {
         UUID id = tutor("tutor@ejemplo.com");
         jdbc.update("INSERT INTO tutor_materias (usuario_id, materia) VALUES (?, 'Cálculo I')", id);
-        jdbc.update("INSERT INTO tutor_modalidades (usuario_id, modalidad) VALUES (?, 'VIRTUAL')", id);
         assertThrows(DataIntegrityViolationException.class,
             () -> jdbc.update("INSERT INTO tutor_materias (usuario_id, materia) VALUES (?, 'Cálculo I')", id));
-        assertThrows(DataIntegrityViolationException.class,
-            () -> jdbc.update("INSERT INTO tutor_modalidades (usuario_id, modalidad) VALUES (?, 'HOLOGRAMA')", id));
     }
 
     @Test

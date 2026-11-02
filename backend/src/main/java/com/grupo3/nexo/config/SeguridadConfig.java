@@ -22,7 +22,8 @@ import com.grupo3.nexo.usuarios.UsuarioRepository;
 
 /**
  * API sin estado, autenticada con JWT. Son públicos: /api/salud, el contrato en /openapi y los endpoints de
- * acceso de /api/auth (registro, verificar el correo, reenviar el código, login y refrescar). Todo lo demás exige
+ * acceso de /api/auth (registro, verificar el correo, reenviar el código, login, refrescar, recuperar y restablecer
+ * la contraseña). Todo lo demás exige
  * un token válido, y /api/admin/** además el rol ADMIN (D3), que se lee de la base: el token no lleva el rol.
  */
 @Configuration
@@ -46,7 +47,8 @@ public class SeguridadConfig {
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/salud", "/openapi/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/registro", "/api/auth/verificar-correo",
-                    "/api/auth/reenviar-codigo", "/api/auth/login", "/api/auth/refrescar").permitAll()
+                    "/api/auth/reenviar-codigo", "/api/auth/login", "/api/auth/refrescar",
+                    "/api/auth/recuperar", "/api/auth/restablecer").permitAll()
                 .requestMatchers("/api/admin/**").access(soloAdministradores(usuarios))
                 .anyRequest().authenticated())
             .exceptionHandling(e -> e.authenticationEntryPoint(noAutenticado))

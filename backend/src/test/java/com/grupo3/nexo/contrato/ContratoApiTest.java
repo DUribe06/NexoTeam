@@ -142,6 +142,8 @@ class ContratoApiTest {
     void recuperarContrasenaNoRevelaSiLaCuentaExiste() {
         assertTrue(post("/api/auth/recuperar").getResponses().containsKey("204"));
         assertTrue(!post("/api/auth/recuperar").getResponses().containsKey("404"));
+        // Solo las cuentas reales alcanzan el límite de envíos: un 429 también delataría que existe
+        assertTrue(!post("/api/auth/recuperar").getResponses().containsKey("429"));
     }
 
     @Test

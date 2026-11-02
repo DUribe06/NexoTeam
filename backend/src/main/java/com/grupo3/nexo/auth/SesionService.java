@@ -98,6 +98,12 @@ public class SesionService {
             .ifPresent(t -> t.revocar(reloj.instant()));
     }
 
+    /** Cierra todas las sesiones de la cuenta, por ejemplo al cambiar la contraseña. */
+    @Transactional
+    public void cerrarTodas(UUID usuarioId) {
+        revocarTodos(usuarioId, reloj.instant());
+    }
+
     private void revocarTodos(UUID usuarioId, Instant ahora) {
         tokens.findByUsuarioIdAndRevocadoEnIsNull(usuarioId).forEach(t -> t.revocar(ahora));
     }

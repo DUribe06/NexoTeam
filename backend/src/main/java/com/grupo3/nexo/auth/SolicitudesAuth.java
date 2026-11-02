@@ -37,6 +37,15 @@ public final class SolicitudesAuth {
         }
     }
 
+    public record Restablecer(
+        @NotBlank @Email @Size(max = 254) String correo,
+        @NotBlank @Pattern(regexp = "^[0-9]{6}$", message = "debe tener exactamente 6 dígitos") String codigo,
+        @NotBlank @Size(min = 8, max = 72, message = "debe tener entre 8 y 72 caracteres") String nuevaContrasena) {
+        public Restablecer {
+            correo = normalizar(correo);
+        }
+    }
+
     public record Refrescar(@NotBlank @Size(max = 200) String tokenRefresco) {
     }
 }
