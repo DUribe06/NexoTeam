@@ -58,6 +58,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -95,7 +96,6 @@ import com.grupo3.nexo.ui.components.formatoValoracion
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
-import com.grupo3.nexo.ui.components.universidadCorta
 import com.grupo3.nexo.ui.theme.BordeAcento
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.BosqueAcento
@@ -347,11 +347,12 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
                     modifier = Modifier.semantics { heading() }
                 )
                 Spacer(Modifier.height(EspacioMicro))
-                val detalle = listOf(usuario.carrera, universidadCorta(usuario.universidad)).filter { it.isNotBlank() }
                 Text(
-                    detalle.joinToString(" · ").ifBlank { usuario.correo },
+                    "${usuario.handle} · ${usuario.correo}",
                     color = SobreOscuroSuave,
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             }

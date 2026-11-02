@@ -154,7 +154,7 @@ fun PantallaDisponibilidad(
 
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(EspacioMedio),
-            contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioCorto, bottom = EspacioExtenso + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+            contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioNormal, bottom = EspacioExtenso + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
         ) {
             if (carga == Carga.CARGANDO) item(key = "cargando") { EsqueletoDias() }
             else if (carga == Carga.VACIO) item(key = "vacio") {
@@ -292,14 +292,14 @@ private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .areaTactilSinCambiarMedida()
-            .height(48.dp)
+            .heightIn(min = 48.dp)
             // La hora y su estado los anuncia solo la descripción de abajo; la acción dice únicamente "Editar"
             .pulsable(rol = Role.Button, etiqueta = "Editar", alClicar = alClicar)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .height(40.dp)
+                .heightIn(min = 40.dp)
                 .then(
                     if (activa) Modifier.background(BosqueMedio, FormaOpcion)
                     else Modifier

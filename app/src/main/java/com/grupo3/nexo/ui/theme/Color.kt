@@ -69,8 +69,8 @@ val BordeSeleccion = BosqueAcento.copy(alpha = 0.55f)
 val RellenoTenue = Bosque.copy(alpha = 0.07f)
 /** Ícono secundario dentro de un campo o tarjeta (lupa, campana, borrar texto): 3,08:1 sobre blanco. */
 val IconoSecundario = Bosque.copy(alpha = 0.5f)
-/** Contorno del botón de radio sin marcar. */
-val BordeRadio = Bosque.copy(alpha = 0.3f)
+/** Contorno de radios y casillas sin marcar: 3:1 sobre el lienzo. */
+val BordeRadio = Bosque.copy(alpha = 0.52f)
 /** Fondo de la fila elegida en las listas de opciones. */
 val TinteFilaElegida = TinteBosque.copy(alpha = 0.5f)
 /** Punto de estado apagado (sin conexión, cancelada). */

@@ -1,5 +1,7 @@
 package com.grupo3.nexo.domain.model
 
+import java.time.LocalDate
+
 /**
  * Modelos de dominio de Nexo.
  * Puros: sin dependencias de Android ni de framework.
@@ -99,6 +101,9 @@ data class Resena(
     val fecha: String
 )
 
+/** Qué puede hacer cada parte con una solicitud según su estado. */
+enum class AccionesSolicitud { RESPONDER, ABRIR_CHAT, ABRIR_CHAT_O_CANCELAR, CANCELAR, VER_OTROS, NINGUNA }
+
 data class Solicitud(
     val id: String,
     val tutorId: String,
@@ -117,6 +122,15 @@ data class Solicitud(
     val motivoRechazo: String? = null
 )
 
+fun Solicitud.acciones(esTutor: Boolean): AccionesSolicitud = when {
+    esTutor && estado == EstadoSolicitud.PENDIENTE -> AccionesSolicitud.RESPONDER
+    esTutor && estado == EstadoSolicitud.ACEPTADA -> AccionesSolicitud.ABRIR_CHAT
+    !esTutor && estado == EstadoSolicitud.ACEPTADA -> AccionesSolicitud.ABRIR_CHAT_O_CANCELAR
+    !esTutor && estado == EstadoSolicitud.PENDIENTE -> AccionesSolicitud.CANCELAR
+    !esTutor && estado == EstadoSolicitud.RECHAZADA -> AccionesSolicitud.VER_OTROS
+    else -> AccionesSolicitud.NINGUNA
+}
+
 val mesesCortos = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
 
 /**
@@ -130,15 +144,20 @@ fun diaYMes(fecha: String): Pair<Int, Int>? {
     return if (mes > 0) dia to mes else null
 }
 
+/** Fecha corta llevada al calendario: los datos no traen año, así que se toma el más cercano a hoy. */
+fun fechaCalendario(texto: String, hoy: LocalDate = LocalDate.now()): LocalDate? {
+    val (dia, mes) = diaYMes(texto) ?: return null
+    val fecha = runCatching { LocalDate.of(hoy.year, mes, dia) }.getOrNull() ?: return null
+    return if (fecha.isBefore(hoy.minusMonths(6))) fecha.plusYears(1) else fecha
+}
+
 /**
- * Clave para ordenar fechas cortas como "24 oct" o "30 sept" y horas "HH:mm" del mismo año académico.
- * Los meses anteriores a julio se cuentan como del año siguiente (el semestre cruza el año).
+ * Clave para ordenar fechas cortas como "24 oct" o "30 sept" y horas "HH:mm".
  */
 fun claveFecha(fecha: String, hora: String = "00:00"): Int {
-    val (dia, mes) = diaYMes(fecha) ?: (0 to 0)
-    val anio = if (mes in 1..6) 1 else 0
+    val dia = fechaCalendario(fecha)?.toEpochDay()?.toInt() ?: 0
     val minutos = hora.split(":").let { (it.getOrNull(0)?.toIntOrNull() ?: 0) * 60 + (it.getOrNull(1)?.toIntOrNull() ?: 0) }
-    return ((anio * 12 + mes) * 32 + dia) * 1440 + minutos
+    return dia * 1440 + minutos
 }
 
 data class Sesion(

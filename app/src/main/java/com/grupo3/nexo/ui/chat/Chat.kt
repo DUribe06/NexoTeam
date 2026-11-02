@@ -260,7 +260,7 @@ fun PantallaChats(
                     )
                 }
             } else {
-            LazyColumn(contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto, bottom = EspacioAmplio)) {
+            LazyColumn(contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioNormal, bottom = EspacioAmplio)) {
                 itemsIndexed(estado.chats, key = { _, c -> c.id }) { i, chat ->
                     FilaChat(
                         chat,
@@ -584,7 +584,7 @@ private fun Burbuja(mensaje: Mensaje, iniciaGrupo: Boolean, cierraGrupo: Boolean
         horizontalAlignment = if (mio) Alignment.End else Alignment.Start,
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = if (iniciaGrupo) EspacioAjustado else 3.dp)
+            .padding(top = if (iniciaGrupo) EspacioAjustado else EspacioRozante)
     ) {
         Box(
             modifier = Modifier

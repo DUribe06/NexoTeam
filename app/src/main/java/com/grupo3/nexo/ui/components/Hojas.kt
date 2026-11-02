@@ -27,14 +27,15 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import com.grupo3.nexo.ui.theme.BordeMarcado
 import com.grupo3.nexo.ui.theme.BosqueProfundo
@@ -68,6 +69,8 @@ fun HojaNexo(
     subtitulo: String? = null,
     contenido: @Composable ColumnScope.() -> Unit
 ) {
+    // Los íconos del sistema siguen a la pantalla de abajo: claros sobre foto, oscuros sobre fondo claro
+    val vistaApp = LocalView.current
     ModalBottomSheet(
         onDismissRequest = alCerrar,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -84,11 +87,12 @@ fun HojaNexo(
             )
         }
     ) {
-        // La hoja es su propia ventana: sin esto, los íconos del sistema salen oscuros sobre la cabecera oscurecida
+        // La hoja es su propia ventana y no hereda ese ajuste
         val vista = LocalView.current
         SideEffect {
             (vista.parent as? DialogWindowProvider)?.window?.let { ventana ->
-                WindowCompat.getInsetsController(ventana, vista).isAppearanceLightStatusBars = false
+                WindowCompat.getInsetsController(ventana, vista).isAppearanceLightStatusBars =
+                    ViewCompat.getWindowInsetsController(vistaApp)?.isAppearanceLightStatusBars ?: false
             }
         }
         Column(

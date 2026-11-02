@@ -196,7 +196,7 @@ fun PantallaHistorial(
                     val margenSistema = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(EspacioMedio),
-                        contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioCorto, bottom = EspacioExtenso + margenSistema)
+                        contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioNormal, bottom = EspacioExtenso + margenSistema)
                     ) {
                         item(key = "resumen") { Resumen(estado) }
                         item(key = "rotulo") {

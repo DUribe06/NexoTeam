@@ -97,6 +97,7 @@ import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.model.Usuario
 import com.grupo3.nexo.domain.model.diaYMes
 import com.grupo3.nexo.domain.model.diasPublicados
+import com.grupo3.nexo.domain.model.fechaCalendario
 import com.grupo3.nexo.domain.model.horasPublicadas
 import com.grupo3.nexo.domain.model.primerNombre
 import com.grupo3.nexo.domain.usecase.ObtenerDisponibilidadUseCase
@@ -163,6 +164,7 @@ import com.grupo3.nexo.ui.theme.FormaCapaInferior
 import com.grupo3.nexo.ui.theme.FormaControl
 import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.IconoSecundario
+import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.Marcador
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.SobreOscuroSuave
@@ -700,7 +702,8 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
             val tinta = if (n == 0) 0.88f else 0.62f
             // Cascada: tras la tarjeta principal, cada capa sale de detrás de la anterior con un resorte suave
             var salio by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) { delay(260L + n * 110L); salio = true }
+            val reducidas = LocalAnimacionesReducidas.current
+            LaunchedEffect(Unit) { if (!reducidas) delay(260L + n * 110L); salio = true }
             val salida by animateFloatAsState(
                 if (salio) 1f else 0f,
                 resorteCascada(),
@@ -769,12 +772,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
 /* Fechas de las sesiones: los datos vienen como "24 oct"; se muestran como "Sábado 24 de octubre" y "Lun 26". */
 private val espanol = Locale("es", "CO")
 
-private fun fechaDe(texto: String): LocalDate? {
-    val (dia, mes) = diaYMes(texto) ?: return null
-    val hoy = LocalDate.now()
-    val fecha = runCatching { LocalDate.of(hoy.year, mes, dia) }.getOrNull() ?: return null
-    return if (fecha.isBefore(hoy.minusMonths(6))) fecha.plusYears(1) else fecha
-}
+private fun fechaDe(texto: String): LocalDate? = fechaCalendario(texto)
 
 private fun String.mayusculaInicial() = replaceFirstChar { it.titlecase(espanol) }
 

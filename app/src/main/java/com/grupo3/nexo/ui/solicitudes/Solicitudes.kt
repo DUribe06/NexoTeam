@@ -36,6 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
@@ -48,9 +50,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.R
+import com.grupo3.nexo.domain.model.AccionesSolicitud
 import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Solicitud
+import com.grupo3.nexo.domain.model.acciones
 import com.grupo3.nexo.domain.model.primerNombre
 import com.grupo3.nexo.domain.usecase.AbrirChatDeSolicitudUseCase
 import com.grupo3.nexo.domain.usecase.ActualizarSolicitudUseCase
@@ -247,7 +251,7 @@ fun PantallaSolicitudes(
                                 esTutor = estado.esTutor,
                                 alAceptar = {
                                     viewModel.aceptar(solicitud.id)
-                                    avisar("Sesión con ${solicitud.nombreEstudiante.primerNombre} confirmada")
+                                    avisar("Sesión con ${solicitud.nombreEstudiante.primerNombre} confirmada.")
                                 },
                                 alRechazar = { porRechazar = solicitud },
                                 alCancelar = { porCancelar = solicitud },
@@ -276,7 +280,7 @@ fun PantallaSolicitudes(
             alConfirmar = { motivo ->
                 viewModel.rechazar(s.id, motivo)
                 porRechazar = null
-                avisar("Solicitud rechazada. Le avisaremos a ${s.nombreEstudiante.primerNombre}")
+                avisar("Solicitud rechazada. Le avisaremos a ${s.nombreEstudiante.primerNombre}.")
             }
         )
     }
@@ -291,7 +295,7 @@ fun PantallaSolicitudes(
             alConfirmar = {
                 viewModel.cancelar(s.id)
                 porCancelar = null
-                avisar(if (aceptada) "Sesión cancelada" else "Solicitud cancelada")
+                avisar(if (aceptada) "Sesión cancelada." else "Solicitud cancelada.")
             },
             alCerrar = { porCancelar = null }
         )
@@ -373,53 +377,74 @@ private fun TarjetaSolicitud(
             )
         }
 
-        when {
-            esTutor && solicitud.estado == EstadoSolicitud.PENDIENTE -> {
+        when (solicitud.acciones(esTutor)) {
+            AccionesSolicitud.RESPONDER -> {
                 Spacer(Modifier.height(EspacioMedio))
                 AvisoPlazo("Tienes $PLAZO_RESPUESTA para responder")
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    BotonTonal("Aceptar", alAceptar, icono = IconosNexo.Marca)
+                    BotonTonal(
+                        "Aceptar",
+                        alAceptar,
+                        icono = IconosNexo.Marca,
+                        modifier = Modifier.semantics { contentDescription = "Aceptar la solicitud de $otraParte" }
+                    )
                     Spacer(Modifier.weight(1f))
-                    BotonTexto("Rechazar", alRechazar, color = TextoSecundario)
+                    BotonTexto(
+                        "Rechazar",
+                        alRechazar,
+                        color = TextoSecundario,
+                        modifier = Modifier.semantics { contentDescription = "Rechazar la solicitud de $otraParte" }
+                    )
                 }
                 Spacer(Modifier.height(EspacioMinimo))
             }
-            esTutor && solicitud.estado == EstadoSolicitud.ACEPTADA -> {
+            AccionesSolicitud.ABRIR_CHAT -> {
                 Spacer(Modifier.height(EspacioMedio))
-                BotonAbrirChat(alEscribir)
+                BotonAbrirChat(otraParte, alEscribir)
                 Spacer(Modifier.height(EspacioMinimo))
             }
-            !esTutor && solicitud.estado == EstadoSolicitud.ACEPTADA -> {
+            AccionesSolicitud.ABRIR_CHAT_O_CANCELAR -> {
                 Spacer(Modifier.height(EspacioMedio))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    BotonAbrirChat(alEscribir)
+                    BotonAbrirChat(otraParte, alEscribir)
                     Spacer(Modifier.weight(1f))
-                    BotonTexto("Cancelar", alCancelar, color = Rojo)
+                    BotonTexto(
+                        "Cancelar",
+                        alCancelar,
+                        color = Rojo,
+                        modifier = Modifier.semantics { contentDescription = "Cancelar con $otraParte" }
+                    )
                 }
                 Spacer(Modifier.height(EspacioMinimo))
             }
-            !esTutor && solicitud.estado == EstadoSolicitud.PENDIENTE -> {
+            AccionesSolicitud.CANCELAR -> {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AvisoPlazo("Expira si no responde en $PLAZO_RESPUESTA", Modifier.weight(1f), conAire = false)
-                    BotonTexto("Cancelar", alCancelar, color = Rojo)
+                    BotonTexto(
+                        "Cancelar",
+                        alCancelar,
+                        color = Rojo,
+                        modifier = Modifier.semantics { contentDescription = "Cancelar con $otraParte" }
+                    )
                 }
             }
-            !esTutor && solicitud.estado == EstadoSolicitud.RECHAZADA -> {
+            AccionesSolicitud.VER_OTROS -> {
                 BotonTexto("Ver otros tutores de ${solicitud.materia}", alVerOtros)
             }
-            else -> Spacer(Modifier.height(EspacioCorto))
+            AccionesSolicitud.NINGUNA -> Spacer(Modifier.height(EspacioCorto))
         }
     }
 }
 
 /** "Abrir chat" como píldora, igual que en las tarjetas del Inicio (PRODUCT.md); se ve de 40 dp y se toca en 48. */
 @Composable
-private fun BotonAbrirChat(alClicar: () -> Unit) {
+private fun BotonAbrirChat(conQuien: String, alClicar: () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .areaTactilSinCambiarMedida()
             .heightIn(min = 48.dp)
+            .semantics { contentDescription = "Abrir chat con $conQuien" }
             .pulsable(etiqueta = "Abrir chat") { alClicar() }
     ) {
         Row(

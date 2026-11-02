@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
@@ -78,6 +79,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -105,9 +107,13 @@ import com.grupo3.nexo.domain.usecase.IniciarSesionGoogleUseCase
 import com.grupo3.nexo.domain.usecase.IniciarSesionUseCase
 import com.grupo3.nexo.domain.usecase.RegistrarseUseCase
 import com.grupo3.nexo.domain.usecase.ValidarAccesoUseCase
+import com.grupo3.nexo.ui.components.BotonPrimario
+import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
 import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.components.Onda
+import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
+import com.grupo3.nexo.ui.theme.BordeRadio
 import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueMedio
@@ -633,21 +639,24 @@ private fun CampoPildora(
     )
 }
 
-/** Casilla redonda de aceptación de condiciones (toda la fila es pulsable). */
+/** Casilla redonda de aceptación; "condiciones de uso" abre su propia hoja sin marcar la casilla. */
 @Composable
 private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val relleno by animateColorAsState(if (aceptado) BosqueMedio else Superficie, label = "relleno")
-    val borde by animateColorAsState(if (aceptado) BosqueMedio else Bosque.copy(alpha = 0.3f), label = "borde")
+    val borde by animateColorAsState(if (aceptado) BosqueMedio else BordeRadio, label = "borde")
     val escalaMarca by animateFloatAsState(
         if (aceptado) 1f else 0f, resorteRebote(), label = "marca"
     )
-    Row(
+    var verCondiciones by rememberSaveable { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
+        Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
+        modifier = Modifier
             .clip(CircleShape)
             .toggleable(value = aceptado, role = Role.Checkbox, onValueChange = alCambiar)
+            .semantics { contentDescription = "Acepto las condiciones de uso" }
             .heightIn(min = 40.dp)
-            .padding(horizontal = EspacioMedio)
+            .padding(start = EspacioMedio)
     ) {
         Box(
             contentAlignment = Alignment.Center,
@@ -670,15 +679,43 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
         }
         Spacer(Modifier.width(EspacioCorto))
         Text(
-            buildAnnotatedString {
-                append("Acepto las ")
-                withStyle(
-                    SpanStyle(color = Bosque, fontWeight = FontWeight.SemiBold)
-                ) { append("condiciones de uso") }
-            },
+            "Acepto las ",
             color = TextoSecundario,
             style = LocalTextStyle.current.merge(CuerpoEnlace)
         )
+    }
+    Text(
+        "condiciones de uso",
+        color = Bosque,
+        fontWeight = FontWeight.SemiBold,
+        style = LocalTextStyle.current.merge(CuerpoEnlace),
+        modifier = Modifier
+            .padding(end = EspacioMedio)
+            .areaTactilSinCambiarMedida()
+            .clickable(onClickLabel = "Leer las condiciones de uso", role = Role.Button) { verCondiciones = true }
+            .heightIn(min = 48.dp)
+            .wrapContentHeight()
+    )
+    }
+    if (verCondiciones) HojaCondiciones(alCerrar = { verCondiciones = false })
+}
+
+/** Texto de muestra: las condiciones definitivas todavía no existen. */
+@Composable
+private fun HojaCondiciones(alCerrar: () -> Unit) {
+    HojaNexo(titulo = "Condiciones de uso", subtitulo = "Texto de muestra", alCerrar = alCerrar) {
+        Spacer(Modifier.height(EspacioNormal))
+        listOf(
+            "Nexo conecta a estudiantes con tutores universitarios para coordinar tutorías.",
+            "Usa datos verídicos en tu cuenta y trata con respeto a quienes te ayudan.",
+            "Si no puedes asistir a una sesión, cancélala con tiempo.",
+            "Las condiciones definitivas se publicarán antes del lanzamiento."
+        ).forEach { parrafo ->
+            Text(parrafo, color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(EspacioMedio))
+        }
+        Spacer(Modifier.height(EspacioCorto))
+        BotonPrimario("Entendido", alCerrar)
     }
 }
 

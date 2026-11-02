@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -946,7 +947,7 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
                     .fillMaxWidth()
                     .padding(horizontal = EspacioNormal, vertical = EspacioMedio)
             ) {
-                Text(dia.nombre, color = TextoPrimario, style = MaterialTheme.typography.titleSmall, modifier = Modifier.width(92.dp))
+                Text(dia.nombre, color = TextoPrimario, style = MaterialTheme.typography.titleSmall, modifier = Modifier.widthIn(min = 92.dp).padding(end = EspacioCorto))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(EspacioFino),
                     verticalArrangement = Arrangement.spacedBy(EspacioFino),

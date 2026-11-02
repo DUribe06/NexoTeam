@@ -86,6 +86,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -238,6 +239,8 @@ fun Modifier.pulsable(
     val presionado by interaccion.collectIsPressedAsState()
     val reducidas = LocalAnimacionesReducidas.current
     val escala by animateFloatAsState(if (presionado && !reducidas) EscalaPresionBotonCompacto else 1f, resortePresion(), label = "escala")
+    // Sin animaciones no hay escala: la onda deja la respuesta al toque
+    val respuesta = if (reducidas) ripple() else null
     return this
         .graphicsLayer {
             scaleX = escala
@@ -245,7 +248,7 @@ fun Modifier.pulsable(
         }
         .clickable(
             interactionSource = interaccion,
-            indication = null,
+            indication = respuesta,
             enabled = habilitado,
             role = rol,
             onClickLabel = etiqueta,
@@ -578,7 +581,11 @@ fun Campo(
             .fillMaxWidth()
             .background(Superficie, forma)
             .border(grosorBorde, colorBorde, forma)
-            .semantics { contentDescription = etiqueta ?: marcador }
+            .semantics {
+                // Con texto escrito, la descripción taparía lo escrito: el nombre del campo pasa a ser su estado
+                val nombre = etiqueta ?: marcador
+                if (valor.isEmpty()) contentDescription = nombre else stateDescription = nombre
+            }
             .onFocusChanged { enfocado = it.isFocused },
         decorationBox = { campo ->
             Row(

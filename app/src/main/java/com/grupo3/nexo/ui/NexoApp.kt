@@ -227,7 +227,8 @@ fun NexoApp() {
             composable(Rutas.Historial.ruta) {
                 PantallaHistorial(
                     alVolver = { controlador.popBackStack() },
-                    alBuscar = { controlador.irABusqueda(null) }
+                    alBuscar = { controlador.irABusqueda(null) },
+                    alAbrirDisponibilidad = { controlador.navigate(Rutas.Disponibilidad.ruta) }
                 )
             }
             composable(Rutas.TutorPerfil.ruta) { entrada ->
