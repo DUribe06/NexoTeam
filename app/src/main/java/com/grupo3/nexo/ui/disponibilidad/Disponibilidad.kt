@@ -93,6 +93,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.grupo3.nexo.ui.theme.FormaOrganica
 
 /* ==================== ViewModel ==================== */
 
@@ -187,7 +188,7 @@ fun PantallaDisponibilidad(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .superficie(FormaTarjeta)
+                        .superficie(FormaOrganica)
                         .padding(EspacioNormal)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -226,7 +227,7 @@ fun PantallaDisponibilidad(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .superficie(FormaTarjeta)
+                    .superficie(FormaOrganica)
                     .selectableGroup()
             ) {
                 opcionesHora.forEachIndexed { i, (texto, modalidades) ->
@@ -255,7 +256,7 @@ private fun EsqueletoDias() {
                 verticalArrangement = Arrangement.spacedBy(EspacioCorto),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .superficie(FormaTarjeta)
+                    .superficie(FormaOrganica)
                     .padding(EspacioNormal)
             ) {
                 LineaHueso(0.4f, alto = 14.dp)

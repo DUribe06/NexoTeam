@@ -147,6 +147,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.components.LetraAcotada
 
 /* ==================== ViewModel ==================== */
 
@@ -243,14 +244,14 @@ fun PantallaPerfil(
                             Column(Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto)) {
                                 TarjetaDisponibilidad(alAbrirDisponibilidad)
                             }
-                            Cifras(estado.resumen, true, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto))
+                            LetraAcotada { Cifras(estado.resumen, true, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto)) }
                             BloqueTutor(usuario, estado.resenas, cargando = estado.resumen == null, alVerTodas = alAbrirHistorial, alPublicarHorario = alAbrirDisponibilidad)
                         } else {
                             val pendientes = estado.resumen?.porCalificar ?: 0
                             if (pendientes > 0) {
                                 AvisoPorCalificar(pendientes, alAbrirHistorial, Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto))
                             }
-                            Cifras(estado.resumen, false, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto))
+                            LetraAcotada { Cifras(estado.resumen, false, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto)) }
                             estado.resumen?.materias?.takeIf { it.isNotEmpty() }?.let {
                                 Materias("Has estudiado", it, Modifier.padding(horizontal = EspacioMargen))
                             }
@@ -486,8 +487,8 @@ private fun EsqueletoSinMargen(filas: Int) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Superficie, FormaTarjeta)
-                    .border(1.dp, BordeSutil, FormaTarjeta)
+                    .background(Superficie, FormaOrganica)
+                    .border(1.dp, BordeSutil, FormaOrganica)
                     .padding(EspacioNormal)
             ) {
                 Hueso(Modifier.size(44.dp), CircleShape)

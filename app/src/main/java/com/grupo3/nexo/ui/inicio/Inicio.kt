@@ -74,6 +74,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -459,6 +460,7 @@ private fun Cabecera(
                             layout(reducido, reducido) { p.place(-(lado - reducido) / 2, -(lado - reducido) / 2) }
                         }
                         .pulsable(etiqueta = "Abrir perfil", alClicar = alAbrirPerfil)
+                        .semantics { contentDescription = "Abrir perfil" }
                 ) {
                     Avatar(
                         nombre = usuario?.nombre ?: "Nexo",
@@ -800,7 +802,7 @@ private fun SinSesiones(esTutor: Boolean, alBuscar: () -> Unit, alVerSolicitudes
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .superficie(FormaTarjeta)
+            .superficie(FormaOrganica)
             .padding(EspacioNormal)
     ) {
         Box(
@@ -842,7 +844,7 @@ private fun TiraDisponibilidad(horas: Int, dias: List<String>, alEditar: () -> U
                 else "Tu disponibilidad · ${formatoHoras(horas.toDouble())} a la semana",
                 color = TextoSecundario,
                 style = EtiquetaDisponibilidad,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
@@ -910,7 +912,7 @@ private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Mo
             },
             color = if (cantidad > 0) BosqueProfundo else Marcador,
             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = if (cantidad > 0) FontWeight.SemiBold else FontWeight.Normal),
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )

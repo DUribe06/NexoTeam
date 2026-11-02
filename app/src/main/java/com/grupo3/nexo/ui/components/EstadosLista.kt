@@ -28,7 +28,7 @@ import com.grupo3.nexo.ui.theme.EspacioCorto
 import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioNormal
-import com.grupo3.nexo.ui.theme.FormaTarjeta
+import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.Superficie
 
 /**
@@ -89,8 +89,8 @@ fun EsqueletoLista(modifier: Modifier = Modifier, filas: Int = 5) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Superficie, FormaTarjeta)
-                    .border(1.dp, BordeSutil, FormaTarjeta)
+                    .background(Superficie, FormaOrganica)
+                    .border(1.dp, BordeSutil, FormaOrganica)
                     .padding(EspacioNormal)
             ) {
                 Hueso(Modifier.size(44.dp), CircleShape)

@@ -104,6 +104,7 @@ import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.FormaBoton
 import javax.inject.Inject
 import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.theme.FormaOrganica
 
 /* ==================== ViewModel ==================== */
 
@@ -315,7 +316,7 @@ private fun TarjetaSolicitud(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .superficie(FormaBoton)
+            .superficie(FormaOrganica)
             .padding(start = EspacioNormal, end = EspacioNormal, top = EspacioNormal, bottom = EspacioCorto)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

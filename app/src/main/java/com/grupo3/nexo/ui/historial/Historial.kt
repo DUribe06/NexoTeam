@@ -100,6 +100,8 @@ import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.FormaBoton
 import javax.inject.Inject
 import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.components.LetraAcotada
 
 /* ==================== ViewModel ==================== */
 
@@ -191,7 +193,7 @@ fun PantallaHistorial(
                         verticalArrangement = Arrangement.spacedBy(EspacioAjustado),
                         contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioCorto, bottom = EspacioExtenso)
                     ) {
-                        item(key = "resumen") { Resumen(estado) }
+                        item(key = "resumen") { LetraAcotada { Resumen(estado) } }
                         item(key = "rotulo") {
                             RotuloGrupo(if (estado.esTutor) "Sesiones dadas" else "Tus sesiones", Modifier.padding(start = EspacioMinimo, top = EspacioMedio))
                         }
@@ -309,7 +311,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .superficie(FormaBoton)
+            .superficie(FormaOrganica)
             .padding(EspacioCercano)
     ) {
         // Solo el avatar se atenúa en sesiones sin completar: el texto conserva su contraste

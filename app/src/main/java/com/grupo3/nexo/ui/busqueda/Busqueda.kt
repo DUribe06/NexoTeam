@@ -115,6 +115,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.components.CabeceraSeccion
 
 /* ==================== Áreas de estudio ==================== */
 
@@ -210,11 +211,12 @@ fun PantallaBusqueda(
     var mostrarFiltros by rememberSaveable { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
-        BarraSuperior("Buscar tutores", alVolver) {
+        CabeceraSeccion("Buscar tutores", alVolver = alVolver) {
             BotonIcono(
                 IconosNexo.Filtros,
                 descripcion = if (estado.filtrosHoja > 0) "Filtros, ${estado.filtrosHoja} activos" else "Filtros",
                 alClicar = { mostrarFiltros = true },
+                sobreOscuro = true,
                 insignia = estado.filtrosHoja
             )
         }

@@ -164,6 +164,9 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
 import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.components.Onda
+import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.components.LetraAcotada
 
 /* ==================== ViewModel ==================== */
 
@@ -297,12 +300,14 @@ fun PantallaTutorPerfil(
                         Identidad(tutor, Modifier.aparicion(0, iniciado))
                     }
                     item(key = "cifras") {
+                        LetraAcotada {
                         Cifras(
                             tutor,
                             Modifier
                                 .padding(start = EspacioMargen, end = EspacioMargen, top = EspacioHolgado)
                                 .aparicion(1, iniciado)
                         )
+                        }
                     }
                     item(key = "sobre") {
                         Column(
@@ -438,18 +443,27 @@ fun PantallaTutorPerfil(
 
 @Composable
 private fun Portada(alVolver: () -> Unit, alReportar: () -> Unit) {
-    CabeceraBosque(alturaOnda = 52.dp) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = EspacioMedio, vertical = EspacioFino)
-        ) {
-            BotonIcono(IconosNexo.Atras, "Volver", alVolver, sobreOscuro = true)
-            Spacer(Modifier.weight(1f))
-            BotonIcono(IconosNexo.Bandera, "Reportar tutor", alReportar, sobreOscuro = true)
+    Box {
+        CabeceraBosque(conFoto = true, alturaOnda = 52.dp) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = EspacioMedio, vertical = EspacioFino)
+            ) {
+                BotonIcono(IconosNexo.Atras, "Volver", alVolver, sobreOscuro = true)
+                Spacer(Modifier.weight(1f))
+                BotonIcono(IconosNexo.Bandera, "Reportar tutor", alReportar, sobreOscuro = true)
+            }
+            Spacer(Modifier.height(72.dp))
         }
-        Spacer(Modifier.height(72.dp))
+        Onda(
+            Fondo,
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(32.dp)
+        )
     }
 }
 
@@ -521,7 +535,7 @@ private fun Cifras(tutor: Tutor, modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .heightIn(min = 78.dp)
             .height(IntrinsicSize.Min)
-            .superficie(FormaTarjeta)
+            .superficie(FormaOrganica)
     ) {
         Cifra(formatoValoracion(tutor.rating), "calificación", Modifier.weight(1f), conEstrella = true)
         Box(Modifier.fillMaxHeight().padding(vertical = EspacioSuelto).width(1.dp).background(Divisor))
@@ -562,7 +576,7 @@ private fun TarjetaResena(resena: Resena, modifier: Modifier = Modifier) {
     Column(
         modifier
             .fillMaxWidth()
-            .superficie(FormaTarjeta)
+            .superficie(FormaOrganica)
             .padding(EspacioNormal)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -800,7 +814,7 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
     Column(
         Modifier
             .fillMaxWidth()
-            .superficie(FormaTarjeta)
+            .superficie(FormaOrganica)
     ) {
         val porDia = horario.groupBy { it.dia }.toSortedMap(compareBy { it.numero })
         porDia.entries.forEachIndexed { i, (dia, franjas) ->
@@ -886,7 +900,7 @@ private fun HojaReporte(nombre: String, alCerrar: () -> Unit, alEnviar: (String)
         Column(
             Modifier
                 .fillMaxWidth()
-                .superficie(FormaTarjeta)
+                .superficie(FormaOrganica)
                 .selectableGroup()
         ) {
             motivosReporte.forEachIndexed { i, opcion ->

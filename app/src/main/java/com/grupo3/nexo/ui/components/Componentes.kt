@@ -40,6 +40,9 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.border
@@ -1109,4 +1112,17 @@ private tailrec fun Context.buscarActividad(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.buscarActividad()
     else -> null
+}
+
+/**
+ * Filas de cifras cortas en columnas angostas: con letra muy grande, la etiqueta se partiría a media palabra.
+ * La letra sigue creciendo hasta el 140 % y ahí se detiene solo en estas filas.
+ */
+@Composable
+fun LetraAcotada(maximo: Float = 1.4f, contenido: @Composable () -> Unit) {
+    val densidad = LocalDensity.current
+    CompositionLocalProvider(
+        LocalDensity provides Density(densidad.density, densidad.fontScale.coerceAtMost(maximo)),
+        content = contenido
+    )
 }
