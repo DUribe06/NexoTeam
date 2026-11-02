@@ -44,7 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -98,6 +98,7 @@ import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.TamanoAvatarLista
 import com.grupo3.nexo.ui.theme.FormaOpcion
 import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.Icono17
@@ -348,15 +349,13 @@ fun FilaTutor(tutor: Tutor, alAbrir: () -> Unit, modifier: Modifier = Modifier) 
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClickLabel = "Ver perfil de ${tutor.nombre}", role = Role.Button, onClick = alAbrir)
+            .semantics { stateDescription = if (tutor.enLinea) "En línea" else "Desconectado" }
             .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
     ) {
-        Avatar(tutor.nombre, tamano = 50.dp, enLinea = tutor.enLinea, anunciarEstado = false)
+        Avatar(tutor.nombre, tamano = TamanoAvatarLista, enLinea = tutor.enLinea, anunciarEstado = false)
         Spacer(Modifier.width(EspacioNormal))
         Column(Modifier.weight(1f)) {
-            TextoLinea(
-                tutor.nombre, MaterialTheme.typography.titleMedium, TextoPrimario,
-                Modifier.semantics { contentDescription = "${tutor.nombre}, ${if (tutor.enLinea) "en línea" else "desconectado"}" }
-            )
+            TextoLinea(tutor.nombre, MaterialTheme.typography.titleMedium, TextoPrimario)
             TextoLinea(tutor.materias.joinToString(" · "), MaterialTheme.typography.bodyMedium, TextoSecundario)
             Text(
                 listOf(universidadCorta(tutor.universidad), tutor.modalidades.descripcion()).joinToString(" · "),

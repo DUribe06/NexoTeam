@@ -73,6 +73,7 @@ import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.model.primerNombre
+import com.grupo3.nexo.domain.model.porDia
 import com.grupo3.nexo.domain.usecase.DiaSolicitable
 import com.grupo3.nexo.domain.usecase.diasSolicitables
 import com.grupo3.nexo.domain.usecase.franjaValida
@@ -846,13 +847,13 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
         Text("Aún no publica horarios.", color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
         return
     }
-    val porDia = remember(horario) { horario.groupBy { it.dia }.toSortedMap(compareBy { it.numero }) }
+    val porDia = remember(horario) { horario.porDia }
     Column(
         Modifier
             .fillMaxWidth()
             .superficie(FormaOrganica)
     ) {
-        porDia.entries.forEachIndexed { i, (dia, franjas) ->
+        porDia.forEachIndexed { i, (dia, franjas) ->
             if (i > 0) Box(Modifier.fillMaxWidth().padding(horizontal = EspacioNormal).height(1.dp).background(Divisor))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -866,7 +867,7 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
                     verticalArrangement = Arrangement.spacedBy(EspacioFino),
                     modifier = Modifier.weight(1f)
                 ) {
-                    franjas.sortedBy { it.hora }.forEach { f ->
+                    franjas.forEach { f ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier

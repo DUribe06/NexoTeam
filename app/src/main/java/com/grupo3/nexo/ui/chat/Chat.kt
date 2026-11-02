@@ -47,6 +47,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -96,6 +97,7 @@ import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.TamanoAvatarLista
 import com.grupo3.nexo.ui.theme.EspacioRozante
 import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.FormaControl
@@ -126,11 +128,11 @@ import com.grupo3.nexo.ui.theme.resorteRebote
 fun PantallaChats(
     alAbrirChat: (String) -> Unit,
     alBuscar: () -> Unit,
-    alVerSolicitudes: () -> Unit = {},
+    alVerSolicitudes: () -> Unit,
     viewModel: ChatsViewModel = hiltViewModel()
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
-    val sinLeer = estado.chats.sumOf { it.noLeidos }
+    val sinLeer = remember(estado.chats) { estado.chats.sumOf { it.noLeidos } }
 
     Column(Modifier.fillMaxSize()) {
         CabeceraSeccion(
@@ -195,16 +197,17 @@ private fun FilaChat(chat: Chat, alAbrir: () -> Unit, modifier: Modifier = Modif
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClickLabel = "Abrir chat con ${chat.nombre}", role = Role.Button, onClick = alAbrir)
+            .semantics { stateDescription = if (chat.enLinea) "En línea" else "Desconectado" }
             .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
     ) {
         // TalkBack dice primero el nombre y luego si está en línea
-        Avatar(chat.nombre, tamano = 50.dp, enLinea = chat.enLinea, anunciarEstado = false)
+        Avatar(chat.nombre, tamano = TamanoAvatarLista, enLinea = chat.enLinea, anunciarEstado = false)
         Spacer(Modifier.width(EspacioNormal))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextoLinea(
                     chat.nombre, MaterialTheme.typography.titleMedium, TextoPrimario,
-                    Modifier.weight(1f).semantics { contentDescription = "${chat.nombre}, ${if (chat.enLinea) "en línea" else "desconectado"}" }
+                    Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(EspacioCorto))
                 Text(

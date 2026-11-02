@@ -31,6 +31,9 @@ val FormaCapaInferior = RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.d
 
 /** Elevación de las tarjetas principales (sesión del Inicio, avatar del Perfil). */
 val ElevacionTarjeta = 14.dp
+/** Sombras propias del acceso: el logo flotante y el botón principal (excepción documentada en PRODUCT.md). */
+val ElevacionLogoAcceso = 20.dp
+val ElevacionBotonAcceso = 16.dp
 /** Esquinas de la burbuja de chat: redondeada en general y casi recta en la "cola" y en los mensajes agrupados. */
 val RadioBurbuja = 16.dp
 val RadioBurbujaCola = 4.dp

@@ -107,7 +107,11 @@ import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
 import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.components.Onda
 import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
+import com.grupo3.nexo.ui.theme.BordeBotonGoogle
+import com.grupo3.nexo.ui.theme.BordeLogoAcceso
 import com.grupo3.nexo.ui.theme.BordeRadio
+import com.grupo3.nexo.ui.theme.BordeSeleccion
+import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueMedio
@@ -117,9 +121,16 @@ import com.grupo3.nexo.ui.theme.CuerpoAviso
 import com.grupo3.nexo.ui.theme.CuerpoEnlace
 import com.grupo3.nexo.ui.theme.CurvaAparicion
 import com.grupo3.nexo.ui.theme.CurvaEstandar
+import com.grupo3.nexo.ui.theme.DuracionAplasteLogo
 import com.grupo3.nexo.ui.theme.DuracionCorta
+import com.grupo3.nexo.ui.theme.DuracionEntraBotonAcceso
+import com.grupo3.nexo.ui.theme.DuracionEntradaAcceso
+import com.grupo3.nexo.ui.theme.DuracionFlotacionLogo
 import com.grupo3.nexo.ui.theme.DuracionInstante
 import com.grupo3.nexo.ui.theme.DuracionMedia
+import com.grupo3.nexo.ui.theme.DuracionZoomPortada
+import com.grupo3.nexo.ui.theme.ElevacionBotonAcceso
+import com.grupo3.nexo.ui.theme.ElevacionLogoAcceso
 import com.grupo3.nexo.ui.theme.ErrorBosque
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
@@ -131,47 +142,38 @@ import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EspacioSeparadorAcceso
 import com.grupo3.nexo.ui.theme.EtiquetaSeparador
 import com.grupo3.nexo.ui.theme.FormaAmplia
 import com.grupo3.nexo.ui.theme.Icono19
+import com.grupo3.nexo.ui.theme.IconoCampoAcceso
 import com.grupo3.nexo.ui.theme.InstrumentSans
 import com.grupo3.nexo.ui.theme.Lienzo
+import com.grupo3.nexo.ui.theme.LineaSeparadorAcceso
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.Marcador
 import com.grupo3.nexo.ui.theme.MarcadorCampo
+import com.grupo3.nexo.ui.theme.PasoEntradaAcceso
+import com.grupo3.nexo.ui.theme.RetrasoEntradaAcceso
 import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.SombraAmbienteCampoAcceso
+import com.grupo3.nexo.ui.theme.SombraPuntualBotonAcceso
+import com.grupo3.nexo.ui.theme.SombraPuntualCampoAcceso
+import com.grupo3.nexo.ui.theme.SombraPuntualLogoAcceso
 import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TextoBotonPrincipal
 import com.grupo3.nexo.ui.theme.TextoBotonSecundario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TituloMarca
-import com.grupo3.nexo.ui.theme.pincelBosque
-import com.grupo3.nexo.ui.theme.resorteRebote
+import com.grupo3.nexo.ui.theme.VeloAccesoAbajo
 import com.grupo3.nexo.ui.theme.VeloAccesoArriba
 import com.grupo3.nexo.ui.theme.VeloAccesoCentro
-import com.grupo3.nexo.ui.theme.VeloAccesoAbajo
-import com.grupo3.nexo.ui.theme.SombraPuntualLogoAcceso
-import com.grupo3.nexo.ui.theme.BordeLogoAcceso
-import com.grupo3.nexo.ui.theme.BordeSeleccion
-import com.grupo3.nexo.ui.theme.BordeSutil
-import com.grupo3.nexo.ui.theme.IconoCampoAcceso
-import com.grupo3.nexo.ui.theme.SombraAmbienteCampoAcceso
-import com.grupo3.nexo.ui.theme.SombraPuntualCampoAcceso
-import com.grupo3.nexo.ui.theme.SombraPuntualBotonAcceso
-import com.grupo3.nexo.ui.theme.LineaSeparadorAcceso
-import com.grupo3.nexo.ui.theme.BordeBotonGoogle
+import com.grupo3.nexo.ui.theme.pincelBosque
+import com.grupo3.nexo.ui.theme.resorteLogoAcceso
+import com.grupo3.nexo.ui.theme.resorteRebote
 import kotlinx.coroutines.launch
 
 /* ==================== Pantalla ==================== */
-
-/* Tiempos propios del acceso (ms). */
-private const val DURACION_ZOOM_PORTADA_MS = 18_000
-private const val DURACION_FLOTACION_LOGO_MS = 3_000
-private const val DURACION_APLASTE_LOGO_MS = 90
-private const val DURACION_ENTRA_BOTON_MS = 180
-private const val DURACION_ENTRADA_MS = 520
-private const val ENTRADA_RETRASO_MS = 80
-private const val ENTRADA_PASO_MS = 70
 
 /**
  * Acceso a Nexo: registro con nombre, correo y contraseña,
@@ -368,7 +370,7 @@ private fun ContenidoAcceso(
                             modifier = Modifier.entrada(5, iniciado)
                         )
 
-                        Spacer(Modifier.height(26.dp))
+                        Spacer(Modifier.height(EspacioSeparadorAcceso))
                         SeparadorSocial(Modifier.entrada(6, iniciado))
                         Spacer(Modifier.height(EspacioCercano))
                         BotonGoogle(
@@ -429,7 +431,7 @@ private fun Portada() {
     val zoom = if (LocalAnimacionesReducidas.current) 1f else rememberInfiniteTransition(label = "portada").animateFloat(
         initialValue = 1f,
         targetValue = 1.07f,
-        animationSpec = infiniteRepeatable(tween(DURACION_ZOOM_PORTADA_MS, easing = LinearEasing), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(DuracionZoomPortada, easing = LinearEasing), RepeatMode.Reverse),
         label = "zoom"
     ).value
     Box(
@@ -480,7 +482,7 @@ private fun InsigniaLogo(modifier: Modifier = Modifier) {
     val flotacion = if (LocalAnimacionesReducidas.current) 0f else rememberInfiniteTransition(label = "logo").animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(DURACION_FLOTACION_LOGO_MS, easing = CurvaEstandar), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(DuracionFlotacionLogo, easing = CurvaEstandar), RepeatMode.Reverse),
         label = "flotacion"
     ).value
     // Rebote al tocarlo: se aplasta un poco y vuelve con un resorte elástico.
@@ -500,12 +502,12 @@ private fun InsigniaLogo(modifier: Modifier = Modifier) {
                 onClickLabel = "Animar logo"
             ) {
                 alcance.launch {
-                    rebote.animateTo(0.82f, tween(DURACION_APLASTE_LOGO_MS, easing = CurvaEstandar))
-                    rebote.animateTo(1f, spring(dampingRatio = 0.3f, stiffness = 500f))
+                    rebote.animateTo(0.82f, tween(DuracionAplasteLogo, easing = CurvaEstandar))
+                    rebote.animateTo(1f, resorteLogoAcceso())
                 }
             }
             .size(84.dp)
-            .shadow(20.dp, forma, ambientColor = BosqueProfundo, spotColor = SombraPuntualLogoAcceso)
+            .shadow(ElevacionLogoAcceso, forma, ambientColor = BosqueProfundo, spotColor = SombraPuntualLogoAcceso)
             .background(Superficie, forma)
             .border(1.dp, BordeLogoAcceso, forma)
     ) {
@@ -685,7 +687,7 @@ private fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> Un
                 scaleX = escala
                 scaleY = escala
             }
-            .shadow(16.dp, CircleShape, ambientColor = BosqueProfundo, spotColor = SombraPuntualBotonAcceso)
+            .shadow(ElevacionBotonAcceso, CircleShape, ambientColor = BosqueProfundo, spotColor = SombraPuntualBotonAcceso)
             .background(pincelBosque, CircleShape)
             .clip(CircleShape)
             .clickable(
@@ -698,7 +700,7 @@ private fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> Un
     ) {
         AnimatedContent(
             targetState = cargando,
-            transitionSpec = { fadeIn(tween(DURACION_ENTRA_BOTON_MS)) togetherWith fadeOut(tween(DuracionInstante)) },
+            transitionSpec = { fadeIn(tween(DuracionEntraBotonAcceso)) togetherWith fadeOut(tween(DuracionInstante)) },
             label = "contenidoBoton"
         ) { estaCargando ->
             if (estaCargando) {
@@ -792,7 +794,7 @@ private fun EnlaceCambioModo(esRegistro: Boolean, alClicar: () -> Unit, modifier
 private fun Modifier.entrada(orden: Int, iniciado: Boolean): Modifier {
     val progreso by animateFloatAsState(
         targetValue = if (iniciado) 1f else 0f,
-        animationSpec = tween(DURACION_ENTRADA_MS, delayMillis = ENTRADA_RETRASO_MS + orden * ENTRADA_PASO_MS, easing = CurvaAparicion),
+        animationSpec = tween(DuracionEntradaAcceso, delayMillis = RetrasoEntradaAcceso + orden * PasoEntradaAcceso, easing = CurvaAparicion),
         label = "entrada$orden"
     )
     return graphicsLayer {

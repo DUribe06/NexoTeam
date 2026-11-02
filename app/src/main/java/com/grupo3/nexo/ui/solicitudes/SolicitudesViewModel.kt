@@ -16,6 +16,7 @@ import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDateTime
 import javax.inject.Inject
+import kotlin.math.floor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,7 +42,9 @@ class SolicitudesViewModel @Inject constructor(
         val total: Int = 0,
         val pendientes: Int = 0,
         /** Horas que quedan de plazo por id de solicitud; se recalculan cada minuto. */
-        val horasRestantes: Map<String, Double> = emptyMap()
+        val horasRestantes: Map<String, Double> = emptyMap(),
+        /** Las mismas horas redondeadas hacia abajo, tal como se muestran en el aviso. */
+        val horasEnteras: Map<String, Double> = emptyMap()
     )
 
     /** El filtro recuerda el modo en que se eligió: al cambiar de estudiante a tutor se descarta. */
@@ -68,7 +71,8 @@ class SolicitudesViewModel @Inject constructor(
             conteos = propias.groupingBy { it.estado }.eachCount(),
             total = propias.size,
             pendientes = propias.contarPendientes(),
-            horasRestantes = propias.associate { it.id to it.horasRestantes(reloj) }
+            horasRestantes = propias.associate { it.id to it.horasRestantes(reloj) },
+            horasEnteras = propias.associate { it.id to floor(it.horasRestantes(reloj)) }
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 

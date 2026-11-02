@@ -114,3 +114,35 @@ internal fun leerAnimacionesReducidas(): Boolean {
     }
     return reducidas
 }
+
+/* ---------- Propios del acceso (ms) ---------- */
+/** Acercamiento lento de la foto de portada, ida y vuelta. */
+const val DuracionZoomPortada = 18_000
+/** Flotación del logo, ida y vuelta. */
+const val DuracionFlotacionLogo = 3_000
+/** Aplaste del logo al tocarlo, antes del rebote. */
+const val DuracionAplasteLogo = 90
+/** Entrada del contenido del botón principal al cambiar de estado. */
+const val DuracionEntraBotonAcceso = 180
+/** Aparición escalonada del formulario: duración, espera inicial y paso entre elementos. */
+const val DuracionEntradaAcceso = 520
+const val RetrasoEntradaAcceso = 80
+const val PasoEntradaAcceso = 70
+/** Rebote elástico del logo del acceso tras el aplaste. */
+fun <T> resorteLogoAcceso(): SpringSpec<T> = spring(dampingRatio = 0.3f, stiffness = 500f)
+
+/* ---------- Pila de sesiones del Inicio (ms) ---------- */
+/** La elegida sube al frente: aparición, espera, entrada, apagado de la saliente y cambio de alto. */
+const val DuracionPilaAparece = 240
+const val RetrasoPilaAparece = 90
+const val DuracionPilaEntra = 460
+const val DuracionPilaSeApaga = 170
+const val DuracionPilaTamano = 420
+/** Cascada de las capas: espera inicial y retraso entre una capa y la siguiente. */
+const val RetrasoCascadaPila = 260L
+const val PasoCascadaPila = 110L
+/** Escala de la tarjeta que baja a la pila. */
+const val EscalaPilaSaliente = .94f
+/** Capas de atrás: espera al aparecer y apagado al salir. */
+const val RetrasoCapaPila = 80
+const val DuracionCapaSeApaga = 140

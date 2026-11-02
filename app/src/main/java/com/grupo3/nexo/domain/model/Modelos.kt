@@ -81,6 +81,10 @@ data class FranjaTutor(
     val modalidades: Set<Modalidad>
 )
 
+/** Franjas agrupadas por día, en orden de calendario y con las horas de cada día ordenadas. */
+val List<FranjaTutor>.porDia: List<Pair<DiaSemana, List<FranjaTutor>>>
+    get() = groupBy { it.dia }.toSortedMap(compareBy { it.numero }).map { (dia, franjas) -> dia to franjas.sortedBy { it.hora } }
+
 data class Tutor(
     val id: String,
     val nombre: String,
@@ -271,7 +275,10 @@ data class HoraDisponible(
 data class DiaDisponibilidad(
     val dia: String,
     val horas: List<HoraDisponible>
-)
+) {
+    /** Horas de este día que el tutor ya publicó. */
+    val horasActivas: Int get() = horas.count { it.seleccionada }
+}
 
 /** Horas que el tutor tiene publicadas en la semana. */
 val List<DiaDisponibilidad>.horasPublicadas: Int

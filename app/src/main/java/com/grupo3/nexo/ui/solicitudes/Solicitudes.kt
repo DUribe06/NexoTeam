@@ -109,7 +109,6 @@ import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
 import com.grupo3.nexo.ui.theme.cambioContenido
-import kotlin.math.floor
 import kotlinx.coroutines.launch
 
 
@@ -119,7 +118,7 @@ import kotlinx.coroutines.launch
 fun PantallaSolicitudes(
     alBuscar: (area: String?) -> Unit,
     alAbrirChat: (String) -> Unit,
-    alAbrirDisponibilidad: () -> Unit = {},
+    alAbrirDisponibilidad: () -> Unit,
     viewModel: SolicitudesViewModel = hiltViewModel()
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -187,6 +186,7 @@ fun PantallaSolicitudes(
                                 solicitud = solicitud,
                                 esTutor = estado.esTutor,
                                 horas = estado.horasRestantes[solicitud.id] ?: 0.0,
+                                horasEnteras = estado.horasEnteras[solicitud.id] ?: 0.0,
                                 alAceptar = {
                                     viewModel.aceptar(solicitud.id)
                                     avisar("Sesión con ${solicitud.nombreEstudiante.primerNombre} confirmada.")
@@ -256,6 +256,7 @@ private fun TarjetaSolicitud(
     solicitud: Solicitud,
     esTutor: Boolean,
     horas: Double,
+    horasEnteras: Double,
     alAceptar: () -> Unit,
     alRechazar: () -> Unit,
     alCancelar: () -> Unit,
@@ -321,7 +322,7 @@ private fun TarjetaSolicitud(
             AccionesSolicitud.RESPONDER -> {
                 Spacer(Modifier.height(EspacioMedio))
                 AvisoPlazo(
-                    if (horas < 1) "Queda menos de ${formatoHoras(1.0)} para responder" else if (floor(horas) < 2) "Queda ${formatoHoras(floor(horas))} para responder" else "Quedan ${formatoHoras(floor(horas))} para responder",
+                    if (horas < 1) "Queda menos de ${formatoHoras(1.0)} para responder" else if (horasEnteras < 2) "Queda ${formatoHoras(horasEnteras)} para responder" else "Quedan ${formatoHoras(horasEnteras)} para responder",
                     urgente = horas <= HORAS_AVISO_PLAZO
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -363,7 +364,7 @@ private fun TarjetaSolicitud(
             AccionesSolicitud.CANCELAR -> {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AvisoPlazo(
-                        if (horas < 1) "Expira en menos de ${formatoHoras(1.0)}" else "Expira en ${formatoHoras(floor(horas))} si no responde",
+                        if (horas < 1) "Expira en menos de ${formatoHoras(1.0)}" else "Expira en ${formatoHoras(horasEnteras)} si no responde",
                         Modifier.weight(1f),
                         conAire = false,
                         urgente = horas <= HORAS_AVISO_PLAZO

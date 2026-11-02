@@ -30,7 +30,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -117,11 +116,8 @@ fun PantallaDisponibilidad(
     val carga = cargaDe(cargando = diasCargados == null, vacia = dias.isEmpty())
     var enEdicion by rememberSaveable { mutableStateOf<HoraEnEdicion?>(null) }
 
-    val horas = remember(dias) { dias.flatMap { it.horas } }
-    val total = remember(horas) { horas.count { it.seleccionada } }
-    val virtuales = remember(horas) { horas.count { Modalidad.VIRTUAL in it.modalidades } }
-    val presenciales = remember(horas) { horas.count { Modalidad.PRESENCIAL in it.modalidades } }
-    val diasActivos = remember(dias) { dias.count { d -> d.horas.any { it.seleccionada } } }
+    val resumen by viewModel.resumen.collectAsStateWithLifecycle()
+    val (total, virtuales, presenciales, diasActivos) = resumen
 
     Column(Modifier.fillMaxSize()) {
         CabeceraSeccion("Mi disponibilidad", alVolver = alVolver)
@@ -174,7 +170,7 @@ fun PantallaDisponibilidad(
             }
 
             if (carga == Carga.LISTO) items(dias, key = { it.dia }) { dia ->
-                val activas = dia.horas.count { it.seleccionada }
+                val activas = dia.horasActivas
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()

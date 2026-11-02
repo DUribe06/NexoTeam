@@ -37,6 +37,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
@@ -94,6 +95,7 @@ fun Pestanas(
                 color = color,
                 style = MaterialTheme.typography.titleSmall.merge(enfasisSeleccion(activa)),
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .onGloballyPositioned { limites[i] = it.positionInParent().x.roundToInt() to it.size.width }
                     .selectable(selected = activa, role = Role.Tab, onClick = { alElegir(i) })

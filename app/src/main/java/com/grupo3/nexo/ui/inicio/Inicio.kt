@@ -122,6 +122,7 @@ import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.superficiePulsable
 import com.grupo3.nexo.ui.components.universidadCorta
+import com.grupo3.nexo.ui.theme.AltoMinimoTarjetaSesion
 import com.grupo3.nexo.ui.theme.AnilloSobreOscuro
 import com.grupo3.nexo.ui.theme.BordeAcento
 import com.grupo3.nexo.ui.theme.BosqueAcento
@@ -131,12 +132,18 @@ import com.grupo3.nexo.ui.theme.CuerpoNombre
 import com.grupo3.nexo.ui.theme.CuerpoSesion
 import com.grupo3.nexo.ui.theme.CurvaEnfatizada
 import com.grupo3.nexo.ui.theme.Divisor
+import com.grupo3.nexo.ui.theme.DuracionCapaSeApaga
 import com.grupo3.nexo.ui.theme.DuracionLarga
 import com.grupo3.nexo.ui.theme.DuracionNormal
+import com.grupo3.nexo.ui.theme.DuracionPilaAparece
+import com.grupo3.nexo.ui.theme.DuracionPilaEntra
+import com.grupo3.nexo.ui.theme.DuracionPilaSeApaga
+import com.grupo3.nexo.ui.theme.DuracionPilaTamano
 import com.grupo3.nexo.ui.theme.ElevacionTarjeta
 import com.grupo3.nexo.ui.theme.EnfasisFuerte
 import com.grupo3.nexo.ui.theme.EnfasisMedio
 import com.grupo3.nexo.ui.theme.EnfasisNormal
+import com.grupo3.nexo.ui.theme.EscalaPilaSaliente
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioBotonLateral
@@ -171,6 +178,10 @@ import com.grupo3.nexo.ui.theme.Icono26
 import com.grupo3.nexo.ui.theme.IconoSecundario
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.Marcador
+import com.grupo3.nexo.ui.theme.PasoCascadaPila
+import com.grupo3.nexo.ui.theme.RetrasoCapaPila
+import com.grupo3.nexo.ui.theme.RetrasoCascadaPila
+import com.grupo3.nexo.ui.theme.RetrasoPilaAparece
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.SobreOscuroSuave
 import com.grupo3.nexo.ui.theme.SombraAmbiente
@@ -189,19 +200,6 @@ import java.time.LocalDate
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
-
-/* Movimiento de la pila de sesiones: la elegida sube al frente y las demás ceden. */
-private const val PILA_APARECE_MS = 240
-private const val PILA_APARECE_RETRASO_MS = 90
-private const val PILA_ENTRA_MS = 460
-private const val PILA_SE_APAGA_MS = 170
-private const val PILA_TAMANO_MS = 420
-/* Cascada de las capas: espera inicial y retraso entre una capa y la siguiente. */
-private const val CASCADA_RETRASO_MS = 260L
-private const val CASCADA_PASO_MS = 110L
-private const val PILA_ESCALA = .94f
-private const val PILA_CAPA_RETRASO_MS = 80
-private const val PILA_CAPA_SE_APAGA_MS = 140
 
 /* ==================== Pantalla ==================== */
 
@@ -465,7 +463,7 @@ private fun Buscador(alClicar: () -> Unit, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 54.dp)
+            .heightIn(min = AltoMinimoTarjetaSesion)
             .shadow(ElevacionTarjeta, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
             .superficiePulsable(forma, etiqueta = "Buscar tutores", alClicar = alClicar)
             .padding(start = EspacioMargen, end = EspacioBotonLateral)
@@ -563,13 +561,13 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
             targetState = primera,
             // La elegida SUBE desde abajo y crece hasta su sitio; la que estaba al frente BAJA, se achica y se apaga
             transitionSpec = {
-                (fadeIn(tween(PILA_APARECE_MS, delayMillis = PILA_APARECE_RETRASO_MS)) +
-                    slideInVertically(tween(PILA_ENTRA_MS, easing = CurvaEnfatizada)) { it / 4 } +
-                    scaleIn(tween(PILA_ENTRA_MS, easing = CurvaEnfatizada), initialScale = PILA_ESCALA)) togetherWith
-                    (fadeOut(tween(PILA_SE_APAGA_MS)) +
+                (fadeIn(tween(DuracionPilaAparece, delayMillis = RetrasoPilaAparece)) +
+                    slideInVertically(tween(DuracionPilaEntra, easing = CurvaEnfatizada)) { it / 4 } +
+                    scaleIn(tween(DuracionPilaEntra, easing = CurvaEnfatizada), initialScale = EscalaPilaSaliente)) togetherWith
+                    (fadeOut(tween(DuracionPilaSeApaga)) +
                         slideOutVertically(tween(DuracionLarga, easing = CurvaEnfatizada)) { it / 5 } +
-                        scaleOut(tween(DuracionLarga, easing = CurvaEnfatizada), targetScale = PILA_ESCALA)) using
-                    SizeTransform(clip = false) { _, _ -> tween(PILA_TAMANO_MS, easing = CurvaEnfatizada) }
+                        scaleOut(tween(DuracionLarga, easing = CurvaEnfatizada), targetScale = EscalaPilaSaliente)) using
+                    SizeTransform(clip = false) { _, _ -> tween(DuracionPilaTamano, easing = CurvaEnfatizada) }
             },
             label = "sesionFrente"
           ) { primera ->
@@ -667,7 +665,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
             // Cascada: tras la tarjeta principal, cada capa sale de detrás de la anterior con un resorte suave
             var salio by remember { mutableStateOf(false) }
             val reducidas = LocalAnimacionesReducidas.current
-            LaunchedEffect(Unit) { if (!reducidas) delay(CASCADA_RETRASO_MS + n * CASCADA_PASO_MS); salio = true }
+            LaunchedEffect(Unit) { if (!reducidas) delay(RetrasoCascadaPila + n * PasoCascadaPila); salio = true }
             val salida by animateFloatAsState(
                 if (salio) 1f else 0f,
                 resorteCascada(),
@@ -702,8 +700,8 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     targetState = p,
                     // La que llega a la capa viene de arriba (bajó desde el frente); la que sube sale hacia arriba
                     transitionSpec = {
-                        (fadeIn(tween(PILA_APARECE_MS, delayMillis = PILA_CAPA_RETRASO_MS)) + slideInVertically(tween(PILA_TAMANO_MS, easing = CurvaEnfatizada)) { -it / 2 }) togetherWith
-                            (fadeOut(tween(PILA_CAPA_SE_APAGA_MS)) + slideOutVertically(tween(DuracionNormal, easing = CurvaEnfatizada)) { -it / 2 })
+                        (fadeIn(tween(DuracionPilaAparece, delayMillis = RetrasoCapaPila)) + slideInVertically(tween(DuracionPilaTamano, easing = CurvaEnfatizada)) { -it / 2 }) togetherWith
+                            (fadeOut(tween(DuracionCapaSeApaga)) + slideOutVertically(tween(DuracionNormal, easing = CurvaEnfatizada)) { -it / 2 })
                     },
                     label = "capa${n}Contenido"
                 ) { q ->
@@ -838,7 +836,7 @@ private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Mo
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 54.dp)
+            .heightIn(min = AltoMinimoTarjetaSesion)
             .shadow(ElevacionTarjeta, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
             .superficiePulsable(forma, etiqueta = "Ver solicitudes recibidas", alClicar = alRevisar)
             .padding(start = EspacioMargen, end = EspacioBotonLateral)

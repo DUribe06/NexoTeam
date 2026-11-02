@@ -33,5 +33,11 @@ val EspacioIcono: Dp = 5.dp
 val EspacioBotonLateral: Dp = 7.dp
 /** Relleno horizontal de las píldoras con ícono y etiqueta. */
 val EspacioPildora: Dp = 15.dp
+/** Diámetro del avatar en las filas de lista (chats, búsqueda). */
+val TamanoAvatarLista: Dp = 50.dp
 /** Aire bajo los botones de la portada del perfil, antes de la onda. */
 val EspacioPortada: Dp = 72.dp
+/** Separación entre el botón principal y "o conéctate con" en el acceso. */
+val EspacioSeparadorAcceso: Dp = 26.dp
+/** Alto mínimo de la tarjeta de próxima sesión del Inicio. */
+val AltoMinimoTarjetaSesion: Dp = 54.dp
