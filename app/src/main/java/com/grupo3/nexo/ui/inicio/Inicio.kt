@@ -71,7 +71,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -80,30 +82,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.AreaEstudio
-import com.grupo3.nexo.domain.model.DiaSemana
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Rol
-import com.grupo3.nexo.domain.model.Sesion
-import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.model.Usuario
-import com.grupo3.nexo.domain.model.contarPendientes
 import com.grupo3.nexo.domain.model.diasHasta
 import com.grupo3.nexo.domain.model.diasPublicados
 import com.grupo3.nexo.domain.model.fechaCalendario
 import com.grupo3.nexo.domain.model.horaFin
 import com.grupo3.nexo.domain.model.horasPublicadas
 import com.grupo3.nexo.domain.model.primerNombre
-import com.grupo3.nexo.domain.usecase.ObtenerDisponibilidadUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerMisSolicitudesUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerProximasSesionesUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerTutoresUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.ui.components.Avatar
 import com.grupo3.nexo.ui.components.BotonIcono
 import com.grupo3.nexo.ui.components.BotonSecundario
@@ -142,6 +133,7 @@ import com.grupo3.nexo.ui.theme.CurvaEnfatizada
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.DuracionLarga
 import com.grupo3.nexo.ui.theme.DuracionNormal
+import com.grupo3.nexo.ui.theme.ElevacionTarjeta
 import com.grupo3.nexo.ui.theme.EnfasisFuerte
 import com.grupo3.nexo.ui.theme.EnfasisMedio
 import com.grupo3.nexo.ui.theme.EnfasisNormal
@@ -193,68 +185,10 @@ import com.grupo3.nexo.ui.theme.TintePilaLejos
 import com.grupo3.nexo.ui.theme.TituloMateria
 import com.grupo3.nexo.ui.theme.pincelBosque
 import com.grupo3.nexo.ui.theme.resorteCascada
-import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
-import javax.inject.Inject
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.stateIn
 
-/* ==================== ViewModel ==================== */
-
-@HiltViewModel
-class InicioViewModel @Inject constructor(
-    obtenerTutores: ObtenerTutoresUseCase,
-    obtenerProximas: ObtenerProximasSesionesUseCase,
-    obtenerUsuario: ObtenerUsuarioUseCase,
-    obtenerMisSolicitudes: ObtenerMisSolicitudesUseCase,
-    obtenerDisponibilidad: ObtenerDisponibilidadUseCase
-) : ViewModel() {
-
-    /** Sesión próxima resuelta con el id del tutor para abrir su chat. */
-    data class SesionProxima(val sesion: Sesion, val tutorId: String?, val tutor: Tutor? = null)
-
-    data class Estado(
-        val cargando: Boolean = true,
-        val usuario: Usuario? = null,
-        val proximas: List<SesionProxima> = emptyList(),
-        /** Modo tutor: solicitudes recibidas sin responder. Modo estudiante: enviadas sin respuesta. */
-        val pendientes: Int = 0,
-        /** Modo tutor: horas publicadas por semana y días con al menos una (RF7). */
-        val horasPublicadas: Int = 0,
-        val diasPublicados: List<DiaSemana> = emptyList(),
-        /** Modo tutor: tema que pidió el estudiante para la próxima sesión (RF5). */
-        val temaProximo: String? = null
-    ) {
-        val esTutor get() = usuario?.rol == Rol.TUTOR
-    }
-
-    val estado = combine(
-        obtenerTutores(),
-        // Las sesiones llegan del servidor: mientras tanto se emite null y la tarjeta muestra su esqueleto,
-        // sin retener el saludo ni la insignia de pendientes, que ya están disponibles
-        obtenerProximas().map<List<Sesion>, List<Sesion>?> { it }.onStart { emit(null) },
-        obtenerUsuario(),
-        obtenerMisSolicitudes(),
-        obtenerDisponibilidad()
-    ) { tutores, proximas, usuario, solicitudes, dias ->
-        Estado(
-            horasPublicadas = dias.horasPublicadas,
-            diasPublicados = dias.diasPublicados,
-            cargando = proximas == null,
-            usuario = usuario,
-            proximas = proximas.orEmpty().map { sesion ->
-                SesionProxima(sesion, sesion.contraparteId, tutores.find { !sesion.comoTutor && it.id == sesion.contraparteId })
-            },
-            pendientes = solicitudes.contarPendientes(),
-            temaProximo = proximas?.firstOrNull()?.solicitudId?.let { id -> solicitudes.find { it.id == id }?.tema },
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
-}
 
 /* Movimiento de la pila de sesiones: la elegida sube al frente y las demás ceden. */
 private const val PILA_APARECE_MS = 240
@@ -262,6 +196,9 @@ private const val PILA_APARECE_RETRASO_MS = 90
 private const val PILA_ENTRA_MS = 460
 private const val PILA_SE_APAGA_MS = 170
 private const val PILA_TAMANO_MS = 420
+/* Cascada de las capas: espera inicial y retraso entre una capa y la siguiente. */
+private const val CASCADA_RETRASO_MS = 260L
+private const val CASCADA_PASO_MS = 110L
 private const val PILA_ESCALA = .94f
 private const val PILA_CAPA_RETRASO_MS = 80
 private const val PILA_CAPA_SE_APAGA_MS = 140
@@ -447,7 +384,8 @@ private fun Cabecera(
                     .fillMaxWidth()
                     .padding(start = EspacioMargen, end = EspacioMedio, top = EspacioCorto)
             ) {
-                MarcaComelon(comelon)
+                // Para TalkBack el logo es "Nexo", no la palabra letra por letra
+                MarcaComelon(comelon, Modifier.clearAndSetSemantics { contentDescription = "Nexo" })
                 Spacer(Modifier.weight(1f))
                 BotonIcono(
                     ImageVector.vectorResource(R.drawable.ph_campana),
@@ -528,7 +466,7 @@ private fun Buscador(alClicar: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 54.dp)
-            .shadow(14.dp, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
+            .shadow(ElevacionTarjeta, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
             .superficiePulsable(forma, etiqueta = "Buscar tutores", alClicar = alClicar)
             .padding(start = EspacioMargen, end = EspacioBotonLateral)
     ) {
@@ -605,11 +543,13 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
     val formaFrente = FormaOrganica
     // Las capas se montan 12 dp bajo la tarjeta con espaciado negativo (no recortando su alto): así cada
     // una conserva su área de toque completa y, donde se solapan, gana la de arriba (zIndex).
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy((-12).dp)) {
+    // TalkBack lee primero la tarjeta del frente y después las capas de atrás
+    Column(Modifier.fillMaxWidth().semantics { isTraversalGroup = true }, verticalArrangement = Arrangement.spacedBy((-12).dp)) {
         // Sin sombra (la única sombra de la pantalla es la del buscador): el borde fino la recorta del fondo
         Column(
             Modifier
                 .zIndex(3f)
+                .semantics { traversalIndex = -1f }
                 .fillMaxWidth()
                 // Toda la tarjeta se hunde al presionar y abre el chat, igual que su botón
                 .then(
@@ -727,7 +667,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
             // Cascada: tras la tarjeta principal, cada capa sale de detrás de la anterior con un resorte suave
             var salio by remember { mutableStateOf(false) }
             val reducidas = LocalAnimacionesReducidas.current
-            LaunchedEffect(Unit) { if (!reducidas) delay(260L + n * 110L); salio = true }
+            LaunchedEffect(Unit) { if (!reducidas) delay(CASCADA_RETRASO_MS + n * CASCADA_PASO_MS); salio = true }
             val salida by animateFloatAsState(
                 if (salio) 1f else 0f,
                 resorteCascada(),
@@ -899,7 +839,7 @@ private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Mo
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 54.dp)
-            .shadow(14.dp, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
+            .shadow(ElevacionTarjeta, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
             .superficiePulsable(forma, etiqueta = "Ver solicitudes recibidas", alClicar = alRevisar)
             .padding(start = EspacioMargen, end = EspacioBotonLateral)
     ) {

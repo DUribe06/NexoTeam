@@ -135,6 +135,7 @@ import com.grupo3.nexo.ui.theme.GrisEstadoSuave
 import com.grupo3.nexo.ui.theme.Icono17
 import com.grupo3.nexo.ui.theme.Icono19
 import com.grupo3.nexo.ui.theme.IconoAccion
+import com.grupo3.nexo.ui.theme.IconoCampoReposo
 import com.grupo3.nexo.ui.theme.IconoCuerpo
 import com.grupo3.nexo.ui.theme.IconoGrande
 import com.grupo3.nexo.ui.theme.IconoNormal
@@ -155,10 +156,12 @@ import com.grupo3.nexo.ui.theme.RellenoTenue
 import com.grupo3.nexo.ui.theme.Rojo
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.Superficie
+import com.grupo3.nexo.ui.theme.TextoOpcionReposo
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
+import com.grupo3.nexo.ui.theme.VeloBarraEstado
 import com.grupo3.nexo.ui.theme.VerdeEstado
 import com.grupo3.nexo.ui.theme.enfasisSeleccion
 import com.grupo3.nexo.ui.theme.especAparicion
@@ -400,14 +403,15 @@ fun BotonSecundario(
 
 /** Acción de texto (enlaces como "Ver todo"), con área táctil de 48 dp. */
 @Composable
-fun BotonTexto(texto: String, alClicar: () -> Unit, modifier: Modifier = Modifier, color: Color = BosqueAcento) {
+fun BotonTexto(texto: String, alClicar: () -> Unit, modifier: Modifier = Modifier, color: Color = BosqueAcento, accion: String? = null) {
     Text(
         texto,
         color = color,
         style = MaterialTheme.typography.titleSmall,
         modifier = modifier
             .clip(FormaOpcion)
-            .clickable(role = Role.Button, onClick = alClicar)
+            // [accion] completa lo que TalkBack dice tras "doble toque para…" ("rechazar la solicitud de Ana")
+            .clickable(role = Role.Button, onClickLabel = accion, onClick = alClicar)
             .heightIn(min = 48.dp)
             .padding(horizontal = EspacioMedio, vertical = EspacioCercano)
     )
@@ -423,7 +427,8 @@ fun BotonTonal(
     alClicar: () -> Unit,
     modifier: Modifier = Modifier,
     icono: ImageVector? = null,
-    colorIcono: Color = BosqueAcento
+    colorIcono: Color = BosqueAcento,
+    accion: String? = null
 ) {
     // Se ve de 40 dp pero se toca en 48: el área extra sobresale sin mover el diseño
     Box(
@@ -432,7 +437,7 @@ fun BotonTonal(
             .areaTactilSinCambiarMedida()
             .heightIn(min = 48.dp)
             .clip(FormaControl)
-            .clickable(role = Role.Button, onClick = alClicar)
+            .clickable(role = Role.Button, onClickLabel = accion, onClick = alClicar)
     ) {
         Row(
             horizontalArrangement = Arrangement.Center,
@@ -567,7 +572,7 @@ fun Campo(
     )
     val grosorBorde by animateDpAsState(if (enfocado) 1.5.dp else 1.dp, especColor(), label = "grosor")
     val colorIcono by animateColorAsState(
-        if (enfocado) BosqueAcento else Bosque.copy(alpha = 0.45f), especColor(), label = "icono"
+        if (enfocado) BosqueAcento else IconoCampoReposo, especColor(), label = "icono"
     )
     val multilinea = lineasMaximas > 1
     val forma = FormaControl
@@ -678,7 +683,7 @@ fun FiltroOpcion(
         }
         Text(
             texto,
-            color = if (seleccionado) BosqueProfundo else BosqueProfundo.copy(alpha = 0.78f),
+            color = if (seleccionado) BosqueProfundo else TextoOpcionReposo,
             style = MaterialTheme.typography.titleSmall.merge(enfasisSeleccion(seleccionado)),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
@@ -1103,7 +1108,7 @@ fun VeloBarraEstado(visible: Boolean, modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .windowInsetsTopHeight(WindowInsets.statusBars)
             .graphicsLayer { alpha = opacidad }
-            .background(Lienzo.copy(alpha = 0.96f))
+            .background(VeloBarraEstado)
     )
 }
 

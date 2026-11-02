@@ -67,6 +67,7 @@ import com.grupo3.nexo.ui.theme.RellenoTenue
 import com.grupo3.nexo.ui.theme.Salvia
 import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TrazoEslabon
+import com.grupo3.nexo.ui.theme.SombraBarra
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -436,7 +437,7 @@ fun BarraNavegacion(
                 Paint().asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.WHITE
-                    setShadowLayer(14f * dp, 0f, -2f * dp, BosqueProfundo.copy(alpha = 0.09f).toArgb())
+                    setShadowLayer(14f * dp, 0f, -2f * dp, SombraBarra.toArgb())
                 }
             }
             Canvas(Modifier.fillMaxSize()) {

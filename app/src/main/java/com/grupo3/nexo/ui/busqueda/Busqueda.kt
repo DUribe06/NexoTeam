@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -51,16 +52,11 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.model.AreaEstudio
 import com.grupo3.nexo.domain.model.Franja
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Tutor
-import com.grupo3.nexo.domain.usecase.BuscarTutoresUseCase
-import com.grupo3.nexo.domain.usecase.FiltroTutores
 import com.grupo3.nexo.ui.components.Avatar
 import com.grupo3.nexo.ui.components.BotonIcono
 import com.grupo3.nexo.ui.components.BotonPrimario
@@ -88,7 +84,6 @@ import com.grupo3.nexo.ui.components.icono
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.universidadCorta
-import com.grupo3.nexo.ui.navigation.Rutas
 import com.grupo3.nexo.ui.theme.BordeRadio
 import com.grupo3.nexo.ui.theme.BordeSeleccion
 import com.grupo3.nexo.ui.theme.BosqueAcento
@@ -114,15 +109,6 @@ import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
 import com.grupo3.nexo.ui.theme.cambioContenido
 import com.grupo3.nexo.ui.theme.enfasisSeleccion
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 
 /**
  * Alias temporal: [AreaEstudio] pasó a `domain.model`. Solicitudes.kt aún lo importa desde aquí;
@@ -130,61 +116,6 @@ import kotlinx.coroutines.flow.update
  */
 typealias AreaEstudio = com.grupo3.nexo.domain.model.AreaEstudio
 
-/* ==================== ViewModel ==================== */
-
-@OptIn(ExperimentalCoroutinesApi::class)
-@HiltViewModel
-class BusquedaViewModel @Inject constructor(
-    buscarTutores: BuscarTutoresUseCase,
-    estadoGuardado: SavedStateHandle
-) : ViewModel() {
-
-    data class Estado(
-        val consulta: String = "",
-        val area: AreaEstudio? = null,
-        val modalidad: Modalidad? = null,
-        val franja: Franja? = null,
-        val soloEnLinea: Boolean = false,
-        val resultados: List<Tutor> = emptyList(),
-        val cargando: Boolean = true
-    ) {
-        /** Filtros de la hoja (no cuenta texto ni área, que están a la vista). */
-        val filtrosHoja get() = listOf(modalidad != null, franja != null, soloEnLinea).count { it }
-        val hayFiltros get() = consulta.isNotBlank() || area != null || filtrosHoja > 0
-    }
-
-    private val consulta = MutableStateFlow("")
-    private val area = MutableStateFlow(AreaEstudio.desde(estadoGuardado.get<String>(Rutas.Busqueda.ARG_AREA)))
-    private val modalidad = MutableStateFlow<Modalidad?>(null)
-    private val franja = MutableStateFlow<Franja?>(null)
-    private val soloEnLinea = MutableStateFlow(false)
-
-    private val filtro = combine(consulta, area, modalidad, franja, soloEnLinea) { q, a, m, f, l ->
-        FiltroTutores(consulta = q, materias = a?.claves.orEmpty(), modalidad = m, franja = f, soloEnLinea = l)
-    }
-
-    val estado = combine(
-        combine(consulta, area, modalidad, franja, soloEnLinea) { q, a, m, f, l -> Estado(q, a, m, f, l) },
-        filtro.flatMapLatest { buscarTutores(it) }
-    ) { base, resultados -> base.copy(resultados = resultados, cargando = false) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
-
-    fun cambiarConsulta(valor: String) { consulta.value = valor }
-    fun alternarArea(valor: AreaEstudio) { area.update { if (it == valor) null else valor } }
-    fun elegirModalidad(valor: Modalidad?) { modalidad.value = valor }
-    fun elegirFranja(valor: Franja?) { franja.value = valor }
-    fun cambiarEnLinea(valor: Boolean) { soloEnLinea.value = valor }
-    fun limpiarHoja() {
-        modalidad.value = null
-        franja.value = null
-        soloEnLinea.value = false
-    }
-    fun limpiarTodo() {
-        consulta.value = ""
-        area.value = null
-        limpiarHoja()
-    }
-}
 
 /* ==================== Pantalla ==================== */
 
@@ -419,10 +350,13 @@ fun FilaTutor(tutor: Tutor, alAbrir: () -> Unit, modifier: Modifier = Modifier) 
             .clickable(onClickLabel = "Ver perfil de ${tutor.nombre}", role = Role.Button, onClick = alAbrir)
             .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
     ) {
-        Avatar(tutor.nombre, tamano = 50.dp, enLinea = tutor.enLinea)
+        Avatar(tutor.nombre, tamano = 50.dp, enLinea = tutor.enLinea, anunciarEstado = false)
         Spacer(Modifier.width(EspacioNormal))
         Column(Modifier.weight(1f)) {
-            TextoLinea(tutor.nombre, MaterialTheme.typography.titleMedium, TextoPrimario)
+            TextoLinea(
+                tutor.nombre, MaterialTheme.typography.titleMedium, TextoPrimario,
+                Modifier.semantics { contentDescription = "${tutor.nombre}, ${if (tutor.enLinea) "en línea" else "desconectado"}" }
+            )
             TextoLinea(tutor.materias.joinToString(" · "), MaterialTheme.typography.bodyMedium, TextoSecundario)
             Text(
                 listOf(universidadCorta(tutor.universidad), tutor.modalidades.descripcion()).joinToString(" · "),

@@ -73,6 +73,8 @@ import kotlinx.coroutines.delay
 
 /** Espera de la barra tras el acceso, para que entre cuando ya asentó el Inicio. */
 private const val RetrasoBarraTrasAcceso = 320
+/** Espera antes de dar por terminada la llegada desde el acceso. */
+private const val RetrasoReinicioTrasAcceso = 800L
 
 private val ordenPestanas = listOf(Rutas.Inicio.ruta, Rutas.Solicitudes.ruta, Rutas.Chat.ruta, Rutas.Perfil.ruta)
 
@@ -137,7 +139,7 @@ fun NexoApp() {
     var vieneDelAcceso by remember { mutableStateOf(false) }
     LaunchedEffect(mostrarBarra) {
         if (mostrarBarra && vieneDelAcceso) {
-            delay(800)
+            delay(RetrasoReinicioTrasAcceso)
             vieneDelAcceso = false
         }
     }

@@ -54,24 +54,11 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.model.Chat
 import com.grupo3.nexo.domain.model.EstadoSesion
 import com.grupo3.nexo.domain.model.Mensaje
-import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Sesion
-import com.grupo3.nexo.domain.usecase.CalificarSesionUseCase
-import com.grupo3.nexo.domain.usecase.EnviarMensajeUseCase
-import com.grupo3.nexo.domain.usecase.MarcarChatLeidoUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerChatsUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerMensajesUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerSesionDeConversacionUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerSesionesDelModoUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerTutoresUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.ui.components.Avatar
 import com.grupo3.nexo.ui.components.BotonIcono
 import com.grupo3.nexo.ui.components.BotonSecundario
@@ -94,7 +81,6 @@ import com.grupo3.nexo.ui.components.filaAgrupada
 import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
-import com.grupo3.nexo.ui.navigation.Rutas
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
@@ -120,6 +106,8 @@ import com.grupo3.nexo.ui.theme.Icono20
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.Menta
 import com.grupo3.nexo.ui.theme.MielFuerte
+import com.grupo3.nexo.ui.theme.RadioBurbuja
+import com.grupo3.nexo.ui.theme.RadioBurbujaCola
 import com.grupo3.nexo.ui.theme.RellenoTenue
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.Superficie
@@ -129,93 +117,8 @@ import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.VerdeEstado
 import com.grupo3.nexo.ui.theme.cambioContenido
 import com.grupo3.nexo.ui.theme.resorteRebote
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
-/* ==================== ViewModels ==================== */
 
-@HiltViewModel
-class ChatsViewModel @Inject constructor(
-    obtenerChats: ObtenerChatsUseCase,
-    obtenerUsuario: ObtenerUsuarioUseCase
-) : ViewModel() {
-    data class Estado(val cargando: Boolean = true, val chats: List<Chat> = emptyList(), val esTutor: Boolean = false)
-
-    val estado = combine(obtenerChats(), obtenerUsuario()) { chats, usuario ->
-        Estado(cargando = false, chats = chats, esTutor = usuario.rol == Rol.TUTOR)
-    }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
-}
-
-@OptIn(ExperimentalCoroutinesApi::class)
-@HiltViewModel
-class ConversacionViewModel @Inject constructor(
-    obtenerChats: ObtenerChatsUseCase,
-    obtenerMensajes: ObtenerMensajesUseCase,
-    obtenerTutores: ObtenerTutoresUseCase,
-    obtenerSesiones: ObtenerSesionesDelModoUseCase,
-    private val calificarSesion: CalificarSesionUseCase,
-    private val sesionDeConversacion: ObtenerSesionDeConversacionUseCase,
-    private val enviarMensaje: EnviarMensajeUseCase,
-    private val marcarLeido: MarcarChatLeidoUseCase,
-    estadoGuardado: SavedStateHandle
-) : ViewModel() {
-
-    data class Estado(
-        val cargando: Boolean = true,
-        val nombre: String = "",
-        val enLinea: Boolean = false,
-        val soloLectura: Boolean = false,
-        val mensajes: List<Mensaje> = emptyList(),
-        /** Sesión de la conversación: la próxima si hay una agendada; si no, la más reciente (RF8, RF9). */
-        val sesion: Sesion? = null,
-        val esTutor: Boolean = false
-    )
-
-    private val chatId = MutableStateFlow(estadoGuardado.get<String>(Rutas.Conversacion.ARG_CHAT).orEmpty())
-
-    val estado = combine(
-        chatId,
-        chatId.flatMapLatest { obtenerMensajes(it) },
-        obtenerChats(),
-        obtenerTutores(),
-        obtenerSesiones()
-    ) { id, mensajes, chats, tutores, sesiones ->
-        val chat = chats.firstOrNull { it.id == id }
-        val tutor = tutores.firstOrNull { it.id == id }
-        val sesion = sesionDeConversacion(sesiones, id, chat?.soloLectura ?: false)
-        Estado(
-            cargando = id.isEmpty(),
-            nombre = chat?.nombre ?: tutor?.nombre.orEmpty(),
-            enLinea = chat?.enLinea ?: tutor?.enLinea ?: false,
-            soloLectura = chat?.soloLectura ?: false,
-            mensajes = mensajes,
-            sesion = sesion,
-            esTutor = chat?.comoTutor ?: false
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
-
-    init {
-        chatId.value.takeIf { it.isNotEmpty() }?.let { id -> viewModelScope.launch { marcarLeido(id) } }
-    }
-
-    fun calificar(sesionId: String, estrellas: Int, comentario: String?) {
-        viewModelScope.launch { calificarSesion(sesionId, estrellas, comentario) }
-    }
-
-    fun enviar(texto: String) {
-        val limpio = texto.trim()
-        if (limpio.isEmpty() || chatId.value.isEmpty() || estado.value.soloLectura) return
-        viewModelScope.launch { enviarMensaje(chatId.value, limpio) }
-    }
-}
 
 /* ==================== Bandeja de chats ==================== */
 
@@ -294,11 +197,15 @@ private fun FilaChat(chat: Chat, alAbrir: () -> Unit, modifier: Modifier = Modif
             .clickable(onClickLabel = "Abrir chat con ${chat.nombre}", role = Role.Button, onClick = alAbrir)
             .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
     ) {
-        Avatar(chat.nombre, tamano = 50.dp, enLinea = chat.enLinea)
+        // TalkBack dice primero el nombre y luego si está en línea
+        Avatar(chat.nombre, tamano = 50.dp, enLinea = chat.enLinea, anunciarEstado = false)
         Spacer(Modifier.width(EspacioNormal))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TextoLinea(chat.nombre, MaterialTheme.typography.titleMedium, TextoPrimario, Modifier.weight(1f))
+                TextoLinea(
+                    chat.nombre, MaterialTheme.typography.titleMedium, TextoPrimario,
+                    Modifier.weight(1f).semantics { contentDescription = "${chat.nombre}, ${if (chat.enLinea) "en línea" else "desconectado"}" }
+                )
                 Spacer(Modifier.width(EspacioCorto))
                 Text(
                     formatoFecha(chat.hora),
@@ -342,10 +249,6 @@ private val respuestasRapidas = listOf(
     "¿Cuánto dura una sesión?",
     "¿Podemos repasar para el parcial?"
 )
-
-/** Esquinas de la burbuja: redondeada en general y casi recta en la "cola" y en los mensajes agrupados. */
-private val RadioBurbuja = 16.dp
-private val RadioBurbujaCola = 4.dp
 
 /** Anchos relativos de las burbujas del esqueleto; alternan izquierda (recibido) y derecha (enviado). */
 private val anchosEsqueletoBurbujas = listOf(0.6f, 0.45f, 0.7f, 0.5f)
@@ -421,7 +324,7 @@ fun PantallaConversacion(
         ) {
             BotonIcono(IconosNexo.Atras, "Volver", alVolver)
             Spacer(Modifier.width(EspacioFino))
-            Avatar(estado.nombre.ifBlank { "Nexo" }, tamano = 42.dp, enLinea = estado.enLinea)
+            Avatar(estado.nombre.ifBlank { "Nexo" }, tamano = 42.dp, enLinea = estado.enLinea, anunciarEstado = false)
             Spacer(Modifier.width(EspacioMedio))
             Column(Modifier.weight(1f)) {
                 TextoLinea(estado.nombre, MaterialTheme.typography.titleMedium, TextoPrimario, Modifier.semantics { heading() })

@@ -57,6 +57,7 @@ import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
+import com.grupo3.nexo.ui.theme.VeloHoja
 
 /**
  * Hoja inferior de la app: blanca, esquinas de [FormaHoja], asa discreta,
@@ -77,7 +78,7 @@ fun HojaNexo(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Superficie,
         contentColor = TextoPrimario,
-        scrimColor = BosqueProfundo.copy(alpha = 0.45f),
+        scrimColor = VeloHoja,
         shape = FormaHoja,
         dragHandle = {
             Box(

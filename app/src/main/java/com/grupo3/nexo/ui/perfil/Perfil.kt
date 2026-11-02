@@ -59,19 +59,12 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.ResumenActividad
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Usuario
-import com.grupo3.nexo.domain.usecase.CambiarModoUseCase
-import com.grupo3.nexo.domain.usecase.CerrarSesionUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerMisResenasUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerResumenActividadUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.ui.components.BotonTexto
 import com.grupo3.nexo.ui.components.CabeceraBosque
 import com.grupo3.nexo.ui.components.Carga
@@ -140,41 +133,8 @@ import com.grupo3.nexo.ui.theme.cambioContenido
 import com.grupo3.nexo.ui.theme.especColor
 import com.grupo3.nexo.ui.theme.pincelBosque
 import com.grupo3.nexo.ui.theme.resorteIndicador
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import com.grupo3.nexo.ui.theme.ElevacionTarjeta
 
-/* ==================== ViewModel ==================== */
-
-@HiltViewModel
-class PerfilViewModel @Inject constructor(
-    obtenerUsuario: ObtenerUsuarioUseCase,
-    obtenerResumen: ObtenerResumenActividadUseCase,
-    obtenerMisResenas: ObtenerMisResenasUseCase,
-    private val cambiarModo: CambiarModoUseCase,
-    private val cerrarSesion: CerrarSesionUseCase
-) : ViewModel() {
-
-    data class Estado(
-        val usuario: Usuario,
-        /** null mientras llegan las sesiones: las cifras muestran guiones en vez de ceros falsos. */
-        val resumen: ResumenActividad? = null,
-        val resenas: List<Resena> = emptyList()
-    ) {
-        val esTutor get() = usuario.rol == Rol.TUTOR
-    }
-
-    private val usuario = obtenerUsuario()
-
-    val estado = combine(usuario, obtenerResumen(), obtenerMisResenas()) { u, resumen, resenas ->
-        Estado(u, resumen, resenas)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado(usuario.value))
-
-    fun elegirModo(rol: Rol) = cambiarModo(rol)
-    fun salir() = cerrarSesion()
-}
 
 /* ==================== Pantalla ==================== */
 
@@ -626,7 +586,7 @@ private fun SelectorModo(actual: Rol, alElegir: (Rol) -> Unit, modifier: Modifie
         modifier = modifier
             .fillMaxWidth()
             .height(54.dp)
-            .shadow(14.dp, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
+            .shadow(ElevacionTarjeta, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
             .superficie(forma)
             .padding(EspacioFino)
     ) {

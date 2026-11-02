@@ -28,3 +28,9 @@ val FormaCampoAlto = RoundedCornerShape(27.dp)
 val FormaHoja = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
 /** Capas apiladas bajo la tarjeta de sesión. */
 val FormaCapaInferior = RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp)
+
+/** Elevación de las tarjetas principales (sesión del Inicio, avatar del Perfil). */
+val ElevacionTarjeta = 14.dp
+/** Esquinas de la burbuja de chat: redondeada en general y casi recta en la "cola" y en los mensajes agrupados. */
+val RadioBurbuja = 16.dp
+val RadioBurbujaCola = 4.dp

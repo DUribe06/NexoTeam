@@ -154,3 +154,34 @@ val BordeRojoSalir = RojoSuave.copy(alpha = 0.28f)
 val SobreOscuroSuave = SobreOscuro.copy(alpha = 0.88f)
 /** Anillo del avatar sobre la foto de la cabecera. */
 val AnilloSobreOscuro = SobreOscuro.copy(alpha = 0.9f)
+
+/* Ajustes de transparencia de componentes y del acceso (cada uno sobre su color base). */
+/** Sombra de la barra de navegación inferior. */
+val SombraBarra = BosqueProfundo.copy(alpha = 0.09f)
+/** Fondo oscurecido tras las hojas inferiores. */
+val VeloHoja = BosqueProfundo.copy(alpha = 0.45f)
+/** Ícono de un campo de texto sin foco. */
+val IconoCampoReposo = Bosque.copy(alpha = 0.45f)
+/** Texto de una opción sin seleccionar. */
+val TextoOpcionReposo = BosqueProfundo.copy(alpha = 0.78f)
+/** Velo bajo la barra de estado cuando el contenido se desplaza. */
+val VeloBarraEstado = Lienzo.copy(alpha = 0.96f)
+/** Velo de la foto del acceso: arriba, centro y abajo. */
+val VeloAccesoArriba = BosqueProfundo.copy(alpha = 0.60f)
+val VeloAccesoCentro = BosqueProfundo.copy(alpha = 0.25f)
+val VeloAccesoAbajo = BosqueProfundo.copy(alpha = 0.55f)
+/** Sombra puntual de la tarjeta del logo del acceso. */
+val SombraPuntualLogoAcceso = BosqueProfundo.copy(alpha = 0.35f)
+/** Borde de la tarjeta del logo del acceso. */
+val BordeLogoAcceso = Superficie.copy(alpha = 0.95f)
+/** Ícono de los campos del acceso sin foco. */
+val IconoCampoAcceso = Bosque.copy(alpha = 0.55f)
+/** Sombras de los campos del acceso. */
+val SombraAmbienteCampoAcceso = BosqueProfundo.copy(alpha = 0.4f)
+val SombraPuntualCampoAcceso = BosqueProfundo.copy(alpha = 0.18f)
+/** Sombra puntual del botón principal del acceso. */
+val SombraPuntualBotonAcceso = BosqueProfundo.copy(alpha = 0.6f)
+/** Líneas a los lados de "O conéctate con". */
+val LineaSeparadorAcceso = Bosque.copy(alpha = 0.15f)
+/** Contorno del botón de Google. */
+val BordeBotonGoogle = Bosque.copy(alpha = 0.18f)

@@ -50,6 +50,8 @@ import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.SuperficieClara
 import com.grupo3.nexo.ui.theme.TinteBosque
 import com.grupo3.nexo.ui.theme.especPulso
+import com.grupo3.nexo.ui.theme.TintePilaCerca
+import com.grupo3.nexo.ui.theme.TintePilaLejos
 
 /*
  * Esqueletos de carga: siluetas con la forma del contenido que viene, mientras llegan los datos.
@@ -151,7 +153,7 @@ fun SesionEsqueleto(modifier: Modifier = Modifier, capas: Int = 2) {
                     .fillMaxWidth()
                     .height(if (n == 0) 46.dp else 44.dp)
                     .background(
-                        TinteBosque.copy(alpha = if (n == 0) 0.62f else 0.34f),
+                        if (n == 0) TintePilaCerca else TintePilaLejos,
                         FormaCapaInferior
                     )
             )

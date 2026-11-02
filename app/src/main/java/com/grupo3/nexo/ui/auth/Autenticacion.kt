@@ -99,14 +99,8 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.R
-import com.grupo3.nexo.domain.usecase.IniciarSesionGoogleUseCase
-import com.grupo3.nexo.domain.usecase.IniciarSesionUseCase
-import com.grupo3.nexo.domain.usecase.RegistrarseUseCase
-import com.grupo3.nexo.domain.usecase.ValidarAccesoUseCase
 import com.grupo3.nexo.ui.components.BotonPrimario
 import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
@@ -153,79 +147,31 @@ import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TituloMarca
 import com.grupo3.nexo.ui.theme.pincelBosque
 import com.grupo3.nexo.ui.theme.resorteRebote
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import com.grupo3.nexo.ui.theme.VeloAccesoArriba
+import com.grupo3.nexo.ui.theme.VeloAccesoCentro
+import com.grupo3.nexo.ui.theme.VeloAccesoAbajo
+import com.grupo3.nexo.ui.theme.SombraPuntualLogoAcceso
+import com.grupo3.nexo.ui.theme.BordeLogoAcceso
+import com.grupo3.nexo.ui.theme.BordeSeleccion
+import com.grupo3.nexo.ui.theme.BordeSutil
+import com.grupo3.nexo.ui.theme.IconoCampoAcceso
+import com.grupo3.nexo.ui.theme.SombraAmbienteCampoAcceso
+import com.grupo3.nexo.ui.theme.SombraPuntualCampoAcceso
+import com.grupo3.nexo.ui.theme.SombraPuntualBotonAcceso
+import com.grupo3.nexo.ui.theme.LineaSeparadorAcceso
+import com.grupo3.nexo.ui.theme.BordeBotonGoogle
 import kotlinx.coroutines.launch
 
-/* ==================== ViewModel ==================== */
-
-@HiltViewModel
-class LoginViewModel @Inject constructor(
-    private val iniciarSesion: IniciarSesionUseCase,
-    private val registrarse: RegistrarseUseCase,
-    private val iniciarSesionGoogle: IniciarSesionGoogleUseCase,
-    private val validarAcceso: ValidarAccesoUseCase
-) : ViewModel() {
-
-    data class Estado(
-        val nombre: String = "",
-        val correo: String = "",
-        val contrasena: String = "",
-        val aceptaCondiciones: Boolean = false,
-        val esRegistro: Boolean = false,
-        val cargando: Boolean = false,
-        val error: String? = null,
-        val autenticado: Boolean = false
-    )
-
-    private val _estado = MutableStateFlow(Estado())
-    val estado = _estado.asStateFlow()
-
-    fun cambiarNombre(valor: String) = _estado.update { it.copy(nombre = valor, error = null) }
-    fun cambiarCorreo(valor: String) = _estado.update { it.copy(correo = valor.trim(), error = null) }
-    fun cambiarContrasena(valor: String) = _estado.update { it.copy(contrasena = valor, error = null) }
-    fun cambiarCondiciones(valor: Boolean) = _estado.update { it.copy(aceptaCondiciones = valor, error = null) }
-
-    fun alternarModo() = _estado.update { it.copy(esRegistro = !it.esRegistro, error = null) }
-
-    fun entrar() {
-        val e = _estado.value
-        if (e.cargando) return
-        val error = validarAcceso(e.esRegistro, e.nombre, e.correo, e.contrasena, e.aceptaCondiciones)
-        if (error != null) {
-            _estado.update { it.copy(error = error) }
-            return
-        }
-        viewModelScope.launch {
-            _estado.update { it.copy(cargando = true) }
-            val exito = if (e.esRegistro) registrarse(e.nombre.trim(), e.correo, e.contrasena)
-                        else iniciarSesion(e.correo, e.contrasena)
-            _estado.update {
-                it.copy(
-                    cargando = false,
-                    autenticado = exito,
-                    error = if (exito) null else "No pudimos validar tus datos. Revisa el correo y la contraseña."
-                )
-            }
-        }
-    }
-
-    fun entrarGoogle() {
-        if (_estado.value.cargando) return
-        viewModelScope.launch {
-            _estado.update { it.copy(cargando = true, error = null) }
-            iniciarSesionGoogle()
-            _estado.update { it.copy(cargando = false, autenticado = true) }
-        }
-    }
-
-    fun consumirNavegacion() = _estado.update { it.copy(autenticado = false) }
-}
-
 /* ==================== Pantalla ==================== */
+
+/* Tiempos propios del acceso (ms). */
+private const val DURACION_ZOOM_PORTADA_MS = 18_000
+private const val DURACION_FLOTACION_LOGO_MS = 3_000
+private const val DURACION_APLASTE_LOGO_MS = 90
+private const val DURACION_ENTRA_BOTON_MS = 180
+private const val DURACION_ENTRADA_MS = 520
+private const val ENTRADA_RETRASO_MS = 80
+private const val ENTRADA_PASO_MS = 70
 
 /**
  * Acceso a Nexo: registro con nombre, correo y contraseña,
@@ -483,7 +429,7 @@ private fun Portada() {
     val zoom = if (LocalAnimacionesReducidas.current) 1f else rememberInfiniteTransition(label = "portada").animateFloat(
         initialValue = 1f,
         targetValue = 1.07f,
-        animationSpec = infiniteRepeatable(tween(18_000, easing = LinearEasing), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(DURACION_ZOOM_PORTADA_MS, easing = LinearEasing), RepeatMode.Reverse),
         label = "zoom"
     ).value
     Box(
@@ -510,9 +456,9 @@ private fun Portada() {
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            BosqueProfundo.copy(alpha = 0.60f),
-                            BosqueProfundo.copy(alpha = 0.25f),
-                            BosqueProfundo.copy(alpha = 0.55f)
+                            VeloAccesoArriba,
+                            VeloAccesoCentro,
+                            VeloAccesoAbajo
                         )
                     )
                 )
@@ -534,7 +480,7 @@ private fun InsigniaLogo(modifier: Modifier = Modifier) {
     val flotacion = if (LocalAnimacionesReducidas.current) 0f else rememberInfiniteTransition(label = "logo").animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(3_000, easing = CurvaEstandar), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(DURACION_FLOTACION_LOGO_MS, easing = CurvaEstandar), RepeatMode.Reverse),
         label = "flotacion"
     ).value
     // Rebote al tocarlo: se aplasta un poco y vuelve con un resorte elástico.
@@ -554,14 +500,14 @@ private fun InsigniaLogo(modifier: Modifier = Modifier) {
                 onClickLabel = "Animar logo"
             ) {
                 alcance.launch {
-                    rebote.animateTo(0.82f, tween(90, easing = CurvaEstandar))
+                    rebote.animateTo(0.82f, tween(DURACION_APLASTE_LOGO_MS, easing = CurvaEstandar))
                     rebote.animateTo(1f, spring(dampingRatio = 0.3f, stiffness = 500f))
                 }
             }
             .size(84.dp)
-            .shadow(20.dp, forma, ambientColor = BosqueProfundo, spotColor = BosqueProfundo.copy(alpha = 0.35f))
+            .shadow(20.dp, forma, ambientColor = BosqueProfundo, spotColor = SombraPuntualLogoAcceso)
             .background(Superficie, forma)
-            .border(1.dp, Superficie.copy(alpha = 0.95f), forma)
+            .border(1.dp, BordeLogoAcceso, forma)
     ) {
         Image(
             painter = painterResource(R.drawable.logo_nexo),
@@ -587,12 +533,12 @@ private fun CampoPildora(
     var visible by rememberSaveable { mutableStateOf(false) }
 
     val colorBorde by animateColorAsState(
-        if (enfocado) BosqueAcento.copy(alpha = 0.55f) else Bosque.copy(alpha = 0.10f), label = "borde"
+        if (enfocado) BordeSeleccion else BordeSutil, label = "borde"
     )
     val grosorBorde by animateDpAsState(if (enfocado) 1.5.dp else 1.dp, label = "grosor")
     val elevacion by animateDpAsState(if (enfocado) 10.dp else 3.dp, label = "elevacion")
     val colorIcono by animateColorAsState(
-        if (enfocado) BosqueAcento else Bosque.copy(alpha = 0.55f), label = "icono"
+        if (enfocado) BosqueAcento else IconoCampoAcceso, label = "icono"
     )
 
     BasicTextField(
@@ -606,7 +552,7 @@ private fun CampoPildora(
         keyboardActions = KeyboardActions(onDone = { alPulsarListo() }),
         modifier = modifier
             .fillMaxWidth()
-            .shadow(elevacion, CircleShape, ambientColor = BosqueProfundo.copy(alpha = 0.4f), spotColor = BosqueProfundo.copy(alpha = 0.18f))
+            .shadow(elevacion, CircleShape, ambientColor = SombraAmbienteCampoAcceso, spotColor = SombraPuntualCampoAcceso)
             .background(Superficie, CircleShape)
             .border(grosorBorde, colorBorde, CircleShape)
             .onFocusChanged { enfocado = it.isFocused },
@@ -630,7 +576,7 @@ private fun CampoPildora(
                         Icon(
                             if (visible) IconosNexo.OjoTachado else IconosNexo.Ojo,
                             contentDescription = if (visible) "Ocultar contraseña" else "Mostrar contraseña",
-                            tint = Bosque.copy(alpha = 0.55f),
+                            tint = IconoCampoAcceso,
                             modifier = Modifier.size(19.dp)
                         )
                     }
@@ -653,10 +599,12 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
         Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
+            // Se ve de 40 dp pero se toca en 48
+            .areaTactilSinCambiarMedida()
             .clip(CircleShape)
             .toggleable(value = aceptado, role = Role.Checkbox, onValueChange = alCambiar)
             .semantics { contentDescription = "Acepto las condiciones de uso" }
-            .heightIn(min = 40.dp)
+            .heightIn(min = 48.dp)
             .padding(start = EspacioMedio)
     ) {
         Box(
@@ -737,7 +685,7 @@ private fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> Un
                 scaleX = escala
                 scaleY = escala
             }
-            .shadow(16.dp, CircleShape, ambientColor = BosqueProfundo, spotColor = BosqueProfundo.copy(alpha = 0.6f))
+            .shadow(16.dp, CircleShape, ambientColor = BosqueProfundo, spotColor = SombraPuntualBotonAcceso)
             .background(pincelBosque, CircleShape)
             .clip(CircleShape)
             .clickable(
@@ -750,7 +698,7 @@ private fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> Un
     ) {
         AnimatedContent(
             targetState = cargando,
-            transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(DuracionInstante)) },
+            transitionSpec = { fadeIn(tween(DURACION_ENTRA_BOTON_MS)) togetherWith fadeOut(tween(DuracionInstante)) },
             label = "contenidoBoton"
         ) { estaCargando ->
             if (estaCargando) {
@@ -778,14 +726,14 @@ private fun SeparadorSocial(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.Center,
         modifier = modifier.fillMaxWidth()
     ) {
-        Box(Modifier.width(52.dp).height(1.dp).background(Bosque.copy(alpha = 0.15f)))
+        Box(Modifier.width(52.dp).height(1.dp).background(LineaSeparadorAcceso))
         Text(
             "O CONÉCTATE CON",
             color = Marcador,
             style = LocalTextStyle.current.merge(EtiquetaSeparador),
             modifier = Modifier.padding(horizontal = EspacioMedio)
         )
-        Box(Modifier.width(52.dp).height(1.dp).background(Bosque.copy(alpha = 0.15f)))
+        Box(Modifier.width(52.dp).height(1.dp).background(LineaSeparadorAcceso))
     }
 }
 
@@ -798,7 +746,7 @@ private fun BotonGoogle(habilitado: Boolean, alClicar: () -> Unit, modifier: Mod
             .fillMaxWidth()
             .heightIn(min = 50.dp)
             // Solo contorno, sin relleno ni sombra: así no se confunde con los campos
-            .border(1.dp, Bosque.copy(alpha = 0.18f), CircleShape)
+            .border(1.dp, BordeBotonGoogle, CircleShape)
             .clip(CircleShape)
             .clickable(enabled = habilitado, role = Role.Button, onClick = alClicar)
     ) {
@@ -844,7 +792,7 @@ private fun EnlaceCambioModo(esRegistro: Boolean, alClicar: () -> Unit, modifier
 private fun Modifier.entrada(orden: Int, iniciado: Boolean): Modifier {
     val progreso by animateFloatAsState(
         targetValue = if (iniciado) 1f else 0f,
-        animationSpec = tween(520, delayMillis = 80 + orden * 70, easing = CurvaAparicion),
+        animationSpec = tween(DURACION_ENTRADA_MS, delayMillis = ENTRADA_RETRASO_MS + orden * ENTRADA_PASO_MS, easing = CurvaAparicion),
         label = "entrada$orden"
     )
     return graphicsLayer {
