@@ -4,6 +4,7 @@ import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Solicitud
 import com.grupo3.nexo.domain.model.Tutor
+import com.grupo3.nexo.domain.repository.ChatRepository
 import com.grupo3.nexo.domain.repository.SolicitudRepository
 import kotlinx.coroutines.flow.Flow
 import com.grupo3.nexo.domain.model.Rol
@@ -46,15 +47,31 @@ class ObtenerMisSolicitudesUseCase @Inject constructor(
 class ActualizarSolicitudUseCase @Inject constructor(
     private val repositorio: SolicitudRepository,
     private val sesiones: SesionRepository,
+    private val chats: ChatRepository,
     private val auth: AuthRepository
 ) {
-    /** Aceptar agenda la sesión; cancelar una aceptada la cancela también (RF6 → RF10). */
+    /**
+     * Aceptar agenda la sesión y deja activo el chat con esa persona; cancelar una aceptada la cancela
+     * también y, si no quedan sesiones por venir con ella, el chat pasa a solo lectura (RF6 → RF8, RF10).
+     */
     suspend operator fun invoke(id: String, estado: EstadoSolicitud, motivo: String? = null) {
         val anterior = repositorio.obtenerSolicitudes().first().firstOrNull { it.id == id } ?: return
         repositorio.actualizarEstado(id, estado, motivo?.trim())
         when (estado) {
-            EstadoSolicitud.ACEPTADA -> sesiones.programar(anterior, comoTutor = anterior.tutorId == auth.usuarioActual.value.id)
-            EstadoSolicitud.CANCELADA, EstadoSolicitud.RECHAZADA -> sesiones.cancelarDe(id)
+            EstadoSolicitud.ACEPTADA -> {
+                val comoTutor = anterior.tutorId == auth.usuarioActual.value.id
+                sesiones.programar(anterior, comoTutor)
+                if (comoTutor) chats.habilitarChat(anterior.estudianteId, anterior.nombreEstudiante, enLinea = false, comoTutor = true)
+                else chats.habilitarChat(anterior.tutorId, anterior.nombreTutor, enLinea = false, comoTutor = false)
+            }
+            EstadoSolicitud.CANCELADA -> {
+                sesiones.cancelarDe(id)
+                val comoTutor = anterior.tutorId == auth.usuarioActual.value.id
+                val contraparte = if (comoTutor) anterior.estudianteId else anterior.tutorId
+                val quedan = sesiones.obtenerSesiones().first().any { it.proxima && it.contraparteId == contraparte && it.comoTutor == comoTutor }
+                if (!quedan) chats.cerrarChat(contraparte)
+            }
+            EstadoSolicitud.RECHAZADA -> sesiones.cancelarDe(id)
             else -> Unit
         }
     }

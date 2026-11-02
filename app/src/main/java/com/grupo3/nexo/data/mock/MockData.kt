@@ -27,6 +27,9 @@ import com.grupo3.nexo.domain.model.Sesion
 import com.grupo3.nexo.domain.model.Solicitud
 import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.model.Usuario
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 
 /**
  * Fuente de datos simulada para el frontend (Entrega 2A).
@@ -35,6 +38,16 @@ import com.grupo3.nexo.domain.model.Usuario
  * fuente remota sin tocar los repositorios ni la capa de dominio.
  */
 object MockData {
+
+    private val mesesCortos = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+
+    /** Fecha corta ("3 nov") a tantos días de hoy, para que lo agendado siempre quede por delante. */
+    private fun enDias(dias: Long): String =
+        LocalDate.now().plusDays(dias).let { "${it.dayOfMonth} ${mesesCortos[it.monthValue - 1]}" }
+
+    /** Nombre del día de la semana ("martes") a tantos días de hoy, para los mensajes que lo mencionan. */
+    private fun diaEn(dias: Long): String =
+        LocalDate.now().plusDays(dias).dayOfWeek.getDisplayName(TextStyle.FULL, Locale("es", "CO"))
 
     private const val UIS = "Universidad Industrial de Santander"
     private const val UNAB = "Universidad Autónoma de Bucaramanga"
@@ -181,23 +194,23 @@ object MockData {
 
     val solicitudes = listOf(
         // Recibidas por Diego en modo tutor (enseña Cálculo I y Programación).
-        Solicitud("s1", "u1", "Diego", "e1", "Valeria Ríos", "Cálculo I", "Límites y continuidad", "24 oct", "10:00", VIRTUAL, EstadoSolicitud.PENDIENTE, "Hola, ¿podemos repasar antes del parcial del lunes?"),
-        Solicitud("s2", "u1", "Diego", "e2", "Jorge Luna", "Programación", "Recursión en Python", "25 oct", "16:00", PRESENCIAL, EstadoSolicitud.PENDIENTE, "Necesito ayuda con el taller 3."),
-        Solicitud("s3", "u1", "Diego", "e3", "Camila Torres", "Cálculo I", "Derivadas implícitas", "26 oct", "08:00", VIRTUAL, EstadoSolicitud.PENDIENTE, "¿Tienes espacio esta semana?"),
-        Solicitud("s4", "u1", "Diego", "e4", "Andrea Prado", "Programación", "Listas y diccionarios", "20 oct", "18:00", VIRTUAL, EstadoSolicitud.ACEPTADA, "Gracias, nos vemos por Meet."),
+        Solicitud("s1", "u1", "Diego", "e1", "Valeria Ríos", "Cálculo I", "Límites y continuidad", enDias(2), "10:00", VIRTUAL, EstadoSolicitud.PENDIENTE, "Hola, ¿podemos repasar antes del parcial?"),
+        Solicitud("s2", "u1", "Diego", "e2", "Jorge Luna", "Programación", "Recursión en Python", enDias(3), "16:00", PRESENCIAL, EstadoSolicitud.PENDIENTE, "Necesito ayuda con el taller 3."),
+        Solicitud("s3", "u1", "Diego", "e3", "Camila Torres", "Cálculo I", "Derivadas implícitas", enDias(4), "08:00", VIRTUAL, EstadoSolicitud.PENDIENTE, "¿Tienes espacio esta semana?"),
+        Solicitud("s4", "u1", "Diego", "e4", "Andrea Prado", "Programación", "Listas y diccionarios", enDias(2), "18:00", VIRTUAL, EstadoSolicitud.ACEPTADA, "Gracias, nos vemos por Meet."),
         Solicitud("s5", "u1", "Diego", "e5", "Bruno Salas", "Cálculo I", "Integrales", "18 oct", "11:00", PRESENCIAL, EstadoSolicitud.RECHAZADA, "¿Podemos vernos en la biblioteca?", motivoRechazo = "Ese horario ya estaba reservado."),
         Solicitud("s6", "u1", "Diego", "e6", "Renzo Cruz", "Programación", "Funciones", "14 oct", "15:00", VIRTUAL, EstadoSolicitud.FINALIZADA, "Sesión completada. ¡Gracias!"),
         // Enviadas por Diego en modo estudiante.
-        Solicitud("s7", "t2", "Carlos Mendoza", "u1", "Diego", "Python", "Funciones y listas", "28 oct", "18:00", VIRTUAL, EstadoSolicitud.PENDIENTE, "Hola Carlos, quiero repasar para el quiz."),
-        Solicitud("s8", "t3", "Lucía Fernández", "u1", "Diego", "Física I", "Cinemática", "26 oct", "15:00", PRESENCIAL, EstadoSolicitud.ACEPTADA, "Confirmada, nos vemos en la biblioteca."),
+        Solicitud("s7", "t2", "Carlos Mendoza", "u1", "Diego", "Python", "Funciones y listas", enDias(6), "18:00", VIRTUAL, EstadoSolicitud.PENDIENTE, "Hola Carlos, quiero repasar para el quiz."),
+        Solicitud("s8", "t3", "Lucía Fernández", "u1", "Diego", "Física I", "Cinemática", enDias(3), "15:00", PRESENCIAL, EstadoSolicitud.ACEPTADA, "Confirmada, nos vemos en la biblioteca."),
         Solicitud("s9", "t4", "María López", "u1", "Diego", "Inglés", "Speaking para entrevista", "12 oct", "09:00", VIRTUAL, EstadoSolicitud.RECHAZADA, "¿Podemos practicar una entrevista?", motivoRechazo = "Esa semana estoy de viaje, ¿la siguiente?"),
-        Solicitud("s10", "t1", "Ana Torres", "u1", "Diego", "Cálculo I", "Límites y continuidad", "24 oct", "10:00", VIRTUAL, EstadoSolicitud.ACEPTADA, "¿Podemos repasar los problemas de la guía 4?"),
-        Solicitud("s11", "t7", "Diego Ramírez", "u1", "Diego", "SQL", "Modelo entidad–relación", "27 oct", "16:00", VIRTUAL, EstadoSolicitud.ACEPTADA, "Quiero revisar el modelo del proyecto.")
+        Solicitud("s10", "t1", "Ana Torres", "u1", "Diego", "Cálculo I", "Límites y continuidad", enDias(1), "10:00", VIRTUAL, EstadoSolicitud.ACEPTADA, "¿Podemos repasar los problemas de la guía 4?"),
+        Solicitud("s11", "t7", "Diego Ramírez", "u1", "Diego", "SQL", "Modelo entidad–relación", enDias(5), "16:00", VIRTUAL, EstadoSolicitud.ACEPTADA, "Quiero revisar el modelo del proyecto.")
     )
 
     /** Solo hay chat con solicitudes aceptadas o sesiones ya terminadas (RF8). */
     val chats = listOf(
-        Chat("t1", "Ana Torres", "Perfecto, nos vemos el sábado a las 10 👍", "10:24", 2, true),
+        Chat("t1", "Ana Torres", "Perfecto, nos vemos el ${diaEn(1)} a las 10 👍", "10:24", 2, true),
         Chat("t3", "Lucía Fernández", "Recuerda traer los problemas del parcial", "Ayer", 1, true),
         Chat("t7", "Diego Ramírez", "¿Te parece si revisamos el modelo ER?", "Lun", 0, true),
         Chat("t5", "Pablo Sánchez", "Mi portafolio va avanzando 🎉", "7 oct", 0, true, soloLectura = true),
@@ -211,17 +224,17 @@ object MockData {
 
     val mensajes = listOf(
         Mensaje("m1", "t1", "Hola Ana, ¿tendrías disponibilidad esta semana?", "10:02", true),
-        Mensaje("m2", "t1", "¡Hola Diego! Sí, el sábado a las 10 estoy libre.", "10:15", false),
+        Mensaje("m2", "t1", "¡Hola Diego! Sí, el ${diaEn(1)} a las 10 estoy libre.", "10:15", false),
         Mensaje("m3", "t1", "Genial, ¿podemos repasar límites y continuidad?", "10:18", true),
         Mensaje("m4", "t1", "Claro, prepara los problemas de la guía 4.", "10:21", false),
-        Mensaje("m5", "t1", "Perfecto, nos vemos el sábado a las 10 👍", "10:24", false),
+        Mensaje("m5", "t1", "Perfecto, nos vemos el ${diaEn(1)} a las 10 👍", "10:24", false),
         Mensaje("m6", "t3", "Hola Lucía, ¿nos vemos en la biblioteca central?", "Ayer", true),
         Mensaje("m7", "t3", "Sí, en el segundo piso.", "Ayer", false),
         Mensaje("m8", "t3", "Recuerda traer los problemas del parcial", "Ayer", false),
         Mensaje("m9", "t7", "¿Te parece si revisamos el modelo ER?", "Lun", false),
         Mensaje("m10", "t5", "Gracias por la sesión, Pablo.", "7 oct", true),
         Mensaje("m11", "t5", "Mi portafolio va avanzando 🎉", "7 oct", false),
-        Mensaje("m12", "e4", "Hola Diego, acepté la hora del lunes. ¿Usamos Meet?", "9:05", false),
+        Mensaje("m12", "e4", "Hola Diego, gracias por aceptar la hora. ¿Usamos Meet?", "9:05", false),
         Mensaje("m13", "e4", "Sí, te envío el enlace un rato antes.", "9:10", true),
         Mensaje("m14", "e4", "Gracias, nos vemos por Meet.", "9:12", false),
         Mensaje("m15", "e6", "¡Gracias por la sesión!", "14 oct", false),
@@ -232,9 +245,9 @@ object MockData {
     /** Sesiones de Diego en sus dos modos: futuras (PROGRAMADA) y pasadas (historial, RF10). */
     val sesiones = listOf(
         // Como estudiante
-        Sesion("x1", "t1", "Ana Torres", "Cálculo I", "24 oct", "10:00", 1.5, VIRTUAL, PROGRAMADA, solicitudId = "s10"),
-        Sesion("x2", "t3", "Lucía Fernández", "Física I", "26 oct", "15:00", 1.0, PRESENCIAL, PROGRAMADA, solicitudId = "s8"),
-        Sesion("x3", "t7", "Diego Ramírez", "SQL", "27 oct", "16:00", 1.0, VIRTUAL, PROGRAMADA, solicitudId = "s11"),
+        Sesion("x1", "t1", "Ana Torres", "Cálculo I", enDias(1), "10:00", 1.5, VIRTUAL, PROGRAMADA, solicitudId = "s10"),
+        Sesion("x2", "t3", "Lucía Fernández", "Física I", enDias(3), "15:00", 1.0, PRESENCIAL, PROGRAMADA, solicitudId = "s8"),
+        Sesion("x3", "t7", "Diego Ramírez", "SQL", enDias(5), "16:00", 1.0, VIRTUAL, PROGRAMADA, solicitudId = "s11"),
         Sesion("h1", "t3", "Lucía Fernández", "Física I", "14 oct", "15:00", 1.5, PRESENCIAL, COMPLETADA, calificacion = 5, comentario = "Clarísima con los diagramas.", calificacionRecibida = 5),
         Sesion("h2", "t5", "Pablo Sánchez", "Figma", "7 oct", "11:00", 2.0, VIRTUAL, COMPLETADA, calificacion = 5, calificacionRecibida = 5),
         Sesion("h3", "t4", "María López", "Inglés", "30 sept", "09:00", 1.0, VIRTUAL, COMPLETADA, calificacionRecibida = 4),
@@ -242,7 +255,7 @@ object MockData {
         Sesion("h5", "t6", "Sofía García", "Química", "16 sept", "14:00", 1.0, PRESENCIAL, COMPLETADA),
         Sesion("h6", "t2", "Carlos Mendoza", "Python", "10 sept", "18:00", 1.0, VIRTUAL, CANCELADA),
         // Como tutor
-        Sesion("y1", "e4", "Andrea Prado", "Programación", "20 oct", "18:00", 1.0, VIRTUAL, PROGRAMADA, comoTutor = true, solicitudId = "s4"),
+        Sesion("y1", "e4", "Andrea Prado", "Programación", enDias(2), "18:00", 1.0, VIRTUAL, PROGRAMADA, comoTutor = true, solicitudId = "s4"),
         Sesion("g1", "e6", "Renzo Cruz", "Programación", "14 oct", "15:00", 1.0, VIRTUAL, COMPLETADA, comoTutor = true, calificacion = 5, calificacionRecibida = 5),
         Sesion("g2", "e1", "Valeria Ríos", "Cálculo I", "9 oct", "10:00", 1.5, VIRTUAL, COMPLETADA, comoTutor = true, calificacion = 5, calificacionRecibida = 5),
         Sesion("g3", "e2", "Jorge Luna", "Programación", "25 sept", "16:00", 1.0, PRESENCIAL, COMPLETADA, comoTutor = true, calificacionRecibida = 4),

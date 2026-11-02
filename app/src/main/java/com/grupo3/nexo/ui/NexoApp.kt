@@ -1,9 +1,5 @@
 package com.grupo3.nexo.ui
 
-import com.grupo3.nexo.ui.components.LocalEntradaActual
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
@@ -20,13 +16,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -40,6 +39,7 @@ import com.grupo3.nexo.ui.busqueda.PantallaBusqueda
 import com.grupo3.nexo.ui.chat.PantallaChats
 import com.grupo3.nexo.ui.chat.PantallaConversacion
 import com.grupo3.nexo.ui.components.BarraNavegacion
+import com.grupo3.nexo.ui.components.LocalEntradaActual
 import com.grupo3.nexo.ui.disponibilidad.PantallaDisponibilidad
 import com.grupo3.nexo.ui.historial.PantallaHistorial
 import com.grupo3.nexo.ui.inicio.PantallaInicio
@@ -70,6 +70,9 @@ import kotlinx.coroutines.delay
  * - hacia un detalle: eje compartido horizontal (entra desde la derecha y vuelve hacia ella);
  * - del acceso al Inicio: fundido breve; la entrada la hacen los bloques del Inicio, escalonados.
  * Con el gesto de atrás predictivo, estas mismas transiciones se recorren al arrastrar. */
+
+/** Espera de la barra tras el acceso, para que entre cuando ya asentó el Inicio. */
+private const val RetrasoBarraTrasAcceso = 320
 
 private val ordenPestanas = listOf(Rutas.Inicio.ruta, Rutas.Solicitudes.ruta, Rutas.Chat.ruta, Rutas.Perfil.ruta)
 
@@ -200,13 +203,15 @@ fun NexoApp() {
             composable(Rutas.Solicitudes.ruta) {
                 PantallaSolicitudes(
                     alBuscar = { area -> controlador.irABusqueda(area) },
-                    alAbrirChat = { id -> controlador.navigate(Rutas.Conversacion.crear(id)) }
+                    alAbrirChat = { id -> controlador.navigate(Rutas.Conversacion.crear(id)) },
+                    alAbrirDisponibilidad = { controlador.navigate(Rutas.Disponibilidad.ruta) }
                 )
             }
             composable(Rutas.Chat.ruta) {
                 PantallaChats(
                     alAbrirChat = { id -> controlador.navigate(Rutas.Conversacion.crear(id)) },
-                    alBuscar = { controlador.irABusqueda(null) }
+                    alBuscar = { controlador.irABusqueda(null) },
+                    alVerSolicitudes = { controlador.irAPestana(Rutas.Solicitudes.ruta) }
                 )
             }
             composable(Rutas.Perfil.ruta) {
@@ -246,8 +251,8 @@ fun NexoApp() {
         AnimatedVisibility(
             visible = mostrarBarra,
             enter = if (reducidas) EnterTransition.None else slideInVertically(
-                tween(DuracionLarga, delayMillis = if (vieneDelAcceso) 320 else 0, easing = CurvaEntrada)
-            ) { it } + fadeIn(tween(DuracionMedia, delayMillis = if (vieneDelAcceso) 320 else 0)),
+                tween(DuracionLarga, delayMillis = if (vieneDelAcceso) RetrasoBarraTrasAcceso else 0, easing = CurvaEntrada)
+            ) { it } + fadeIn(tween(DuracionMedia, delayMillis = if (vieneDelAcceso) RetrasoBarraTrasAcceso else 0)),
             exit = if (reducidas) ExitTransition.None else slideOutVertically(tween(DuracionMedia, easing = CurvaSalida)) { it } + fadeOut(especColor())
         ) {
             BarraNavegacion(

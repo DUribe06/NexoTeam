@@ -55,4 +55,24 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
             ) + actual
         }
     }
+
+    override suspend fun habilitarChat(
+        chatId: String,
+        nombre: String,
+        enLinea: Boolean,
+        comoTutor: Boolean
+    ) {
+        chats.update { actual ->
+            if (actual.any { it.id == chatId }) actual.map { if (it.id == chatId) it.copy(soloLectura = false) else it }
+            else listOf(
+                Chat(chatId, nombre, "Inicia la conversación", "", 0, enLinea, comoTutor = comoTutor)
+            ) + actual
+        }
+    }
+
+    override suspend fun cerrarChat(chatId: String) {
+        chats.update { actual ->
+            actual.map { if (it.id == chatId) it.copy(soloLectura = true) else it }
+        }
+    }
 }

@@ -1,11 +1,9 @@
 package com.grupo3.nexo.ui.chat
 
-import com.grupo3.nexo.ui.theme.BosqueMedio
-import com.grupo3.nexo.ui.theme.SobreOscuro
-import com.grupo3.nexo.ui.theme.Superficie
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,71 +23,78 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.model.Chat
 import com.grupo3.nexo.domain.model.EstadoSesion
+import com.grupo3.nexo.domain.model.Mensaje
+import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Sesion
 import com.grupo3.nexo.domain.usecase.CalificarSesionUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerSesionDeConversacionUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerSesionesDelModoUseCase
-import com.grupo3.nexo.ui.components.BotonSecundario
-import com.grupo3.nexo.ui.components.formatoFecha
-import com.grupo3.nexo.ui.components.HojaCalificacion
-import com.grupo3.nexo.ui.theme.Miel
-import androidx.compose.ui.text.style.TextOverflow
-import com.grupo3.nexo.domain.model.Mensaje
 import com.grupo3.nexo.domain.usecase.EnviarMensajeUseCase
 import com.grupo3.nexo.domain.usecase.MarcarChatLeidoUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerChatsUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerMensajesUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerSesionDeConversacionUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerSesionesDelModoUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerTutoresUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.ui.components.Avatar
 import com.grupo3.nexo.ui.components.BotonIcono
+import com.grupo3.nexo.ui.components.BotonSecundario
+import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.Campo
-import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.Carga
+import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.Esqueleto
 import com.grupo3.nexo.ui.components.EsqueletoLista
-import com.grupo3.nexo.ui.components.cargaDe
-import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
 import com.grupo3.nexo.ui.components.EstadoVacio
-import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
-import com.grupo3.nexo.domain.model.Rol
+import com.grupo3.nexo.ui.components.HojaCalificacion
+import com.grupo3.nexo.ui.components.Hueso
+import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.components.InsigniaConteo
 import com.grupo3.nexo.ui.components.TextoLinea
-import com.grupo3.nexo.ui.components.CabeceraSeccion
+import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
+import com.grupo3.nexo.ui.components.cargaDe
+import com.grupo3.nexo.ui.components.filaAgrupada
+import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.theme.Bosque
+import com.grupo3.nexo.ui.theme.BosqueMedio
+import com.grupo3.nexo.ui.theme.BosqueProfundo
+import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioCercano
@@ -99,23 +104,22 @@ import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EspacioSuelto
+import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.FormaControl
 import com.grupo3.nexo.ui.theme.FormaOpcion
-import com.grupo3.nexo.ui.theme.cambioContenido
-import com.grupo3.nexo.ui.theme.resorteRebote
-import com.grupo3.nexo.ui.theme.EspacioSuelto
-import com.grupo3.nexo.ui.theme.BosqueProfundo
-import com.grupo3.nexo.ui.theme.Divisor
-import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.Menta
+import com.grupo3.nexo.ui.theme.Miel
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.VerdeEstado
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.semantics.Role
-import com.grupo3.nexo.ui.components.filaAgrupada
+import com.grupo3.nexo.ui.theme.cambioContenido
+import com.grupo3.nexo.ui.theme.resorteRebote
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -123,8 +127,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import com.grupo3.nexo.ui.components.IconosNexo
 
 /* ==================== ViewModels ==================== */
 
@@ -210,6 +212,7 @@ class ConversacionViewModel @Inject constructor(
 fun PantallaChats(
     alAbrirChat: (String) -> Unit,
     alBuscar: () -> Unit,
+    alVerSolicitudes: () -> Unit = {},
     viewModel: ChatsViewModel = hiltViewModel()
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -240,7 +243,9 @@ fun PantallaChats(
                     EstadoVacio(
                         icono = IconosNexo.Chat,
                         titulo = "Aún no tienes chats",
-                        mensaje = "El chat con un estudiante se habilita cuando aceptas su solicitud de tutoría."
+                        mensaje = "El chat con un estudiante se habilita cuando aceptas su solicitud de tutoría.",
+                        accion = "Ver solicitudes",
+                        alAccion = alVerSolicitudes
                     )
                 } else {
                     EstadoVacio(
@@ -327,6 +332,37 @@ private val respuestasRapidas = listOf(
     "¿Podemos repasar para el parcial?"
 )
 
+/** Esquinas de la burbuja: redondeada en general y casi recta en la "cola" y en los mensajes agrupados. */
+private val RadioBurbuja = 16.dp
+private val RadioBurbujaCola = 4.dp
+
+/** Anchos relativos de las burbujas del esqueleto; alternan izquierda (recibido) y derecha (enviado). */
+private val anchosEsqueletoBurbujas = listOf(0.6f, 0.45f, 0.7f, 0.5f)
+
+/** Esqueleto de la conversación: burbujas grises que alternan de lado mientras llegan los mensajes. */
+@Composable
+private fun EsqueletoBurbujas(modifier: Modifier = Modifier) {
+    Esqueleto(
+        descripcion = "Cargando mensajes…",
+        verticalArrangement = Arrangement.spacedBy(EspacioMedio),
+        modifier = modifier.fillMaxWidth().padding(horizontal = EspacioNormal, vertical = EspacioNormal)
+    ) {
+        anchosEsqueletoBurbujas.forEachIndexed { i, ancho ->
+            val mio = i % 2 == 1
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = if (mio) Arrangement.End else Arrangement.Start) {
+                Hueso(
+                    Modifier.fillMaxWidth(ancho).height(44.dp),
+                    RoundedCornerShape(
+                        topStart = RadioBurbuja, topEnd = RadioBurbuja,
+                        bottomStart = if (mio) RadioBurbuja else RadioBurbujaCola,
+                        bottomEnd = if (mio) RadioBurbujaCola else RadioBurbuja
+                    )
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun PantallaConversacion(
     chatId: String,
@@ -406,7 +442,7 @@ fun PantallaConversacion(
         // Mensajes
         val cargaMensajes = cargaDe(estado.cargando, estado.mensajes.isEmpty())
         if (cargaMensajes == Carga.CARGANDO) {
-            Box(Modifier.weight(1f).fillMaxWidth()) { EsqueletoLista(filas = 3) }
+            Box(Modifier.weight(1f).fillMaxWidth()) { EsqueletoBurbujas() }
         } else if (cargaMensajes == Carga.ERROR) {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 ErrorDeLista(titulo = "No pudimos cargar los mensajes")
@@ -419,7 +455,7 @@ fun PantallaConversacion(
                     mensaje = "Coordina el tema, la fecha y el enlace de la sesión."
                 )
             }
-            LazyRow(
+            if (!estado.soloLectura) LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
                 contentPadding = PaddingValues(horizontal = EspacioNormal)
             ) {
@@ -465,6 +501,8 @@ fun PantallaConversacion(
             PieSesionTerminada(estado.sesion, alCalificar = { calificando = true })
             return@Column
         }
+        // Mientras carga o falla no hay a quién escribir: sin campo de texto
+        if (cargaMensajes == Carga.CARGANDO || cargaMensajes == Carga.ERROR) return@Column
 
         // Entrada de texto
         val puedeEnviar = texto.isNotBlank()
@@ -531,8 +569,8 @@ fun PantallaConversacion(
 @Composable
 private fun Burbuja(mensaje: Mensaje, iniciaGrupo: Boolean, cierraGrupo: Boolean, modifier: Modifier = Modifier) {
     val mio = mensaje.mio
-    val grande = 16.dp
-    val chica = 4.dp
+    val grande = RadioBurbuja
+    val chica = RadioBurbujaCola
     val forma = RoundedCornerShape(
         topStart = if (!mio && !iniciaGrupo) chica else grande,
         topEnd = if (mio && !iniciaGrupo) chica else grande,

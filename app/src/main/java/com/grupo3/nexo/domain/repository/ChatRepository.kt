@@ -11,4 +11,8 @@ interface ChatRepository {
     suspend fun marcarLeido(chatId: String)
     /** Crea la conversación si todavía no existe (primer mensaje a un tutor). */
     suspend fun asegurarChat(chatId: String, nombre: String, enLinea: Boolean, comoTutor: Boolean)
+    /** Deja la conversación activa: la crea si falta y reabre una que estaba en solo lectura (sesión nueva aceptada). */
+    suspend fun habilitarChat(chatId: String, nombre: String, enLinea: Boolean, comoTutor: Boolean)
+    /** Pasa la conversación a solo lectura cuando ya no quedan sesiones por venir con esa persona. */
+    suspend fun cerrarChat(chatId: String)
 }

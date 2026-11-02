@@ -1,6 +1,7 @@
 package com.grupo3.nexo.ui.solicitudes
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,12 +13,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,20 +27,27 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Solicitud
@@ -48,48 +57,32 @@ import com.grupo3.nexo.domain.usecase.ObtenerMisSolicitudesUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.ui.busqueda.AreaEstudio
 import com.grupo3.nexo.ui.components.Avatar
-import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.AvisoNexo
 import com.grupo3.nexo.ui.components.BotonPrimario
 import com.grupo3.nexo.ui.components.BotonTexto
+import com.grupo3.nexo.ui.components.BotonTonal
+import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.Campo
+import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.DialogoConfirmacion
-import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.ErrorDeLista
 import com.grupo3.nexo.ui.components.EsqueletoLista
 import com.grupo3.nexo.ui.components.EstadoVacio
-import com.grupo3.nexo.ui.components.cargaDe
-import com.grupo3.nexo.ui.theme.cambioContenido
 import com.grupo3.nexo.ui.components.FiltroOpcion
 import com.grupo3.nexo.ui.components.HojaNexo
+import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.components.InsigniaEstado
+import com.grupo3.nexo.ui.components.PLAZO_RESPUESTA
+import com.grupo3.nexo.ui.components.Pestanas
 import com.grupo3.nexo.ui.components.RotuloGrupo
 import com.grupo3.nexo.ui.components.TextoLinea
-import com.grupo3.nexo.ui.components.CabeceraSeccion
+import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
+import com.grupo3.nexo.ui.components.cargaDe
+import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.icono
+import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
-import com.grupo3.nexo.ui.theme.MielOscura
-import com.grupo3.nexo.ui.theme.Rojo
-import com.grupo3.nexo.ui.theme.TextoPrimario
-import com.grupo3.nexo.ui.theme.TextoSecundario
-import com.grupo3.nexo.ui.theme.TextoTercero
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import com.grupo3.nexo.ui.components.BotonTonal
-import com.grupo3.nexo.ui.components.Pestanas
-import com.grupo3.nexo.ui.components.PLAZO_RESPUESTA
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import androidx.compose.ui.res.vectorResource
-import com.grupo3.nexo.R
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.EspacioAjustado
@@ -101,10 +94,23 @@ import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EtiquetaBoton
 import com.grupo3.nexo.ui.theme.FormaBoton
-import javax.inject.Inject
-import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.MielOscura
+import com.grupo3.nexo.ui.theme.Rojo
+import com.grupo3.nexo.ui.theme.TextoPrimario
+import com.grupo3.nexo.ui.theme.TextoSecundario
+import com.grupo3.nexo.ui.theme.TextoTercero
+import com.grupo3.nexo.ui.theme.TinteBosque
+import com.grupo3.nexo.ui.theme.cambioContenido
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /* ==================== ViewModel ==================== */
 
@@ -169,6 +175,7 @@ class SolicitudesViewModel @Inject constructor(
 fun PantallaSolicitudes(
     alBuscar: (area: String?) -> Unit,
     alAbrirChat: (String) -> Unit,
+    alAbrirDisponibilidad: () -> Unit = {},
     viewModel: SolicitudesViewModel = hiltViewModel()
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -221,10 +228,10 @@ fun PantallaSolicitudes(
                     EstadoVacio(
                         icono = IconosNexo.Calendario,
                         titulo = if (estado.esTutor) "Aún no recibes solicitudes" else "Aún no has pedido tutorías",
-                        mensaje = if (estado.esTutor) "Publica tus horarios en Perfil › Mi disponibilidad para aparecer en las búsquedas."
+                        mensaje = if (estado.esTutor) "Publica tus horarios para aparecer en las búsquedas de los estudiantes."
                         else "Busca un tutor por materia, horario y modalidad, y envíale tu primera solicitud.",
-                        accion = if (estado.esTutor) null else "Buscar tutor",
-                        alAccion = { alBuscar(null) }
+                        accion = if (estado.esTutor) "Mi disponibilidad" else "Buscar tutor",
+                        alAccion = if (estado.esTutor) alAbrirDisponibilidad else ({ alBuscar(null) })
                     )
                 } else {
                     LazyColumn(
@@ -366,7 +373,7 @@ private fun TarjetaSolicitud(
         when {
             esTutor && solicitud.estado == EstadoSolicitud.PENDIENTE -> {
                 Spacer(Modifier.height(EspacioMedio))
-                AvisoPlazo("Responde antes de $PLAZO_RESPUESTA")
+                AvisoPlazo("Tienes $PLAZO_RESPUESTA para responder")
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BotonTonal("Aceptar", alAceptar, icono = IconosNexo.Marca)
                     Spacer(Modifier.weight(1f))
@@ -376,13 +383,13 @@ private fun TarjetaSolicitud(
             }
             esTutor && solicitud.estado == EstadoSolicitud.ACEPTADA -> {
                 Spacer(Modifier.height(EspacioMedio))
-                BotonTonal("Abrir chat", alEscribir, icono = IconosNexo.Chat)
+                BotonAbrirChat(alEscribir)
                 Spacer(Modifier.height(EspacioMinimo))
             }
             !esTutor && solicitud.estado == EstadoSolicitud.ACEPTADA -> {
                 Spacer(Modifier.height(EspacioMedio))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    BotonTonal("Abrir chat", alEscribir, icono = IconosNexo.Chat)
+                    BotonAbrirChat(alEscribir)
                     Spacer(Modifier.weight(1f))
                     BotonTexto("Cancelar", alCancelar, color = Rojo)
                 }
@@ -395,9 +402,33 @@ private fun TarjetaSolicitud(
                 }
             }
             !esTutor && solicitud.estado == EstadoSolicitud.RECHAZADA -> {
-                BotonTexto("Ver otros tutores de ${solicitud.materia}", alVerOtros, modifier = Modifier.offset(x = (-12).dp))
+                BotonTexto("Ver otros tutores de ${solicitud.materia}", alVerOtros)
             }
             else -> Spacer(Modifier.height(EspacioCorto))
+        }
+    }
+}
+
+/** "Abrir chat" como píldora, igual que en las tarjetas del Inicio (PRODUCT.md); se ve de 40 dp y se toca en 48. */
+@Composable
+private fun BotonAbrirChat(alClicar: () -> Unit) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .areaTactilSinCambiarMedida()
+            .heightIn(min = 48.dp)
+            .pulsable(etiqueta = "Abrir chat") { alClicar() }
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .heightIn(min = 40.dp)
+                .background(TinteBosque, FormaBoton)
+                .padding(horizontal = 15.dp)
+        ) {
+            Icon(IconosNexo.Chat, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(17.dp))
+            Spacer(Modifier.width(EspacioFino))
+            Text("Abrir chat", color = BosqueProfundo, style = EtiquetaBoton)
         }
     }
 }
@@ -442,7 +473,7 @@ private fun HojaRechazo(solicitud: Solicitud, alCerrar: () -> Unit, alConfirmar:
         alCerrar = alCerrar
     ) {
         RotuloGrupo("Motivo (opcional)", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(EspacioCorto), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
+        FlowRow(modifier = Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(EspacioCorto), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
             motivosRapidos.forEach { m ->
                 FiltroOpcion(m, motivo == m, { motivo = if (motivo == m) "" else m }, conMarca = false)
             }
