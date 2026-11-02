@@ -82,7 +82,9 @@ import com.grupo3.nexo.ui.components.FiltroOpcion
 import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.components.InsigniaEstado
-import com.grupo3.nexo.ui.components.PLAZO_RESPUESTA
+import com.grupo3.nexo.domain.model.horasRestantes
+import com.grupo3.nexo.ui.components.formatoHoras
+import kotlin.math.floor
 import com.grupo3.nexo.ui.components.Pestanas
 import com.grupo3.nexo.ui.components.RotuloGrupo
 import com.grupo3.nexo.ui.components.TextoLinea
@@ -314,6 +316,7 @@ private fun plural(e: EstadoSolicitud): String = when (e) {
     EstadoSolicitud.RECHAZADA -> "Rechazadas"
     EstadoSolicitud.FINALIZADA -> "Finalizadas"
     EstadoSolicitud.CANCELADA -> "Canceladas"
+    EstadoSolicitud.EXPIRADA -> "Expiradas"
 }
 
 @Composable
@@ -384,7 +387,11 @@ private fun TarjetaSolicitud(
         when (solicitud.acciones(esTutor)) {
             AccionesSolicitud.RESPONDER -> {
                 Spacer(Modifier.height(EspacioMedio))
-                AvisoPlazo("Tienes $PLAZO_RESPUESTA para responder")
+                val horas = solicitud.horasRestantes()
+                AvisoPlazo(
+                    if (horas < 1) "Queda menos de 1 h para responder" else "Quedan ${formatoHoras(floor(horas))} para responder",
+                    urgente = horas <= HORAS_AVISO_PLAZO
+                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BotonTonal(
                         "Aceptar",
@@ -423,7 +430,13 @@ private fun TarjetaSolicitud(
             }
             AccionesSolicitud.CANCELAR -> {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    AvisoPlazo("Expira si no responde en $PLAZO_RESPUESTA", Modifier.weight(1f), conAire = false)
+                    val horas = solicitud.horasRestantes()
+                    AvisoPlazo(
+                        if (horas < 1) "Expira en menos de 1 h" else "Expira en ${formatoHoras(floor(horas))} si no responde",
+                        Modifier.weight(1f),
+                        conAire = false,
+                        urgente = horas <= HORAS_AVISO_PLAZO
+                    )
                     BotonTexto(
                         "Cancelar",
                         alCancelar,
@@ -465,16 +478,19 @@ private fun BotonAbrirChat(conQuien: String, alClicar: () -> Unit) {
     }
 }
 
+/** Con estas horas o menos el plazo se resalta con el color de aviso. */
+private const val HORAS_AVISO_PLAZO = 3
+
 /** Plazo de respuesta (RF6) en una línea discreta, igual para estudiante y tutor. */
 @Composable
-private fun AvisoPlazo(texto: String, modifier: Modifier = Modifier, conAire: Boolean = true) {
+private fun AvisoPlazo(texto: String, modifier: Modifier = Modifier, conAire: Boolean = true, urgente: Boolean = false) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.padding(top = if (conAire) EspacioMedio else 0.dp)
     ) {
         Icon(ImageVector.vectorResource(R.drawable.ph_reloj), contentDescription = null, tint = MielOscura, modifier = Modifier.size(Icono15))
         Spacer(Modifier.width(EspacioFino))
-        Text(texto, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
+        Text(texto, color = if (urgente) MielOscura else TextoTercero, style = MaterialTheme.typography.bodySmall)
     }
 }
 

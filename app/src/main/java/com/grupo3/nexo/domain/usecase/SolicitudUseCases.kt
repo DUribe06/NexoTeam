@@ -31,7 +31,7 @@ class ObtenerMisSolicitudesUseCase @Inject constructor(
 ) {
     private val orden = listOf(
         EstadoSolicitud.PENDIENTE, EstadoSolicitud.ACEPTADA, EstadoSolicitud.FINALIZADA,
-        EstadoSolicitud.RECHAZADA, EstadoSolicitud.CANCELADA
+        EstadoSolicitud.RECHAZADA, EstadoSolicitud.CANCELADA, EstadoSolicitud.EXPIRADA
     )
 
     operator fun invoke(): Flow<List<Solicitud>> =

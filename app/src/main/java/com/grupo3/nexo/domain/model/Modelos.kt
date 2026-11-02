@@ -1,6 +1,8 @@
 package com.grupo3.nexo.domain.model
 
+import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -22,7 +24,9 @@ enum class EstadoSolicitud(val etiqueta: String) {
     ACEPTADA("Aceptada"),
     RECHAZADA("Rechazada"),
     FINALIZADA("Finalizada"),
-    CANCELADA("Cancelada")
+    CANCELADA("Cancelada"),
+    /** Pasó el plazo de respuesta sin que el tutor contestara (RF6). */
+    EXPIRADA("Expirada")
 }
 
 /** Ciclo de vida de una sesión de tutoría (RF10). */
@@ -121,8 +125,18 @@ data class Solicitud(
     val estado: EstadoSolicitud,
     val mensaje: String,
     /** Motivo opcional que da el tutor al rechazar (RF6). */
-    val motivoRechazo: String? = null
+    val motivoRechazo: String? = null,
+    /** Momento en que el estudiante la envió; con él se cuenta el plazo de respuesta (RF6). */
+    val enviada: LocalDateTime = LocalDateTime.now()
 )
+
+/** Horas que quedan para que el tutor responda; 0 o menos si el plazo ya venció. */
+fun Solicitud.horasRestantes(ahora: LocalDateTime = LocalDateTime.now()): Double =
+    PLAZO_RESPUESTA_HORAS - Duration.between(enviada, ahora).toMinutes() / 60.0
+
+/** Una pendiente con el plazo vencido se trata como expirada; las demás quedan igual. */
+fun Solicitud.conPlazoAplicado(ahora: LocalDateTime = LocalDateTime.now()): Solicitud =
+    if (estado == EstadoSolicitud.PENDIENTE && horasRestantes(ahora) <= 0.0) copy(estado = EstadoSolicitud.EXPIRADA) else this
 
 /** Sigue en curso: espera respuesta o ya se aceptó. Las demás están cerradas. */
 val Solicitud.activa: Boolean get() = estado == EstadoSolicitud.PENDIENTE || estado == EstadoSolicitud.ACEPTADA
@@ -135,7 +149,7 @@ fun Solicitud.acciones(esTutor: Boolean): AccionesSolicitud = when {
     esTutor && estado == EstadoSolicitud.ACEPTADA -> AccionesSolicitud.ABRIR_CHAT
     !esTutor && estado == EstadoSolicitud.ACEPTADA -> AccionesSolicitud.ABRIR_CHAT_O_CANCELAR
     !esTutor && estado == EstadoSolicitud.PENDIENTE -> AccionesSolicitud.CANCELAR
-    !esTutor && estado == EstadoSolicitud.RECHAZADA -> AccionesSolicitud.VER_OTROS
+    !esTutor && (estado == EstadoSolicitud.RECHAZADA || estado == EstadoSolicitud.EXPIRADA) -> AccionesSolicitud.VER_OTROS
     else -> AccionesSolicitud.NINGUNA
 }
 

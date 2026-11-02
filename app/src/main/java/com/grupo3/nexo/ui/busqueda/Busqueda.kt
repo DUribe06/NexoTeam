@@ -243,7 +243,7 @@ fun PantallaBusqueda(
                     icono = IconosNexo.SinResultados,
                     titulo = "Ningún tutor coincide",
                     mensaje = "Amplía la búsqueda: prueba otra franja horaria, la otra modalidad o quita el área.",
-                    accion = if (estado.hayFiltros) "Quitar todos los filtros" else null,
+                    accion = if (estado.hayFiltros) "Quitar todos los filtros" else "Ver todas las áreas",
                     alAccion = viewModel::limpiarTodo
                 )
             } else {

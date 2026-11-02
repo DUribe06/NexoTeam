@@ -734,7 +734,7 @@ fun InsigniaEstado(estado: EstadoSolicitud, modifier: Modifier = Modifier) {
         EstadoSolicitud.ACEPTADA -> VerdeEstado to Menta
         EstadoSolicitud.RECHAZADA -> Rojo to Rojo
         EstadoSolicitud.FINALIZADA -> TextoSecundario to TextoSecundario
-        EstadoSolicitud.CANCELADA -> GrisEstado to GrisEstadoSuave
+        EstadoSolicitud.CANCELADA, EstadoSolicitud.EXPIRADA -> GrisEstado to GrisEstadoSuave
     }
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         Box(Modifier.size(7.dp).background(punto, CircleShape))

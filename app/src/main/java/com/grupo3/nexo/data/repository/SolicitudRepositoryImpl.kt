@@ -4,14 +4,16 @@ import com.grupo3.nexo.data.mock.MockData
 import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Solicitud
+import com.grupo3.nexo.domain.model.conPlazoAplicado
 import com.grupo3.nexo.domain.repository.AuthRepository
 import com.grupo3.nexo.domain.repository.SolicitudRepository
+import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
 @Singleton
@@ -22,7 +24,7 @@ class SolicitudRepositoryImpl @Inject constructor(
     private val solicitudes = MutableStateFlow(MockData.solicitudes)
     private var contador = solicitudes.value.size
 
-    override fun obtenerSolicitudes(): Flow<List<Solicitud>> = solicitudes.asStateFlow()
+    override fun obtenerSolicitudes(): Flow<List<Solicitud>> = solicitudes.map { lista -> lista.map { it.conPlazoAplicado() } }
 
     override suspend fun actualizarEstado(id: String, estado: EstadoSolicitud, motivo: String?) {
         delay(500)
@@ -59,7 +61,8 @@ class SolicitudRepositoryImpl @Inject constructor(
                 hora = hora,
                 modalidad = modalidad,
                 estado = EstadoSolicitud.PENDIENTE,
-                mensaje = mensaje
+                mensaje = mensaje,
+                enviada = LocalDateTime.now()
             )
         }
     }

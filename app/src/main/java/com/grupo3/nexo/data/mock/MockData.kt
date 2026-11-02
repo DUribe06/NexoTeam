@@ -29,6 +29,7 @@ import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.model.Usuario
 import com.grupo3.nexo.domain.model.mesesCortos
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -47,6 +48,9 @@ object MockData {
     /** Nombre del día de la semana ("martes") a tantos días de hoy, para los mensajes que lo mencionan. */
     private fun diaEn(dias: Long): String =
         LocalDate.now().plusDays(dias).dayOfWeek.getDisplayName(TextStyle.FULL, Locale("es", "CO"))
+
+    /** Momento de envío de una solicitud, a tantas horas de ahora, para que el plazo de respuesta sea creíble. */
+    private fun haceHoras(horas: Long): LocalDateTime = LocalDateTime.now().minusHours(horas)
 
     private const val UIS = "Universidad Industrial de Santander"
     private const val UNAB = "Universidad Autónoma de Bucaramanga"
@@ -193,18 +197,21 @@ object MockData {
 
     val solicitudes = listOf(
         // Recibidas por Diego en modo tutor (enseña Cálculo I y Programación).
-        Solicitud("s1", "u1", "Diego", "e1", "Valeria Ríos", "Cálculo I", "Límites y continuidad", enDias(2), "10:00", VIRTUAL, EstadoSolicitud.PENDIENTE, "Hola, ¿podemos repasar antes del parcial?"),
-        Solicitud("s2", "u1", "Diego", "e2", "Jorge Luna", "Programación", "Recursión en Python", enDias(3), "16:00", PRESENCIAL, EstadoSolicitud.PENDIENTE, "Necesito ayuda con el taller 3."),
-        Solicitud("s3", "u1", "Diego", "e3", "Camila Torres", "Cálculo I", "Derivadas implícitas", enDias(4), "08:00", VIRTUAL, EstadoSolicitud.PENDIENTE, "¿Tienes espacio esta semana?"),
+        Solicitud("s1", "u1", "Diego", "e1", "Valeria Ríos", "Cálculo I", "Límites y continuidad", enDias(2), "10:00", VIRTUAL, EstadoSolicitud.PENDIENTE, "Hola, ¿podemos repasar antes del parcial?", enviada = haceHoras(2)),
+        Solicitud("s2", "u1", "Diego", "e2", "Jorge Luna", "Programación", "Recursión en Python", enDias(3), "16:00", PRESENCIAL, EstadoSolicitud.PENDIENTE, "Necesito ayuda con el taller 3.", enviada = haceHoras(6)),
+        Solicitud("s3", "u1", "Diego", "e3", "Camila Torres", "Cálculo I", "Derivadas implícitas", enDias(4), "08:00", VIRTUAL, EstadoSolicitud.PENDIENTE, "¿Tienes espacio esta semana?", enviada = haceHoras(22)),
         Solicitud("s4", "u1", "Diego", "e4", "Andrea Prado", "Programación", "Listas y diccionarios", enDias(2), "18:00", VIRTUAL, EstadoSolicitud.ACEPTADA, "Gracias, nos vemos por Meet."),
         Solicitud("s5", "u1", "Diego", "e5", "Bruno Salas", "Cálculo I", "Integrales", "18 oct", "11:00", PRESENCIAL, EstadoSolicitud.RECHAZADA, "¿Podemos vernos en la biblioteca?", motivoRechazo = "Ese horario ya estaba reservado."),
         Solicitud("s6", "u1", "Diego", "e6", "Renzo Cruz", "Programación", "Funciones", "14 oct", "15:00", VIRTUAL, EstadoSolicitud.FINALIZADA, "Sesión completada. ¡Gracias!"),
         // Enviadas por Diego en modo estudiante.
-        Solicitud("s7", "t2", "Carlos Mendoza", "u1", "Diego", "Python", "Funciones y listas", enDias(6), "18:00", VIRTUAL, EstadoSolicitud.PENDIENTE, "Hola Carlos, quiero repasar para el quiz."),
+        Solicitud("s7", "t2", "Carlos Mendoza", "u1", "Diego", "Python", "Funciones y listas", enDias(6), "18:00", VIRTUAL, EstadoSolicitud.PENDIENTE, "Hola Carlos, quiero repasar para el quiz.", enviada = haceHoras(21)),
         Solicitud("s8", "t3", "Lucía Fernández", "u1", "Diego", "Física I", "Cinemática", enDias(3), "15:00", PRESENCIAL, EstadoSolicitud.ACEPTADA, "Confirmada, nos vemos en la biblioteca."),
         Solicitud("s9", "t4", "María López", "u1", "Diego", "Inglés", "Speaking para entrevista", "12 oct", "09:00", VIRTUAL, EstadoSolicitud.RECHAZADA, "¿Podemos practicar una entrevista?", motivoRechazo = "Esa semana estoy de viaje, ¿la siguiente?"),
         Solicitud("s10", "t1", "Ana Torres", "u1", "Diego", "Cálculo I", "Límites y continuidad", enDias(1), "10:00", VIRTUAL, EstadoSolicitud.ACEPTADA, "¿Podemos repasar los problemas de la guía 4?"),
-        Solicitud("s11", "t7", "Diego Ramírez", "u1", "Diego", "SQL", "Modelo entidad–relación", enDias(5), "16:00", VIRTUAL, EstadoSolicitud.ACEPTADA, "Quiero revisar el modelo del proyecto.")
+        Solicitud("s11", "t7", "Diego Ramírez", "u1", "Diego", "SQL", "Modelo entidad–relación", enDias(5), "16:00", VIRTUAL, EstadoSolicitud.ACEPTADA, "Quiero revisar el modelo del proyecto."),
+        // Sin respuesta dentro del plazo: expiradas.
+        Solicitud("s12", "u1", "Diego", "e7", "Sara Gómez", "Programación", "Arreglos y ciclos", enDias(1), "09:00", VIRTUAL, EstadoSolicitud.EXPIRADA, "Hola, ¿tienes espacio para repasar ciclos?", enviada = haceHoras(30)),
+        Solicitud("s13", "t5", "Pablo Sánchez", "u1", "Diego", "Diseño UI/UX", "Prototipo en Figma", enDias(2), "14:00", VIRTUAL, EstadoSolicitud.EXPIRADA, "Quisiera una revisión de mi prototipo.", enviada = haceHoras(28))
     )
 
     /** Solo hay chat con solicitudes aceptadas o sesiones ya terminadas (RF8). */

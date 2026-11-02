@@ -82,6 +82,7 @@ import com.grupo3.nexo.ui.components.CabeceraBosque
 import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.DialogoConfirmacion
 import com.grupo3.nexo.ui.components.EncabezadoSeccion
+import com.grupo3.nexo.ui.components.enumerar
 import com.grupo3.nexo.ui.components.ErrorDeLista
 import com.grupo3.nexo.ui.components.Esqueleto
 import com.grupo3.nexo.ui.components.EstadoVacio
@@ -123,7 +124,6 @@ import com.grupo3.nexo.ui.theme.FormaCampoAlto
 import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.RojoSuave
-import com.grupo3.nexo.ui.theme.BordeMateria
 import com.grupo3.nexo.ui.theme.IconoSecundario
 import com.grupo3.nexo.ui.theme.SombraAmbiente
 import com.grupo3.nexo.ui.theme.SombraPuntual
@@ -526,27 +526,12 @@ private fun EsqueletoSinMargen(filas: Int) {
     }
 }
 
-/** Materias como texto con borde fino: píldoras sí, pero sin color de relleno ni más peso que los títulos. */
-@OptIn(ExperimentalLayoutApi::class)
+/** Materias como texto corrido, igual que en el perfil público: se leen de un vistazo y no recargan la pantalla. */
 @Composable
 private fun Materias(titulo: String, materias: List<String>, modifier: Modifier = Modifier) {
     Column(modifier) {
         EncabezadoSeccion(titulo)
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
-            verticalArrangement = Arrangement.spacedBy(EspacioCorto)
-        ) {
-            materias.forEach { materia ->
-                Text(
-                    materia,
-                    color = BosqueProfundo,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                    modifier = Modifier
-                        .border(1.dp, BordeMateria, CircleShape)
-                        .padding(horizontal = EspacioMedio, vertical = EspacioMinimo)
-                )
-            }
-        }
+        Text(enumerar(materias), color = TextoPrimario, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
