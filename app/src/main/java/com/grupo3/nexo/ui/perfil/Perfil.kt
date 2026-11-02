@@ -1,5 +1,8 @@
 package com.grupo3.nexo.ui.perfil
 
+import com.grupo3.nexo.ui.theme.Icono16
+import com.grupo3.nexo.ui.theme.Icono18
+import com.grupo3.nexo.ui.theme.Icono22
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -120,7 +123,10 @@ import com.grupo3.nexo.ui.theme.FormaCampoAlto
 import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.RojoSuave
-import com.grupo3.nexo.ui.theme.Salvia
+import com.grupo3.nexo.ui.theme.BordeMateria
+import com.grupo3.nexo.ui.theme.IconoSecundario
+import com.grupo3.nexo.ui.theme.SombraAmbiente
+import com.grupo3.nexo.ui.theme.SombraPuntual
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.SobreOscuroSuave
 import com.grupo3.nexo.ui.theme.Superficie
@@ -299,9 +305,7 @@ private fun CabeceraAjustable(
 
 /* ==================== Piezas ==================== */
 
-/** Esquinas amplias como la tarjeta de la próxima sesión del Inicio y los campos del acceso. */
-
-/** Botón circular verde bosque con flecha, el mismo "ir" del buscador del Inicio. */
+/** Botón circular verde bosque con flecha, parecido al "ir" del buscador del Inicio, pero de 36 dp y en verde liso (el del Inicio mide 40 dp y lleva degradado). */
 @Composable
 private fun BotonIr(modifier: Modifier = Modifier) {
     Box(
@@ -310,7 +314,7 @@ private fun BotonIr(modifier: Modifier = Modifier) {
             .size(36.dp)
             .background(BosqueMedio, CircleShape)
     ) {
-        Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(16.dp))
+        Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(Icono16))
     }
 }
 
@@ -440,7 +444,7 @@ private fun ValorCifra(valor: String, conEstrella: Boolean) {
         )
         if (conEstrella) {
             Spacer(Modifier.width(EspacioMinimo))
-            Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(18.dp))
+            Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(Icono18))
         }
     }
 }
@@ -527,14 +531,7 @@ private fun EsqueletoSinMargen(filas: Int) {
 @Composable
 private fun Materias(titulo: String, materias: List<String>, modifier: Modifier = Modifier) {
     Column(modifier) {
-        Text(
-            titulo,
-            color = TextoPrimario,
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier
-                .padding(bottom = EspacioMedio)
-                .semantics { heading() }
-        )
+        EncabezadoSeccion(titulo)
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
             verticalArrangement = Arrangement.spacedBy(EspacioCorto)
@@ -545,7 +542,7 @@ private fun Materias(titulo: String, materias: List<String>, modifier: Modifier 
                     color = BosqueProfundo,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     modifier = Modifier
-                        .border(1.dp, BosqueAcento.copy(alpha = 0.22f), CircleShape)
+                        .border(1.dp, BordeMateria, CircleShape)
                         .padding(horizontal = EspacioMedio, vertical = EspacioMinimo)
                 )
             }
@@ -566,7 +563,7 @@ private fun AvisoPorCalificar(cantidad: Int, alCalificar: () -> Unit, modifier: 
             .clickable(role = Role.Button, onClickLabel = "Calificar sesiones", onClick = alCalificar)
             .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioCercano, bottom = EspacioCercano)
     ) {
-        Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(22.dp))
+        Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(Icono22))
         Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
             Text(
@@ -604,7 +601,7 @@ private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> 
             .border(1.dp, rojo.copy(alpha = 0.28f), CircleShape)
             .clickable(role = Role.Button, onClick = alSalir)
     ) {
-        Icon(painterResource(R.drawable.ph_salir), contentDescription = null, tint = rojo, modifier = Modifier.size(18.dp))
+        Icon(painterResource(R.drawable.ph_salir), contentDescription = null, tint = rojo, modifier = Modifier.size(Icono18))
         Spacer(Modifier.width(EspacioCorto))
         Text("Cerrar sesión", color = rojo, style = MaterialTheme.typography.titleSmall)
     }
@@ -621,7 +618,7 @@ private fun TarjetaDisponibilidad(alAbrir: () -> Unit) {
             .clickable(role = Role.Button, onClick = alAbrir)
             .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioCercano, bottom = EspacioCercano)
     ) {
-        Icon(painterResource(R.drawable.ph_calendario), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(22.dp))
+        Icon(painterResource(R.drawable.ph_calendario), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono22))
         Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
             Text("Mi disponibilidad", color = BosqueProfundo, style = MaterialTheme.typography.titleSmall)
@@ -644,7 +641,7 @@ private fun SelectorModo(actual: Rol, alElegir: (Rol) -> Unit, modifier: Modifie
         modifier = modifier
             .fillMaxWidth()
             .height(54.dp)
-            .shadow(14.dp, forma, ambientColor = BosqueProfundo.copy(alpha = 0.22f), spotColor = BosqueProfundo.copy(alpha = 0.38f))
+            .shadow(14.dp, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
             .superficie(forma)
             .padding(EspacioFino)
     ) {
@@ -695,7 +692,7 @@ private fun FilaMenu(icono: Painter, titulo: String, alClicar: () -> Unit) {
             .clickable(role = Role.Button, onClick = alClicar)
             .padding(horizontal = EspacioNormal, vertical = EspacioAjustado)
     ) {
-        Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(22.dp))
+        Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono22))
         Spacer(Modifier.width(EspacioNormal))
         Text(
             titulo,
@@ -703,6 +700,6 @@ private fun FilaMenu(icono: Painter, titulo: String, alClicar: () -> Unit) {
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
             modifier = Modifier.weight(1f)
         )
-        Icon(painterResource(R.drawable.ph_caret), contentDescription = null, tint = Salvia.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+        Icon(painterResource(R.drawable.ph_caret), contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(Icono18))
     }
 }

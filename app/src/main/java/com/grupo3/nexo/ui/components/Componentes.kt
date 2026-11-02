@@ -1,5 +1,11 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.ui.theme.Icono14
+import com.grupo3.nexo.ui.theme.Icono16
+import com.grupo3.nexo.ui.theme.Icono17
+import com.grupo3.nexo.ui.theme.Icono18
+import com.grupo3.nexo.ui.theme.Icono19
+import com.grupo3.nexo.ui.theme.Icono28
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -100,6 +106,7 @@ import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.PLAZO_RESPUESTA_HORAS
 import com.grupo3.nexo.domain.model.diaYMes
+import com.grupo3.nexo.domain.model.fechaCalendario
 import com.grupo3.nexo.domain.model.mesesCortos
 import com.grupo3.nexo.domain.model.siglasUniversidad
 import com.grupo3.nexo.ui.theme.BordeMarcado
@@ -162,6 +169,7 @@ import com.grupo3.nexo.ui.theme.especFundidoSalida
 import com.grupo3.nexo.ui.theme.inicialesAvatar
 import com.grupo3.nexo.ui.theme.resortePresion
 import com.grupo3.nexo.ui.theme.tonosAvatar
+import java.time.LocalDate
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -314,7 +322,7 @@ fun BotonPrimario(
                 val color = if (habilitado) Superficie else TextoTercero
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (icono != null) {
-                        Icon(icono, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+                        Icon(icono, contentDescription = null, tint = color, modifier = Modifier.size(Icono18))
                         Spacer(Modifier.width(EspacioCorto))
                     }
                     Text(
@@ -378,7 +386,7 @@ fun BotonSecundario(
                 .padding(horizontal = if (compacto) EspacioNormal else EspacioMargen)
         ) {
             if (icono != null) {
-                Icon(icono, contentDescription = null, tint = if (peligro) Rojo else colorIcono, modifier = Modifier.size(18.dp))
+                Icon(icono, contentDescription = null, tint = if (peligro) Rojo else colorIcono, modifier = Modifier.size(Icono18))
                 Spacer(Modifier.width(EspacioCorto))
             }
             Text(
@@ -440,7 +448,7 @@ fun BotonTonal(
                 .padding(horizontal = EspacioCercano, vertical = EspacioAjustado)
         ) {
             if (icono != null) {
-                Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(17.dp))
+                Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(Icono17))
                 Spacer(Modifier.width(EspacioFino))
             }
             Text(
@@ -600,7 +608,7 @@ fun Campo(
                     )
             ) {
                 if (icono != null) {
-                    Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(19.dp))
+                    Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(Icono19))
                     Spacer(Modifier.width(EspacioMedio))
                 }
                 Box(Modifier.weight(1f)) {
@@ -611,7 +619,7 @@ fun Campo(
                 }
                 if (limpiable && valor.isNotEmpty()) {
                     IconButton(onClick = { alCambiar("") }) {
-                        Icon(IconosNexo.Cerrar, contentDescription = "Borrar texto", tint = IconoSecundario, modifier = Modifier.size(19.dp))
+                        Icon(IconosNexo.Cerrar, contentDescription = "Borrar texto", tint = IconoSecundario, modifier = Modifier.size(Icono19))
                     }
                 }
             }
@@ -669,7 +677,7 @@ fun FiltroOpcion(
             .padding(start = if (seleccionado && conMarca) EspacioAjustado else EspacioCercano, end = EspacioCercano, top = EspacioAjustado, bottom = EspacioAjustado)
     ) {
         if (seleccionado && conMarca) {
-            Icon(IconosNexo.Marca, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(16.dp))
+            Icon(IconosNexo.Marca, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono16))
             Spacer(Modifier.width(EspacioMinimo))
         }
         Text(
@@ -821,7 +829,7 @@ fun Valoracion(valor: Double, modifier: Modifier = Modifier, color: Color = Text
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.semantics(mergeDescendants = true) { }
     ) {
-        Icon(IconosNexo.Estrella, contentDescription = "Calificación", tint = MielFuerte, modifier = Modifier.size(14.dp))
+        Icon(IconosNexo.Estrella, contentDescription = "Calificación", tint = MielFuerte, modifier = Modifier.size(Icono14))
         Spacer(Modifier.width(EspacioMinimo))
         Text(
             formatoValoracion(valor),
@@ -854,6 +862,22 @@ fun formatoHoras(horas: Double): String =
 /** Fecha corta en español: "24 oct", "30 sept" → "30 sep". Si el texto no es una fecha, se devuelve tal cual. */
 fun formatoFecha(texto: String): String =
     diaYMes(texto)?.let { (dia, mes) -> "$dia ${mesesCortos[mes - 1]}" } ?: texto
+
+/** Fecha de un día del calendario con el mismo mes corto: LocalDate 30-sep → "30 sep". */
+fun formatoFecha(fecha: LocalDate): String = "${fecha.dayOfMonth} ${mesesCortos[fecha.monthValue - 1]}"
+
+private fun String.mayusculaInicial() = replaceFirstChar { it.titlecase(localeColombia) }
+
+/** Fecha larga con el día de la semana: "24 oct" → "Sábado 24 de octubre". Si el texto no es una fecha, se devuelve tal cual. */
+fun fechaLarga(texto: String): String = fechaCalendario(texto)?.let {
+    "${it.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, localeColombia).mayusculaInicial()} ${it.dayOfMonth} de " +
+        it.month.getDisplayName(java.time.format.TextStyle.FULL, localeColombia)
+} ?: texto
+
+/** Día de la semana y número: "26 oct" → "Lun 26". Si el texto no es una fecha, se devuelve tal cual. */
+fun fechaCorta(texto: String): String = fechaCalendario(texto)?.let {
+    "${it.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, localeColombia).trimEnd('.').mayusculaInicial()} ${it.dayOfMonth}"
+} ?: texto
 
 /** Plazo de respuesta del dominio, ya escrito para los textos que lo mencionan. */
 val PLAZO_RESPUESTA = formatoHoras(PLAZO_RESPUESTA_HORAS.toDouble())
@@ -921,7 +945,7 @@ fun EstadoVacio(
                 .size(64.dp)
                 .background(TinteBosque, FormaTarjeta)
         ) {
-            Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(28.dp))
+            Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono28))
         }
         Spacer(Modifier.height(EspacioNormal))
         Text(

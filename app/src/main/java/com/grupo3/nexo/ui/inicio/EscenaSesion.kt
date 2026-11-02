@@ -287,6 +287,11 @@ private fun DrawScope.fondo(c: Capa, img: ImageBitmap, m: Mov, a: Float, costura
 /** El PIN de muestra que ella le enseña al tutor en "Llegó". */
 private const val PIN_MUESTRA = "4821"
 
+/* Cambio de escena: entra por la derecha y la anterior sale por la izquierda. */
+private const val ESCENA_RETRASO_MS = 120
+private const val ESCENA_PASO_MS = 460
+private const val ESCENA_SE_APAGA_MS = 200
+
 /** Elementos de interfaz de la escena: se dibujan en código con los colores de la app. */
 private fun DrawScope.vector(c: Capa, a: Float, dp: Float, pin: List<TextLayoutResult>) {
     val centro = Offset(c.x + c.w / 2f, c.y + c.h / 2f)
@@ -815,8 +820,8 @@ fun BarraSesion(haySesiones: Boolean, esTutor: Boolean = false, modifier: Modifi
             targetState = fase,
             // La escena nueva entra por la derecha y la anterior sale por la izquierda, como un paso más
             transitionSpec = {
-                (fadeIn(tween(DuracionNormal, delayMillis = 120)) + slideInHorizontally(tween(460, easing = CurvaEstandar)) { it / 3 }) togetherWith
-                    (fadeOut(tween(200)) + slideOutHorizontally(tween(460, easing = CurvaEstandar)) { -it / 3 })
+                (fadeIn(tween(DuracionNormal, delayMillis = ESCENA_RETRASO_MS)) + slideInHorizontally(tween(ESCENA_PASO_MS, easing = CurvaEstandar)) { it / 3 }) togetherWith
+                    (fadeOut(tween(ESCENA_SE_APAGA_MS)) + slideOutHorizontally(tween(ESCENA_PASO_MS, easing = CurvaEstandar)) { -it / 3 })
             },
             label = "escena"
         ) { f ->

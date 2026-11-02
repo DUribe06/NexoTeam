@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.auth
 
+import com.grupo3.nexo.ui.theme.Icono19
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -616,7 +617,7 @@ private fun CampoPildora(
                     .heightIn(min = 54.dp)
                     .padding(start = EspacioMargen, end = if (esContrasena) EspacioFino else EspacioMargen)
             ) {
-                Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(19.dp))
+                Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(Icono19))
                 Spacer(Modifier.width(EspacioMedio))
                 Box(Modifier.weight(1f)) {
                     if (valor.isEmpty()) {

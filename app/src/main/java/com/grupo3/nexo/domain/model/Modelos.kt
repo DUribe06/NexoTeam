@@ -1,6 +1,8 @@
 package com.grupo3.nexo.domain.model
 
 import java.time.LocalDate
+import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
  * Modelos de dominio de Nexo.
@@ -122,6 +124,12 @@ data class Solicitud(
     val motivoRechazo: String? = null
 )
 
+/** Sigue en curso: espera respuesta o ya se aceptó. Las demás están cerradas. */
+val Solicitud.activa: Boolean get() = estado == EstadoSolicitud.PENDIENTE || estado == EstadoSolicitud.ACEPTADA
+
+/** Cuántas solicitudes esperan respuesta. */
+fun List<Solicitud>.contarPendientes(): Int = count { it.estado == EstadoSolicitud.PENDIENTE }
+
 fun Solicitud.acciones(esTutor: Boolean): AccionesSolicitud = when {
     esTutor && estado == EstadoSolicitud.PENDIENTE -> AccionesSolicitud.RESPONDER
     esTutor && estado == EstadoSolicitud.ACEPTADA -> AccionesSolicitud.ABRIR_CHAT
@@ -160,6 +168,14 @@ fun claveFecha(fecha: String, hora: String = "00:00"): Int {
     return dia * 1440 + minutos
 }
 
+/** Hora en que termina una sesión: "15:00" y 1,5 h → "16:30". Si la hora no se entiende, se devuelve tal cual. */
+fun horaFin(hora: String, horas: Double): String {
+    val partes = hora.split(":").mapNotNull { it.toIntOrNull() }
+    if (partes.size != 2) return hora
+    val total = partes[0] * 60 + partes[1] + (horas * 60).roundToInt()
+    return String.format(Locale("es", "CO"), "%02d:%02d", (total / 60) % 24, total % 60)
+}
+
 data class Sesion(
     val id: String,
     /** Id de la otra parte: el tutor si el usuario fue estudiante, el estudiante si fue tutor. */
@@ -183,8 +199,10 @@ data class Sesion(
     val solicitudId: String? = null
 ) {
     val proxima: Boolean get() = estado == EstadoSesion.PROGRAMADA
+    /** La sesión ocurrió; las canceladas y las sin asistencia no se califican ni muestran nota. */
+    val completada: Boolean get() = estado == EstadoSesion.COMPLETADA
     /** Solo se califica una sesión que ocurrió. */
-    val porCalificar: Boolean get() = estado == EstadoSesion.COMPLETADA && calificacion == null
+    val porCalificar: Boolean get() = completada && calificacion == null
 }
 
 data class Chat(

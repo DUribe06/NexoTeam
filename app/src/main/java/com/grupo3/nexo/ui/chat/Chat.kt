@@ -1,5 +1,7 @@
 package com.grupo3.nexo.ui.chat
 
+import com.grupo3.nexo.ui.theme.Icono14
+import com.grupo3.nexo.ui.theme.Icono18
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -624,7 +626,7 @@ private fun AvisoSoloLectura(nota: Int? = null, motivo: String = "La sesión ter
             .navigationBarsPadding()
             .padding(horizontal = EspacioMargen, vertical = EspacioNormal)
     ) {
-        Icon(IconosNexo.Candado, contentDescription = null, tint = TextoTercero, modifier = Modifier.size(18.dp))
+        Icon(IconosNexo.Candado, contentDescription = null, tint = TextoTercero, modifier = Modifier.size(Icono18))
         Spacer(Modifier.width(EspacioAjustado))
         Column {
             Text(
@@ -643,7 +645,7 @@ private fun AvisoSoloLectura(nota: Int? = null, motivo: String = "La sesión ter
                 ) {
                     Text("Calificaste", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.width(EspacioMinimo))
-                    Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(14.dp))
+                    Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(Icono14))
                     Text("$nota", color = TextoSecundario, style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares))
                 }
             }
@@ -658,7 +660,7 @@ private fun PieSesionTerminada(sesion: Sesion?, alCalificar: () -> Unit) {
         AvisoSoloLectura()
         return
     }
-    if (sesion.estado != EstadoSesion.COMPLETADA) {
+    if (!sesion.completada) {
         AvisoSoloLectura(
             motivo = if (sesion.estado == EstadoSesion.CANCELADA) "La sesión se canceló." else "La sesión se cerró sin asistencia."
         )

@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.historial
 
+import com.grupo3.nexo.ui.theme.Icono13
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -360,7 +361,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
         Avatar(
             sesion.conQuien,
             tamano = 40.dp,
-            modifier = Modifier.graphicsLayer { alpha = if (sesion.estado == EstadoSesion.COMPLETADA) 1f else 0.6f }
+            modifier = Modifier.graphicsLayer { alpha = if (sesion.completada) 1f else 0.6f }
         )
         Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
@@ -371,7 +372,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
                 color = TextoTercero,
                 style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares)
             )
-            sesion.calificacionRecibida?.takeIf { sesion.estado == EstadoSesion.COMPLETADA }?.let { nota ->
+            sesion.calificacionRecibida?.takeIf { sesion.completada }?.let { nota ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -382,7 +383,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
                 ) {
                     Text("Te calificó", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.width(EspacioMinimo))
-                    Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(13.dp))
+                    Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(Icono13))
                     Text("$nota", color = TextoSecundario, style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares))
                 }
             }
@@ -397,7 +398,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
             }
         }
         Spacer(Modifier.width(EspacioCorto))
-        if (sesion.estado != EstadoSesion.COMPLETADA) {
+        if (!sesion.completada) {
             // Cancelada o sin asistencia: no se califica; el estado se lee como texto discreto
             Text(sesion.estado.etiqueta, color = TextoTercero, style = MaterialTheme.typography.labelMedium)
             return@Row

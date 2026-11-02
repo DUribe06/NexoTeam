@@ -1,5 +1,7 @@
 package com.grupo3.nexo.ui.solicitudes
 
+import com.grupo3.nexo.ui.theme.Icono15
+import com.grupo3.nexo.ui.theme.Icono17
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +57,8 @@ import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Solicitud
 import com.grupo3.nexo.domain.model.acciones
+import com.grupo3.nexo.domain.model.activa
+import com.grupo3.nexo.domain.model.contarPendientes
 import com.grupo3.nexo.domain.model.primerNombre
 import com.grupo3.nexo.domain.usecase.AbrirChatDeSolicitudUseCase
 import com.grupo3.nexo.domain.usecase.ActualizarSolicitudUseCase
@@ -135,10 +139,9 @@ class SolicitudesViewModel @Inject constructor(
         val filtro: EstadoSolicitud? = null,
         val solicitudes: List<Solicitud> = emptyList(),
         val conteos: Map<EstadoSolicitud, Int> = emptyMap(),
-        val total: Int = 0
-    ) {
-        val pendientes get() = conteos[EstadoSolicitud.PENDIENTE] ?: 0
-    }
+        val total: Int = 0,
+        val pendientes: Int = 0
+    )
 
     /** El filtro recuerda el modo en que se eligió: al cambiar de estudiante a tutor se descarta. */
     private val filtro = MutableStateFlow<Pair<Rol, EstadoSolicitud>?>(null)
@@ -153,7 +156,8 @@ class SolicitudesViewModel @Inject constructor(
             filtro = f,
             solicitudes = propias.filter { f == null || it.estado == f },
             conteos = propias.groupingBy { it.estado }.eachCount(),
-            total = propias.size
+            total = propias.size,
+            pendientes = propias.contarPendientes()
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 
@@ -325,7 +329,7 @@ private fun TarjetaSolicitud(
 ) {
     val otraParte = if (esTutor) solicitud.nombreEstudiante else solicitud.nombreTutor
     // Las cerradas (rechazadas, finalizadas, canceladas) apagan el nombre con color, no con transparencia: el contraste se mantiene
-    val activa = solicitud.estado == EstadoSolicitud.PENDIENTE || solicitud.estado == EstadoSolicitud.ACEPTADA
+    val activa = solicitud.activa
 
     Column(
         modifier = modifier
@@ -454,7 +458,7 @@ private fun BotonAbrirChat(conQuien: String, alClicar: () -> Unit) {
                 .background(TinteBosque, FormaBoton)
                 .padding(horizontal = EspacioPildora)
         ) {
-            Icon(IconosNexo.Chat, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(17.dp))
+            Icon(IconosNexo.Chat, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono17))
             Spacer(Modifier.width(EspacioFino))
             Text("Abrir chat", color = BosqueProfundo, style = EtiquetaBoton)
         }
@@ -468,7 +472,7 @@ private fun AvisoPlazo(texto: String, modifier: Modifier = Modifier, conAire: Bo
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.padding(top = if (conAire) EspacioMedio else 0.dp)
     ) {
-        Icon(ImageVector.vectorResource(R.drawable.ph_reloj), contentDescription = null, tint = MielOscura, modifier = Modifier.size(15.dp))
+        Icon(ImageVector.vectorResource(R.drawable.ph_reloj), contentDescription = null, tint = MielOscura, modifier = Modifier.size(Icono15))
         Spacer(Modifier.width(EspacioFino))
         Text(texto, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
     }
@@ -477,7 +481,7 @@ private fun AvisoPlazo(texto: String, modifier: Modifier = Modifier, conAire: Bo
 @Composable
 private fun Dato(icono: ImageVector, texto: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(15.dp))
+        Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono15))
         Spacer(Modifier.width(EspacioIcono))
         val estilo = MaterialTheme.typography.bodyMedium
         Text(texto, color = BosqueProfundo, style = remember(estilo) { estilo.copy(fontWeight = FontWeight.Medium).merge(CifrasTabulares) })

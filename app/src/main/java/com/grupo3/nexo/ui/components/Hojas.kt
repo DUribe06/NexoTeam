@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.ui.theme.Icono18
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -157,7 +158,7 @@ fun AvisoNexo(estado: SnackbarHostState, modifier: Modifier = Modifier) {
                 .background(BosqueProfundo, FormaControl)
                 .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
         ) {
-            Icon(IconosNexo.MarcaCirculo, contentDescription = null, tint = Menta, modifier = Modifier.size(18.dp))
+            Icon(IconosNexo.MarcaCirculo, contentDescription = null, tint = Menta, modifier = Modifier.size(Icono18))
             Spacer(Modifier.width(EspacioAjustado))
             Text(datos.visuals.message, color = SobreOscuro, style = MaterialTheme.typography.titleSmall)
         }

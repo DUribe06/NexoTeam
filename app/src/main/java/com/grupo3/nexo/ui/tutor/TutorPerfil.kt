@@ -1,5 +1,10 @@
 package com.grupo3.nexo.ui.tutor
 
+import com.grupo3.nexo.ui.theme.Icono12
+import com.grupo3.nexo.ui.theme.Icono13
+import com.grupo3.nexo.ui.theme.Icono15
+import com.grupo3.nexo.ui.theme.Icono16
+import com.grupo3.nexo.ui.theme.Icono18
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -118,6 +123,7 @@ import com.grupo3.nexo.ui.components.VeloBarraEstado
 import com.grupo3.nexo.ui.components.aparicion
 import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.enumerar
+import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.formatoPrecio
 import com.grupo3.nexo.ui.components.formatoValoracion
 import com.grupo3.nexo.ui.components.icono
@@ -162,8 +168,6 @@ import com.grupo3.nexo.ui.theme.TinteFilaElegida
 import com.grupo3.nexo.ui.theme.VerdeEstado
 import com.grupo3.nexo.ui.theme.especColor
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -555,7 +559,7 @@ private fun Identidad(tutor: Tutor, modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(EspacioMinimo))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(IconosNexo.Graduacion, contentDescription = null, tint = TextoTercero, modifier = Modifier.size(15.dp))
+            Icon(IconosNexo.Graduacion, contentDescription = null, tint = TextoTercero, modifier = Modifier.size(Icono15))
             Spacer(Modifier.width(EspacioFino))
             Text(
                 tutor.universidad,
@@ -625,7 +629,7 @@ private fun Cifra(
     val cifra: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (conEstrella) {
-                Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(16.dp))
+                Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(Icono16))
                 Spacer(Modifier.width(EspacioMinimo))
             }
             Text(valor, color = TextoPrimario, style = MaterialTheme.typography.titleLarge.merge(CifrasTabulares))
@@ -745,9 +749,7 @@ data class DatosSolicitud(
 )
 
 private val DiaSolicitable.abreviatura: String get() = DiaSemana.desde(fecha.dayOfWeek.value).abreviatura
-private val DiaSolicitable.etiqueta: String get() = fecha.format(formatoDiaCorto).replace(".", "")
-
-private val formatoDiaCorto = DateTimeFormatter.ofPattern("d MMM", Locale("es", "CO"))
+private val DiaSolicitable.etiqueta: String get() = formatoFecha(fecha)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -912,10 +914,10 @@ private fun OpcionModalidad(
             .graphicsLayer { alpha = if (habilitada) 1f else 0.4f }
     ) {
         if (seleccionada) {
-            Icon(IconosNexo.Marca, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(16.dp))
+            Icon(IconosNexo.Marca, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono16))
             Spacer(Modifier.width(EspacioFino))
         }
-        Icon(modalidad.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(18.dp))
+        Icon(modalidad.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono18))
         Spacer(Modifier.width(EspacioCorto))
         Text(
             modalidad.etiqueta,
@@ -976,7 +978,7 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
                 .padding(horizontal = EspacioNormal, vertical = EspacioAjustado)
         ) {
             Modalidad.entries.forEach { m ->
-                Icon(m.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(13.dp))
+                Icon(m.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono13))
                 Spacer(Modifier.width(EspacioMinimo))
                 Text(m.etiqueta, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.width(EspacioCercano))
@@ -1003,7 +1005,7 @@ private fun SelectorDia(dia: String, fecha: String, seleccionado: Boolean, alCli
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (seleccionado) {
-                Icon(IconosNexo.Marca, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(12.dp))
+                Icon(IconosNexo.Marca, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono12))
                 Spacer(Modifier.width(EspacioMinimo))
             }
             Text(dia, color = if (seleccionado) BosqueProfundo else TextoTercero, style = MaterialTheme.typography.labelMedium)

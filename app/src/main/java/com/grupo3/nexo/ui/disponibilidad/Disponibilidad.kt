@@ -1,5 +1,7 @@
 package com.grupo3.nexo.ui.disponibilidad
 
+import com.grupo3.nexo.ui.theme.Icono15
+import com.grupo3.nexo.ui.theme.Icono18
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -315,7 +317,7 @@ private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
             if (activa) {
                 Spacer(Modifier.width(EspacioFino))
                 Modalidad.entries.filter { it in hora.modalidades }.forEach {
-                    Icon(it.icono, contentDescription = null, tint = Menta, modifier = Modifier.size(15.dp))
+                    Icon(it.icono, contentDescription = null, tint = Menta, modifier = Modifier.size(Icono15))
                 }
             }
         }
@@ -344,7 +346,7 @@ private fun OpcionHora(texto: String, modalidades: Set<Modalidad>, seleccionada:
         Spacer(Modifier.width(EspacioNormal))
         Text(texto, color = TextoPrimario, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         Modalidad.entries.filter { it in modalidades }.forEach {
-            Icon(it.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(18.dp))
+            Icon(it.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono18))
             Spacer(Modifier.width(EspacioMinimo))
         }
         if (modalidades.isEmpty()) {

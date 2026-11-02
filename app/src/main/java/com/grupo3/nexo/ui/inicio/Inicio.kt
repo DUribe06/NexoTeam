@@ -1,5 +1,12 @@
 package com.grupo3.nexo.ui.inicio
 
+import com.grupo3.nexo.ui.theme.Icono14
+import com.grupo3.nexo.ui.theme.Icono16
+import com.grupo3.nexo.ui.theme.Icono17
+import com.grupo3.nexo.ui.theme.Icono18
+import com.grupo3.nexo.ui.theme.Icono20
+import com.grupo3.nexo.ui.theme.Icono22
+import com.grupo3.nexo.ui.theme.Icono26
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
@@ -89,7 +96,8 @@ import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.AreaEstudio
 import com.grupo3.nexo.domain.model.DiaSemana
-import com.grupo3.nexo.domain.model.EstadoSolicitud
+import com.grupo3.nexo.domain.model.contarPendientes
+import com.grupo3.nexo.domain.model.horaFin
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Sesion
@@ -115,6 +123,8 @@ import com.grupo3.nexo.ui.components.EncabezadoSeccion
 import com.grupo3.nexo.ui.components.ErrorDeLista
 import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
 import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.components.fechaCorta
+import com.grupo3.nexo.ui.components.fechaLarga
 import com.grupo3.nexo.ui.components.Onda
 import com.grupo3.nexo.ui.components.SesionEsqueleto
 import com.grupo3.nexo.ui.components.TextoLinea
@@ -181,7 +191,6 @@ import com.grupo3.nexo.ui.theme.resorteCascada
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
-import java.util.Locale
 import javax.inject.Inject
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
@@ -237,11 +246,21 @@ class InicioViewModel @Inject constructor(
             proximas = proximas.orEmpty().map { sesion ->
                 SesionProxima(sesion, sesion.contraparteId, tutores.find { !sesion.comoTutor && it.id == sesion.contraparteId })
             },
-            pendientes = solicitudes.count { it.estado == EstadoSolicitud.PENDIENTE },
+            pendientes = solicitudes.contarPendientes(),
             temaProximo = proximas?.firstOrNull()?.solicitudId?.let { id -> solicitudes.find { it.id == id }?.tema },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 }
+
+/* Movimiento de la pila de sesiones: la elegida sube al frente y las demás ceden. */
+private const val PILA_APARECE_MS = 240
+private const val PILA_APARECE_RETRASO_MS = 90
+private const val PILA_ENTRA_MS = 460
+private const val PILA_SE_APAGA_MS = 170
+private const val PILA_TAMANO_MS = 420
+private const val PILA_ESCALA = .94f
+private const val PILA_CAPA_RETRASO_MS = 80
+private const val PILA_CAPA_SE_APAGA_MS = 140
 
 /* ==================== Pantalla ==================== */
 
@@ -446,8 +465,9 @@ private fun Cabecera(
                             val p = medible.measure(Constraints.fixed(lado, lado))
                             layout(reducido, reducido) { p.place(-(lado - reducido) / 2, -(lado - reducido) / 2) }
                         }
-                        .pulsable(etiqueta = "Abrir perfil", alClicar = alAbrirPerfil)
-                        .semantics { contentDescription = "Abrir perfil" }
+                        // TalkBack: "Tu perfil, doble toque para abrir"
+                        .pulsable(etiqueta = "abrir", alClicar = alAbrirPerfil)
+                        .semantics { contentDescription = "Tu perfil" }
                 ) {
                     Avatar(
                         nombre = usuario?.nombre ?: "Nexo",
@@ -508,7 +528,7 @@ private fun Buscador(alClicar: () -> Unit, modifier: Modifier = Modifier) {
             .superficiePulsable(forma, etiqueta = "Buscar tutores", alClicar = alClicar)
             .padding(start = EspacioMargen, end = EspacioBotonLateral)
     ) {
-        Icon(painterResource(R.drawable.ph_lupa), contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(20.dp))
+        Icon(painterResource(R.drawable.ph_lupa), contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(Icono20))
         Spacer(Modifier.width(EspacioMedio))
         Text(
             "Busca un tutor o una materia",
@@ -525,7 +545,7 @@ private fun Buscador(alClicar: () -> Unit, modifier: Modifier = Modifier) {
                 .size(40.dp)
                 .background(pincelBosque, CircleShape)
         ) {
-            Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(18.dp))
+            Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(Icono18))
         }
     }
 }
@@ -548,7 +568,7 @@ private fun AccesoTira(icono: Int, etiqueta: String, accion: String, descripcion
             .then(if (descripcion != null) Modifier.clearAndSetSemantics { contentDescription = descripcion } else Modifier)
             .padding(horizontal = EspacioCorto, vertical = EspacioCorto)
     ) {
-        Icon(painterResource(icono), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(26.dp))
+        Icon(painterResource(icono), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono26))
         Spacer(Modifier.height(EspacioIcono))
         Text(
             etiqueta,
@@ -599,13 +619,13 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
             targetState = primera,
             // La elegida SUBE desde abajo y crece hasta su sitio; la que estaba al frente BAJA, se achica y se apaga
             transitionSpec = {
-                (fadeIn(tween(240, delayMillis = 90)) +
-                    slideInVertically(tween(460, easing = CurvaEnfatizada)) { it / 4 } +
-                    scaleIn(tween(460, easing = CurvaEnfatizada), initialScale = .94f)) togetherWith
-                    (fadeOut(tween(170)) +
+                (fadeIn(tween(PILA_APARECE_MS, delayMillis = PILA_APARECE_RETRASO_MS)) +
+                    slideInVertically(tween(PILA_ENTRA_MS, easing = CurvaEnfatizada)) { it / 4 } +
+                    scaleIn(tween(PILA_ENTRA_MS, easing = CurvaEnfatizada), initialScale = PILA_ESCALA)) togetherWith
+                    (fadeOut(tween(PILA_SE_APAGA_MS)) +
                         slideOutVertically(tween(DuracionLarga, easing = CurvaEnfatizada)) { it / 5 } +
-                        scaleOut(tween(DuracionLarga, easing = CurvaEnfatizada), targetScale = .94f)) using
-                    SizeTransform(clip = false) { _, _ -> tween(420, easing = CurvaEnfatizada) }
+                        scaleOut(tween(DuracionLarga, easing = CurvaEnfatizada), targetScale = PILA_ESCALA)) using
+                    SizeTransform(clip = false) { _, _ -> tween(PILA_TAMANO_MS, easing = CurvaEnfatizada) }
             },
             label = "sesionFrente"
           ) { primera ->
@@ -623,7 +643,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.heightIn(min = 24.dp)
                 ) {
-                    Icon(painterResource(s.modalidad.iconoPh), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(14.dp))
+                    Icon(painterResource(s.modalidad.iconoPh), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono14))
                     Spacer(Modifier.width(EspacioMinimo))
                     Text(s.modalidad.etiqueta, color = BosqueAcento, style = EtiquetaArea)
                 }
@@ -685,7 +705,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                                 .background(Superficie, FormaBoton)
                                 .padding(horizontal = EspacioPildora)
                         ) {
-                            Icon(painterResource(R.drawable.ph_chat), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(17.dp))
+                            Icon(painterResource(R.drawable.ph_chat), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono17))
                             Spacer(Modifier.width(EspacioFino))
                             Text("Abrir chat", color = BosqueProfundo, style = EtiquetaBoton)
                         }
@@ -738,8 +758,8 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     targetState = p,
                     // La que llega a la capa viene de arriba (bajó desde el frente); la que sube sale hacia arriba
                     transitionSpec = {
-                        (fadeIn(tween(240, delayMillis = 80)) + slideInVertically(tween(420, easing = CurvaEnfatizada)) { -it / 2 }) togetherWith
-                            (fadeOut(tween(140)) + slideOutVertically(tween(DuracionNormal, easing = CurvaEnfatizada)) { -it / 2 })
+                        (fadeIn(tween(PILA_APARECE_MS, delayMillis = PILA_CAPA_RETRASO_MS)) + slideInVertically(tween(PILA_TAMANO_MS, easing = CurvaEnfatizada)) { -it / 2 }) togetherWith
+                            (fadeOut(tween(PILA_CAPA_SE_APAGA_MS)) + slideOutVertically(tween(DuracionNormal, easing = CurvaEnfatizada)) { -it / 2 })
                     },
                     label = "capa${n}Contenido"
                 ) { q ->
@@ -760,7 +780,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(EspacioAjustado))
-                Icon(painterResource(q.sesion.modalidad.iconoPh), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(16.dp))
+                Icon(painterResource(q.sesion.modalidad.iconoPh), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono16))
                     }
                 }
             }
@@ -770,27 +790,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
 }
 
 /* Fechas de las sesiones: los datos vienen como "24 oct"; se muestran como "Sábado 24 de octubre" y "Lun 26". */
-private val espanol = Locale("es", "CO")
-
 private fun fechaDe(texto: String): LocalDate? = fechaCalendario(texto)
-
-private fun String.mayusculaInicial() = replaceFirstChar { it.titlecase(espanol) }
-
-private fun fechaLarga(texto: String): String = fechaDe(texto)?.let {
-    "${it.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, espanol).mayusculaInicial()} ${it.dayOfMonth} de " +
-        it.month.getDisplayName(java.time.format.TextStyle.FULL, espanol)
-} ?: texto
-
-private fun fechaCorta(texto: String): String = fechaDe(texto)?.let {
-    "${it.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, espanol).trimEnd('.').mayusculaInicial()} ${it.dayOfMonth}"
-} ?: texto
-
-private fun horaFin(hora: String, horas: Double): String {
-    val partes = hora.split(":").mapNotNull { it.toIntOrNull() }
-    if (partes.size != 2) return hora
-    val total = partes[0] * 60 + partes[1] + (horas * 60).roundToInt()
-    return String.format(espanol, "%02d:%02d", (total / 60) % 24, total % 60)
-}
 
 @Composable
 private fun SinSesiones(esTutor: Boolean, alBuscar: () -> Unit, alVerSolicitudes: () -> Unit) {
@@ -807,7 +807,7 @@ private fun SinSesiones(esTutor: Boolean, alBuscar: () -> Unit, alVerSolicitudes
                 .size(48.dp)
                 .background(TinteBosque, FormaControl)
         ) {
-            Icon(IconosNexo.CalendarioMarcado, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(22.dp))
+            Icon(IconosNexo.CalendarioMarcado, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono22))
         }
         Spacer(Modifier.width(EspacioCercano))
         Column(Modifier.weight(1f)) {
@@ -899,7 +899,7 @@ private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Mo
             .superficiePulsable(forma, etiqueta = "Ver solicitudes recibidas", alClicar = alRevisar)
             .padding(start = EspacioMargen, end = EspacioBotonLateral)
     ) {
-        Icon(painterResource(R.drawable.ph_campana), contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(20.dp))
+        Icon(painterResource(R.drawable.ph_campana), contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(Icono20))
         Spacer(Modifier.width(EspacioMedio))
         Text(
             when (cantidad) {
@@ -919,7 +919,7 @@ private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Mo
                 .size(40.dp)
                 .background(pincelBosque, CircleShape)
         ) {
-            Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(18.dp))
+            Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(Icono18))
         }
     }
 }

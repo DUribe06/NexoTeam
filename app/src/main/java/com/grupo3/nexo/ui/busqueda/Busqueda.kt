@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.busqueda
 
+import com.grupo3.nexo.ui.theme.Icono17
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -105,6 +106,7 @@ import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.FormaOpcion
 import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.BordeRadio
 import com.grupo3.nexo.ui.theme.Salvia
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.TextoPrimario
@@ -351,7 +353,7 @@ private fun HojaFiltros(
                     checkedThumbColor = SobreOscuro,
                     checkedIconColor = BosqueMedio,
                     uncheckedTrackColor = TinteBosque,
-                    uncheckedBorderColor = Salvia.copy(alpha = 0.6f),
+                    uncheckedBorderColor = BordeRadio,
                     uncheckedThumbColor = Salvia
                 )
             )
@@ -396,7 +398,7 @@ private fun FiltroIcono(texto: String, icono: ImageVector, seleccionado: Boolean
                 )
                 .padding(horizontal = EspacioCercano)
         ) {
-            Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(17.dp))
+            Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono17))
             Spacer(Modifier.width(EspacioFino))
             Text(texto, color = TextoPrimario, style = MaterialTheme.typography.titleSmall.copy(fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Medium))
         }
