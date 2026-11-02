@@ -272,7 +272,7 @@ fun PantallaPerfil(
 }
 
 /**
- * Pone la [cabecera] sobre el [contenido] y le da el alto que sobra en pantalla (entre 270 y 430 dp),
+ * Pone la [cabecera] sobre el [contenido] y le da el alto que sobra en pantalla (entre 270 y 430 dp; más con letra grande),
  * así el perfil siempre llena la pantalla y solo se desplaza cuando el contenido lo exige.
  */
 @Composable
@@ -285,8 +285,10 @@ private fun CabeceraAjustable(
     Layout(contents = listOf(cabecera, contenido), modifier = modifier) { (medCabecera, medContenido), restricciones ->
         val ancho = restricciones.maxWidth
         val resto = medContenido.first().measure(Constraints(maxWidth = ancho))
+        // Con letra grande el nombre y el correo necesitan más alto: el mínimo crece con la letra
+        val minimo = (270.dp.roundToPx() * fontScale.coerceIn(1f, 1.5f)).toInt()
         val altoCabecera = (altoPantalla.roundToPx() - resto.height)
-            .coerceIn(270.dp.roundToPx(), 430.dp.roundToPx())
+            .coerceIn(minimo, maxOf(minimo, 430.dp.roundToPx()))
         val cab = medCabecera.first().measure(Constraints.fixed(ancho, altoCabecera))
         layout(ancho, altoCabecera + resto.height) {
             cab.place(0, 0)
@@ -347,11 +349,13 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
                     modifier = Modifier.semantics { heading() }
                 )
                 Spacer(Modifier.height(EspacioMicro))
+                // Con letra grande no caben en una línea: el correo baja a la suya en vez de cortarse
+                val apilado = LocalDensity.current.fontScale > 1.3f
                 Text(
-                    "${usuario.handle} · ${usuario.correo}",
+                    if (apilado) "${usuario.handle}\n${usuario.correo}" else "${usuario.handle} · ${usuario.correo}",
                     color = SobreOscuroSuave,
                     style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
+                    maxLines = if (apilado) 3 else 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
@@ -369,17 +373,17 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
 
 /**
  * Tres cifras sin contenedor, separadas por líneas finas, con la tipografía de la hora del Inicio.
- * Estudiante: sesiones, horas, por calificar. Tutor: promedio recibido, sesiones dadas, estudiantes.
+ * Estudiante: sesiones, horas, por calificar. Tutor: promedio recibido, sesiones dadas, horas dadas (mapa, sección 3).
  */
 @Composable
 private fun Cifras(resumen: ResumenActividad?, esTutor: Boolean, modifier: Modifier = Modifier) {
     val cifras: List<Triple<String, String, Boolean>> = when {
-        resumen == null && esTutor -> listOf(Triple("–", "calificación", false), Triple("–", "sesiones dadas", false), Triple("–", "estudiantes", false))
+        resumen == null && esTutor -> listOf(Triple("–", "calificación", false), Triple("–", "sesiones dadas", false), Triple("–", "dadas", false))
         resumen == null -> listOf(Triple("–", "sesiones", false), Triple("–", "de estudio", false), Triple("–", "tutores", false))
         esTutor -> listOf(
             Triple(resumen.promedioRecibido?.let(::formatoValoracion) ?: "–", "calificación", resumen.promedioRecibido != null),
             Triple("${resumen.sesiones}", if (resumen.sesiones == 1) "sesión dada" else "sesiones dadas", false),
-            Triple("${resumen.personas}", if (resumen.personas == 1) "estudiante" else "estudiantes", false)
+            Triple(formatoHoras(resumen.horas), "dadas", false)
         )
         else -> listOf(
             Triple("${resumen.sesiones}", if (resumen.sesiones == 1) "sesión" else "sesiones", false),
