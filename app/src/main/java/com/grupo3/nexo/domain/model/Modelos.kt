@@ -26,6 +26,10 @@ enum class Rol(val etiqueta: String) {
     TUTOR("Tutor")
 }
 
+/**
+ * Ciclo de vida de una solicitud (RF5, RF6). La sesión nace al pasar a [ACEPTADA] y tiene su propio
+ * estado ([EstadoSesion]): FINALIZADA equivale a una sesión COMPLETADA.
+ */
 enum class EstadoSolicitud(val etiqueta: String) {
     PENDIENTE("Pendiente"),
     ACEPTADA("Aceptada"),

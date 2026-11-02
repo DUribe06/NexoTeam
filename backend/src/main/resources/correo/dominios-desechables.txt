@@ -1,0 +1,22 @@
+# Dominios de correo temporal que no se aceptan en el registro (D2). Un dominio por línea.
+mailinator.com
+10minutemail.com
+guerrillamail.com
+guerrillamail.net
+sharklasers.com
+tempmail.com
+temp-mail.org
+tempr.email
+yopmail.com
+trashmail.com
+getnada.com
+maildrop.cc
+throwawaymail.com
+dispostable.com
+fakeinbox.com
+mintemail.com
+mohmal.com
+emailondeck.com
+mailnesia.com
+discard.email
+spamgourmet.com
