@@ -7,88 +7,83 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.grupo3.nexo.domain.model.EstadoSesion
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.ResumenActividad
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Sesion
+import com.grupo3.nexo.domain.usecase.CalificarSesionUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerHistorialUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerMisResenasUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerResumenActividadUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
-import com.grupo3.nexo.ui.components.EncabezadoSeccion
-import com.grupo3.nexo.ui.components.ListaResenas
-import com.grupo3.nexo.ui.components.formatoValoracion
-import com.grupo3.nexo.ui.components.HojaCalificacion
-import com.grupo3.nexo.domain.usecase.CalificarSesionUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerHistorialUseCase
 import com.grupo3.nexo.ui.components.Avatar
-import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.AvisoNexo
-import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.BotonSecundario
-import com.grupo3.nexo.ui.components.CifrasTabulares
-import com.grupo3.nexo.ui.components.FiltroOpcion
+import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.Carga
+import com.grupo3.nexo.ui.components.CifrasTabulares
+import com.grupo3.nexo.ui.components.EncabezadoSeccion
 import com.grupo3.nexo.ui.components.ErrorDeLista
 import com.grupo3.nexo.ui.components.EsqueletoLista
 import com.grupo3.nexo.ui.components.EstadoVacio
-import com.grupo3.nexo.ui.components.cargaDe
-import com.grupo3.nexo.ui.theme.cambioContenido
 import com.grupo3.nexo.ui.components.Estrellas
+import com.grupo3.nexo.ui.components.FiltroOpcion
+import com.grupo3.nexo.ui.components.HojaCalificacion
+import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.components.ListaResenas
 import com.grupo3.nexo.ui.components.RotuloGrupo
 import com.grupo3.nexo.ui.components.TextoLinea
+import com.grupo3.nexo.ui.components.cargaDe
+import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.formatoHoras
+import com.grupo3.nexo.ui.components.formatoValoracion
 import com.grupo3.nexo.ui.components.superficie
-import com.grupo3.nexo.ui.theme.Divisor
-import com.grupo3.nexo.ui.theme.Miel
-import com.grupo3.nexo.ui.theme.TextoPrimario
-import com.grupo3.nexo.ui.theme.TextoSecundario
-import com.grupo3.nexo.ui.theme.TextoTercero
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import com.grupo3.nexo.domain.model.EstadoSesion
-import com.grupo3.nexo.ui.theme.MielOscura
 import com.grupo3.nexo.ui.theme.BosqueProfundo
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
+import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioCercano
@@ -97,11 +92,21 @@ import com.grupo3.nexo.ui.theme.EspacioExtenso
 import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
-import com.grupo3.nexo.ui.theme.FormaBoton
-import javax.inject.Inject
-import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.FormaOrganica
-import com.grupo3.nexo.ui.components.LetraAcotada
+import com.grupo3.nexo.ui.theme.Miel
+import com.grupo3.nexo.ui.theme.MielOscura
+import com.grupo3.nexo.ui.theme.TextoPrimario
+import com.grupo3.nexo.ui.theme.TextoSecundario
+import com.grupo3.nexo.ui.theme.TextoTercero
+import com.grupo3.nexo.ui.theme.cambioContenido
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /* ==================== ViewModel ==================== */
 
@@ -124,11 +129,8 @@ class HistorialViewModel @Inject constructor(
         val resenas: List<Resena> = emptyList()
     ) {
         /** Sesiones del filtro actual, en orden cronológico (la más reciente arriba). */
-        val sesiones get() = todas.filter { materia == null || it.materia == materia }
-        val materias get() = todas.map { it.materia }.distinct()
-        val porCalificar get() = todas.count { it.porCalificar }
-        val completadas get() = todas.count { it.estado == EstadoSesion.COMPLETADA }
-        val horas get() = todas.filter { it.estado == EstadoSesion.COMPLETADA }.sumOf { it.duracionHoras }
+        val sesiones = todas.filter { materia == null || it.materia == materia }
+        val materias = todas.map { it.materia }.distinct()
     }
 
     private val materia = MutableStateFlow<String?>(null)
@@ -159,6 +161,7 @@ class HistorialViewModel @Inject constructor(
 fun PantallaHistorial(
     alVolver: () -> Unit,
     alBuscar: () -> Unit,
+    alAbrirDisponibilidad: (() -> Unit)? = null,
     viewModel: HistorialViewModel = hiltViewModel()
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -186,16 +189,18 @@ fun PantallaHistorial(
                         titulo = "Aún no hay sesiones",
                         mensaje = if (estado.esTutor) "Las tutorías que des aparecerán aquí para que califiques a tus estudiantes."
                                   else "Tus tutorías completadas aparecerán aquí para que puedas calificarlas.",
-                        accion = if (estado.esTutor) null else "Buscar tutor",
-                        alAccion = if (estado.esTutor) null else alBuscar
+                        accion = if (estado.esTutor) alAbrirDisponibilidad?.let { "Revisar mi disponibilidad" } else "Buscar tutor",
+                        alAccion = if (estado.esTutor) alAbrirDisponibilidad else alBuscar
                     )
-                    Carga.LISTO -> LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(EspacioAjustado),
-                        contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioCorto, bottom = EspacioExtenso)
+                    Carga.LISTO -> {
+                    val margenSistema = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(EspacioMedio),
+                        contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioCorto, bottom = EspacioExtenso + margenSistema)
                     ) {
-                        item(key = "resumen") { LetraAcotada { Resumen(estado) } }
+                        item(key = "resumen") { Resumen(estado) }
                         item(key = "rotulo") {
-                            RotuloGrupo(if (estado.esTutor) "Sesiones dadas" else "Tus sesiones", Modifier.padding(start = EspacioMinimo, top = EspacioMedio))
+                            RotuloGrupo("Más recientes primero", Modifier.padding(start = EspacioMinimo, top = EspacioMedio))
                         }
                         if (estado.materias.size > 1) {
                             item(key = "filtros") {
@@ -223,10 +228,11 @@ fun PantallaHistorial(
                             }
                         }
                     }
+                    }
                 }
             }
         }
-        AvisoNexo(avisos, Modifier.align(Alignment.BottomCenter).padding(bottom = EspacioAmplio))
+        AvisoNexo(avisos, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = EspacioAmplio))
     }
 
     porCalificar?.let { sesion ->
@@ -251,7 +257,7 @@ private fun FiltrosMateria(materias: List<String>, actual: String?, alElegir: (S
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
         verticalArrangement = Arrangement.spacedBy(EspacioCorto),
-        modifier = Modifier.padding(vertical = EspacioMinimo)
+        modifier = Modifier.selectableGroup().padding(vertical = EspacioMinimo)
     ) {
         FiltroOpcion("Todas", actual == null, { alElegir(null) }, conMarca = false)
         materias.forEach { m -> FiltroOpcion(m, actual == m, { alElegir(m) }, conMarca = false) }
@@ -260,6 +266,27 @@ private fun FiltrosMateria(materias: List<String>, actual: String?, alElegir: (S
 
 @Composable
 private fun Resumen(estado: HistorialViewModel.Estado) {
+    val resumen = estado.resumen ?: return
+    val unaSesion = resumen.sesiones == 1
+    val etiquetaSesiones = when {
+        estado.esTutor -> if (unaSesion) "sesión dada" else "sesiones dadas"
+        else -> if (unaSesion) "sesión" else "sesiones"
+    }
+    val etiquetaHoras = if (estado.esTutor) "dadas" else "de estudio"
+    // Con letra muy grande las tres cifras no caben en fila: se apilan, valor y etiqueta en línea
+    val apilar = LocalDensity.current.fontScale > 1.4f
+    if (apilar) {
+        Column(Modifier.fillMaxWidth()) {
+            CifraResumen("${resumen.sesiones}", etiquetaSesiones, enLinea = true)
+            CifraResumen(formatoHoras(resumen.horas), etiquetaHoras, enLinea = true)
+            if (estado.esTutor) {
+                CifraResumen(resumen.promedioRecibido?.let(::formatoValoracion) ?: "–", "calificación", enLinea = true)
+            } else {
+                CifraResumen("${resumen.porCalificar}", "por calificar", enLinea = true, resaltar = resumen.porCalificar > 0)
+            }
+        }
+        return
+    }
     // Sin contenedor, como las cifras del Perfil: solo líneas finas entre ellas
     Row(
         modifier = Modifier
@@ -267,28 +294,47 @@ private fun Resumen(estado: HistorialViewModel.Estado) {
             .heightIn(min = 64.dp)
             .height(IntrinsicSize.Min)
     ) {
-        val unaSesion = estado.completadas == 1
-        CifraResumen(
-            "${estado.completadas}",
-            when {
-                estado.esTutor -> if (unaSesion) "sesión dada" else "sesiones dadas"
-                else -> if (unaSesion) "sesión" else "sesiones"
-            },
-            Modifier.weight(1f)
-        )
+        CifraResumen("${resumen.sesiones}", etiquetaSesiones, Modifier.weight(1f))
         Box(Modifier.fillMaxHeight().padding(vertical = EspacioAjustado).width(1.dp).background(Divisor))
-        CifraResumen(formatoHoras(estado.horas), if (estado.esTutor) "dadas" else "de estudio", Modifier.weight(1f))
+        CifraResumen(formatoHoras(resumen.horas), etiquetaHoras, Modifier.weight(1f))
         Box(Modifier.fillMaxHeight().padding(vertical = EspacioAjustado).width(1.dp).background(Divisor))
         if (estado.esTutor) {
-            CifraResumen(estado.resumen?.promedioRecibido?.let(::formatoValoracion) ?: "–", "calificación", Modifier.weight(1f))
+            CifraResumen(resumen.promedioRecibido?.let(::formatoValoracion) ?: "–", "calificación", Modifier.weight(1f))
         } else {
-            CifraResumen("${estado.porCalificar}", "por calificar", Modifier.weight(1f), resaltar = estado.porCalificar > 0)
+            CifraResumen("${resumen.porCalificar}", "por calificar", Modifier.weight(1f), resaltar = resumen.porCalificar > 0)
         }
     }
 }
 
 @Composable
-private fun CifraResumen(valor: String, etiqueta: String, modifier: Modifier = Modifier, resaltar: Boolean = false) {
+private fun CifraResumen(
+    valor: String,
+    etiqueta: String,
+    modifier: Modifier = Modifier,
+    resaltar: Boolean = false,
+    enLinea: Boolean = false
+) {
+    val textoValor: @Composable () -> Unit = {
+        Text(
+            valor,
+            color = if (resaltar) MielOscura else BosqueProfundo,
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp).merge(CifrasTabulares)
+        )
+    }
+    if (enLinea) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .semantics(mergeDescendants = true) { }
+        ) {
+            textoValor()
+            Spacer(Modifier.width(EspacioCorto))
+            Text(etiqueta, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
+        }
+        return
+    }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -296,11 +342,7 @@ private fun CifraResumen(valor: String, etiqueta: String, modifier: Modifier = M
             .fillMaxHeight()
             .semantics(mergeDescendants = true) { }
     ) {
-        Text(
-            valor,
-            color = if (resaltar) MielOscura else BosqueProfundo,
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp).merge(CifrasTabulares)
-        )
+        textoValor()
         Text(etiqueta, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
     }
 }
@@ -312,7 +354,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
         modifier = modifier
             .fillMaxWidth()
             .superficie(FormaOrganica)
-            .padding(EspacioCercano)
+            .padding(EspacioNormal)
     ) {
         // Solo el avatar se atenúa en sesiones sin completar: el texto conserva su contraste
         Avatar(

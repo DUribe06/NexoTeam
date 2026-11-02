@@ -45,7 +45,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.grupo3.nexo.ui.theme.BosqueAcento
+import com.grupo3.nexo.ui.theme.BordeAcento
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.especPulso
 import com.grupo3.nexo.ui.theme.SuperficieClara
@@ -116,7 +116,7 @@ fun SesionEsqueleto(modifier: Modifier = Modifier, capas: Int = 2) {
             Modifier
                 .fillMaxWidth()
                 .background(TinteBosque, forma)
-                .border(1.dp, BosqueAcento.copy(alpha = 0.14f), forma)
+                .border(1.dp, BordeAcento, forma)
                 .padding(start = EspacioNormal, end = EspacioCercano, top = EspacioNormal, bottom = EspacioCercano)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {

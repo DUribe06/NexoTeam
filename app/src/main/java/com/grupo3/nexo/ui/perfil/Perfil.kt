@@ -3,11 +3,6 @@ package com.grupo3.nexo.ui.perfil
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +16,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,45 +25,40 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -83,51 +74,34 @@ import com.grupo3.nexo.domain.usecase.ObtenerMisResenasUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerResumenActividadUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.ui.components.BotonTexto
-import com.grupo3.nexo.ui.components.Carga
-import com.grupo3.nexo.ui.components.Esqueleto
-import com.grupo3.nexo.ui.components.Hueso
-import com.grupo3.nexo.ui.components.LineaHueso
-import com.grupo3.nexo.ui.components.ErrorDeLista
-import com.grupo3.nexo.ui.components.EstadoVacio
-import com.grupo3.nexo.ui.components.cargaDe
-import com.grupo3.nexo.ui.theme.cambioContenido
-import com.grupo3.nexo.ui.theme.resorteIndicador
-import com.grupo3.nexo.ui.components.Avatar
 import com.grupo3.nexo.ui.components.CabeceraBosque
-import com.grupo3.nexo.ui.components.CifrasTabulares
-import com.grupo3.nexo.ui.components.ListaResenas
-import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.DialogoConfirmacion
 import com.grupo3.nexo.ui.components.EncabezadoSeccion
-import com.grupo3.nexo.ui.components.Estrellas
+import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.Esqueleto
+import com.grupo3.nexo.ui.components.EstadoVacio
+import com.grupo3.nexo.ui.components.Hueso
 import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
+import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.components.LineaHueso
+import com.grupo3.nexo.ui.components.ListaResenas
 import com.grupo3.nexo.ui.components.Onda
-import com.grupo3.nexo.ui.components.TextoLinea
 import com.grupo3.nexo.ui.components.VeloBarraEstado
 import com.grupo3.nexo.ui.components.aparicion
+import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.components.formatoValoracion
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.universidadCorta
+import com.grupo3.nexo.ui.theme.BordeAcento
+import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
-import com.grupo3.nexo.ui.theme.Fondo
-import com.grupo3.nexo.ui.theme.Miel
-import com.grupo3.nexo.ui.theme.Rojo
-import com.grupo3.nexo.ui.theme.Salvia
-import com.grupo3.nexo.ui.theme.BordeSutil
-import com.grupo3.nexo.ui.theme.FormaTarjeta
-import com.grupo3.nexo.ui.theme.Superficie
-import com.grupo3.nexo.ui.theme.SobreOscuro
-import com.grupo3.nexo.ui.theme.TextoPrimario
-import com.grupo3.nexo.ui.theme.TextoSecundario
-import com.grupo3.nexo.ui.theme.TextoTercero
-import com.grupo3.nexo.ui.theme.TinteBosque
-import com.grupo3.nexo.ui.theme.pincelBosque
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioCercano
@@ -137,17 +111,34 @@ import com.grupo3.nexo.ui.theme.EspacioFino
 import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMicro
+import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.EspacioSuelto
+import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.FormaBoton
 import com.grupo3.nexo.ui.theme.FormaCampoAlto
+import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.Miel
+import com.grupo3.nexo.ui.theme.RojoSuave
+import com.grupo3.nexo.ui.theme.Salvia
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.SobreOscuroSuave
+import com.grupo3.nexo.ui.theme.Superficie
+import com.grupo3.nexo.ui.theme.TextoCifraResumen
+import com.grupo3.nexo.ui.theme.TextoPrimario
+import com.grupo3.nexo.ui.theme.TextoSecundario
+import com.grupo3.nexo.ui.theme.TextoSobreTinte
+import com.grupo3.nexo.ui.theme.TextoTercero
+import com.grupo3.nexo.ui.theme.TinteBosque
+import com.grupo3.nexo.ui.theme.cambioContenido
+import com.grupo3.nexo.ui.theme.especColor
+import com.grupo3.nexo.ui.theme.pincelBosque
+import com.grupo3.nexo.ui.theme.resorteIndicador
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import javax.inject.Inject
-import com.grupo3.nexo.ui.components.IconosNexo
-import com.grupo3.nexo.ui.components.LetraAcotada
 
 /* ==================== ViewModel ==================== */
 
@@ -244,20 +235,20 @@ fun PantallaPerfil(
                             Column(Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto)) {
                                 TarjetaDisponibilidad(alAbrirDisponibilidad)
                             }
-                            LetraAcotada { Cifras(estado.resumen, true, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto)) }
+                            Cifras(estado.resumen, true, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto))
                             BloqueTutor(usuario, estado.resenas, cargando = estado.resumen == null, alVerTodas = alAbrirHistorial, alPublicarHorario = alAbrirDisponibilidad)
                         } else {
                             val pendientes = estado.resumen?.porCalificar ?: 0
                             if (pendientes > 0) {
                                 AvisoPorCalificar(pendientes, alAbrirHistorial, Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto))
                             }
-                            LetraAcotada { Cifras(estado.resumen, false, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto)) }
+                            Cifras(estado.resumen, false, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto))
                             estado.resumen?.materias?.takeIf { it.isNotEmpty() }?.let {
                                 Materias("Has estudiado", it, Modifier.padding(horizontal = EspacioMargen))
                             }
                         }
                         Spacer(Modifier.height(EspacioAmplio))
-                        Menu(alAbrirHistorial = alAbrirHistorial, alSalir = { confirmarSalida = true })
+                        Menu(esTutor = esTutor, alAbrirHistorial = alAbrirHistorial, alSalir = { confirmarSalida = true })
                     }
                 }
             }
@@ -338,7 +329,7 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
             ) {
                 Text(
                     "Perfil",
-                    color = SobreOscuro.copy(alpha = 0.88f),
+                    color = SobreOscuroSuave,
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -359,7 +350,7 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
                 val detalle = listOf(usuario.carrera, universidadCorta(usuario.universidad)).filter { it.isNotBlank() }
                 Text(
                     detalle.joinToString(" · ").ifBlank { usuario.correo },
-                    color = SobreOscuro.copy(alpha = 0.88f),
+                    color = SobreOscuroSuave,
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
@@ -395,33 +386,56 @@ private fun Cifras(resumen: ResumenActividad?, esTutor: Boolean, modifier: Modif
             Triple("${resumen.personas}", if (resumen.personas == 1) "tutor" else "tutores", false)
         )
     }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-    ) {
-        cifras.forEachIndexed { i, (valor, etiqueta, conEstrella) ->
-            if (i > 0) Box(Modifier.padding(vertical = EspacioFino).width(1.dp).fillMaxHeight().background(Divisor))
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics(mergeDescendants = true) { }
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        valor,
-                        color = BosqueProfundo,
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp).merge(CifrasTabulares)
-                    )
-                    if (conEstrella) {
-                        Spacer(Modifier.width(3.dp))
-                        Icon(IconosNexo.Estrella, contentDescription = null, tint = Miel, modifier = Modifier.size(18.dp))
-                    }
+    // Con letra muy grande las etiquetas se partirían a media palabra: una cifra por fila, sin divisores
+    if (LocalDensity.current.fontScale > 1.4f) {
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(EspacioMedio)) {
+            cifras.forEach { (valor, etiqueta, conEstrella) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics(mergeDescendants = true) { }
+                ) {
+                    ValorCifra(valor, conEstrella)
+                    Spacer(Modifier.width(EspacioCorto))
+                    Text(etiqueta, color = TextoTercero, style = MaterialTheme.typography.bodyMedium)
                 }
-                Text(etiqueta, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
             }
+        }
+    } else {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+        ) {
+            cifras.forEachIndexed { i, (valor, etiqueta, conEstrella) ->
+                if (i > 0) Box(Modifier.padding(vertical = EspacioFino).width(1.dp).fillMaxHeight().background(Divisor))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics(mergeDescendants = true) { }
+                ) {
+                    ValorCifra(valor, conEstrella)
+                    Text(etiqueta, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ValorCifra(valor: String, conEstrella: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            valor,
+            color = BosqueProfundo,
+            style = TextoCifraResumen
+        )
+        if (conEstrella) {
+            Spacer(Modifier.width(EspacioMinimo))
+            Icon(IconosNexo.Estrella, contentDescription = null, tint = Miel, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -527,7 +541,7 @@ private fun Materias(titulo: String, materias: List<String>, modifier: Modifier 
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     modifier = Modifier
                         .border(1.dp, BosqueAcento.copy(alpha = 0.22f), CircleShape)
-                        .padding(horizontal = EspacioMedio, vertical = 5.dp)
+                        .padding(horizontal = EspacioMedio, vertical = EspacioMinimo)
                 )
             }
         }
@@ -542,7 +556,7 @@ private fun AvisoPorCalificar(cantidad: Int, alCalificar: () -> Unit, modifier: 
         modifier = modifier
             .fillMaxWidth()
             .background(TinteBosque, FormaOrganica)
-            .border(1.dp, BosqueAcento.copy(alpha = 0.14f), FormaOrganica)
+            .border(1.dp, BordeAcento, FormaOrganica)
             .clip(FormaOrganica)
             .clickable(role = Role.Button, onClickLabel = "Calificar sesiones", onClick = alCalificar)
             .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioCercano, bottom = EspacioCercano)
@@ -555,14 +569,14 @@ private fun AvisoPorCalificar(cantidad: Int, alCalificar: () -> Unit, modifier: 
                 color = BosqueProfundo,
                 style = MaterialTheme.typography.titleSmall
             )
-            Text("Tu opinión ayuda a otros a elegir tutor.", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
+            Text("Tu opinión ayuda a otros a elegir tutor.", color = TextoSobreTinte, style = MaterialTheme.typography.bodySmall)
         }
         BotonIr()
     }
 }
 
 @Composable
-private fun Menu(alAbrirHistorial: () -> Unit, alSalir: () -> Unit) {
+private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> Unit) {
     // Tarjeta con los mismos márgenes que el resto del perfil, como la de reseñas
     Column(
         Modifier
@@ -570,10 +584,10 @@ private fun Menu(alAbrirHistorial: () -> Unit, alSalir: () -> Unit) {
             .fillMaxWidth()
             .superficie(FormaOrganica)
     ) {
-        FilaMenu(painterResource(R.drawable.ph_historial), "Historial y calificaciones", alAbrirHistorial)
+        FilaMenu(painterResource(R.drawable.ph_historial), if (esTutor) "Tutorías dadas" else "Tus tutorías", alAbrirHistorial)
     }
     // Cerrar sesión es raro: píldora de borde fino, como "Continuar con Google" del acceso
-    val rojo = Rojo.copy(alpha = 0.85f)
+    val rojo = RojoSuave
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
@@ -605,7 +619,7 @@ private fun TarjetaDisponibilidad(alAbrir: () -> Unit) {
         Icon(painterResource(R.drawable.ph_calendario), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
-            Text("Mi disponibilidad horaria", color = BosqueProfundo, style = MaterialTheme.typography.titleSmall)
+            Text("Mi disponibilidad", color = BosqueProfundo, style = MaterialTheme.typography.titleSmall)
             Text("Define cuándo puedes dar tutorías.", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
         }
         BotonIr()
@@ -627,7 +641,7 @@ private fun SelectorModo(actual: Rol, alElegir: (Rol) -> Unit, modifier: Modifie
             .height(54.dp)
             .shadow(14.dp, forma, ambientColor = BosqueProfundo.copy(alpha = 0.22f), spotColor = BosqueProfundo.copy(alpha = 0.38f))
             .superficie(forma)
-            .padding(7.dp)
+            .padding(EspacioFino)
     ) {
         val anchoOpcion = maxWidth / opciones.size
         val desplazamiento by animateDpAsState(
@@ -645,7 +659,7 @@ private fun SelectorModo(actual: Rol, alElegir: (Rol) -> Unit, modifier: Modifie
         Row(Modifier.fillMaxSize().selectableGroup()) {
             opciones.forEach { rol ->
                 val activo = rol == actual
-                val color by animateColorAsState(if (activo) SobreOscuro else TextoSecundario, label = "textoModo")
+                val color by animateColorAsState(if (activo) SobreOscuro else TextoSecundario, especColor(), label = "textoModo")
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -667,43 +681,23 @@ private fun SelectorModo(actual: Rol, alElegir: (Rol) -> Unit, modifier: Modifie
 }
 
 @Composable
-private fun FilaMenu(
-    icono: Painter,
-    titulo: String,
-    alClicar: () -> Unit,
-    peligro: Boolean = false,
-    habilitada: Boolean = true,
-    detalle: String? = null
-) {
+private fun FilaMenu(icono: Painter, titulo: String, alClicar: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .clickable(enabled = habilitada, role = Role.Button, onClick = alClicar)
+            .clickable(role = Role.Button, onClick = alClicar)
             .padding(horizontal = EspacioNormal, vertical = EspacioAjustado)
-            .alpha(if (habilitada) 1f else 0.5f)
     ) {
-        // Rojo atenuado: avisa sin gritar en una pantalla sobria
-        val colorPeligro = Rojo.copy(alpha = 0.85f)
-        Icon(icono, contentDescription = null, tint = if (peligro) colorPeligro else BosqueAcento, modifier = Modifier.size(22.dp))
+        Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(EspacioNormal))
-        Column(Modifier.weight(1f)) {
-            Text(
-                titulo,
-                color = if (peligro) colorPeligro else TextoPrimario,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium)
-            )
-            detalle?.let { Text(it, color = TextoTercero, style = MaterialTheme.typography.bodySmall) }
-        }
-        if (!peligro && habilitada) {
-            Icon(painterResource(R.drawable.ph_caret), contentDescription = null, tint = Salvia.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
-        }
+        Text(
+            titulo,
+            color = TextoPrimario,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+            modifier = Modifier.weight(1f)
+        )
+        Icon(painterResource(R.drawable.ph_caret), contentDescription = null, tint = Salvia.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
     }
-}
-
-@Composable
-private fun SeparadorMenu() {
-    // Sangrado hasta el texto (16 de margen + 22 de ícono + 16 de espacio)
-    Box(Modifier.fillMaxWidth().padding(start = 54.dp).height(1.dp).background(Divisor))
 }

@@ -10,14 +10,14 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,14 +26,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,31 +53,29 @@ import com.grupo3.nexo.domain.usecase.DefinirHoraUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerDisponibilidadUseCase
 import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.Carga
+import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.ErrorDeLista
 import com.grupo3.nexo.ui.components.Esqueleto
-import com.grupo3.nexo.ui.components.LineaHueso
-import com.grupo3.nexo.ui.components.cargaDe
-import com.grupo3.nexo.ui.components.CifrasTabulares
+import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.HojaNexo
+import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.components.LineaHueso
+import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
+import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.descripcion
 import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.components.icono
-import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
+import com.grupo3.nexo.ui.theme.BordeAcento
+import com.grupo3.nexo.ui.theme.BordeMarcado
 import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
-import com.grupo3.nexo.ui.theme.Menta
-import com.grupo3.nexo.ui.theme.SobreOscuro
-import com.grupo3.nexo.ui.theme.Superficie
-import com.grupo3.nexo.ui.theme.TextoPrimario
-import com.grupo3.nexo.ui.theme.TextoSecundario
-import com.grupo3.nexo.ui.theme.TextoTercero
-import com.grupo3.nexo.ui.theme.TinteBosque
-import com.grupo3.nexo.ui.theme.VerdeEstado
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioCercano
 import com.grupo3.nexo.ui.theme.EspacioCorto
 import com.grupo3.nexo.ui.theme.EspacioExtenso
 import com.grupo3.nexo.ui.theme.EspacioFino
@@ -87,13 +84,22 @@ import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.FormaOpcion
-import com.grupo3.nexo.ui.theme.FormaTarjeta
+import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.Menta
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.Superficie
+import com.grupo3.nexo.ui.theme.TextoPrimario
+import com.grupo3.nexo.ui.theme.TextoSecundario
+import com.grupo3.nexo.ui.theme.TextoSobreTinte
+import com.grupo3.nexo.ui.theme.TextoTercero
+import com.grupo3.nexo.ui.theme.TinteBosque
+import com.grupo3.nexo.ui.theme.VerdeEstado
+import com.grupo3.nexo.ui.theme.especColor
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import com.grupo3.nexo.ui.theme.FormaOrganica
 
 /* ==================== ViewModel ==================== */
 
@@ -150,34 +156,43 @@ fun PantallaDisponibilidad(
             contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioCorto, bottom = EspacioExtenso + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
         ) {
             if (carga == Carga.CARGANDO) item(key = "cargando") { EsqueletoDias() }
+            else if (carga == Carga.VACIO) item(key = "vacio") {
+                EstadoVacio(
+                    icono = IconosNexo.Calendario,
+                    titulo = "Aún no hay horas para publicar",
+                    mensaje = "Cuando tu calendario esté listo podrás elegir aquí cuándo das tutorías.",
+                    accion = "Volver",
+                    alAccion = alVolver
+                )
+            }
             else if (carga != Carga.LISTO) item(key = "error") { ErrorDeLista(titulo = "No pudimos cargar tu disponibilidad") }
             else item(key = "resumen") {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(TinteBosque, FormaTarjeta)
-                        .border(1.dp, BosqueAcento.copy(alpha = 0.14f), FormaTarjeta)
-                        .padding(EspacioMargen)
+                        .background(TinteBosque, FormaOrganica)
+                        .border(1.dp, BordeAcento, FormaOrganica)
+                        .padding(EspacioNormal)
                 ) {
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text("$total", color = BosqueProfundo, style = MaterialTheme.typography.displaySmall.merge(CifrasTabulares))
                         Spacer(Modifier.width(EspacioCorto))
                         Text(
                             if (total == 1) "hora publicada" else "horas publicadas",
-                            color = TextoSecundario,
+                            color = TextoSobreTinte,
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(bottom = EspacioMinimo)
                         )
                     }
                     Text(
-                        "en $diasActivos ${if (diasActivos == 1) "día" else "días"} · $virtuales virtuales · $presenciales presenciales",
-                        color = TextoSecundario,
+                        "en $diasActivos ${if (diasActivos == 1) "día" else "días"} · $virtuales ${if (virtuales == 1) "virtual" else "virtuales"} · $presenciales ${if (presenciales == 1) "presencial" else "presenciales"}",
+                        color = TextoSobreTinte,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Spacer(Modifier.height(EspacioMedio))
                     Text(
                         "Toca una hora para elegir si la ofreces virtual, presencial o ambas. Los estudiantes solo pueden solicitarte tutorías en tus horas publicadas.",
-                        color = TextoSecundario,
+                        color = TextoSobreTinte,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -271,7 +286,7 @@ private fun EsqueletoDias() {
 @Composable
 private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
     val activa = hora.seleccionada
-    val colorTexto by animateColorAsState(if (activa) SobreOscuro else BosqueMedio.copy(alpha = 0.8f), label = "textoHora")
+    val colorTexto by animateColorAsState(if (activa) SobreOscuro else BosqueMedio.copy(alpha = 0.8f), especColor(), label = "textoHora")
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -287,12 +302,12 @@ private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
                     if (activa) Modifier.background(BosqueMedio, FormaOpcion)
                     else Modifier
                         .background(Superficie, FormaOpcion)
-                        .border(1.dp, Bosque.copy(alpha = 0.16f), FormaOpcion)
+                        .border(1.dp, BordeMarcado, FormaOpcion)
                 )
                 .semantics(mergeDescendants = true) {
                     contentDescription = "${hora.hora}, ${if (activa) hora.modalidades.descripcion() else "no disponible"}"
                 }
-                .padding(start = 14.dp, end = if (activa) 10.dp else 14.dp)
+                .padding(start = EspacioCercano, end = if (activa) EspacioAjustado else EspacioCercano)
         ) {
             Text(hora.hora, color = colorTexto, style = MaterialTheme.typography.titleSmall.merge(CifrasTabulares))
             if (activa) {

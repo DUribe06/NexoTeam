@@ -16,9 +16,13 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LifecycleResumeEffect
 
 /*
  * Movimiento de Nexo: transiciones cortas y con propósito, sin brillos.
@@ -39,8 +43,6 @@ const val DuracionNormal = 300
 const val DuracionLarga = 380
 /** Aparición escalonada. */
 const val DuracionAmplia = 480
-/** Paso del acceso al Inicio (único). */
-const val DuracionEscena = 700
 /** Desplazamiento entre pestañas (valor exacto, sin redondear). */
 const val DuracionPestana = 340
 /** Pulso del esqueleto (la ida). */
@@ -92,12 +94,19 @@ fun cambioContenido(): ContentTransform =
  */
 val LocalAnimacionesReducidas = staticCompositionLocalOf { false }
 
+/** Se vuelve a leer al reanudar la app: el ajuste puede cambiar desde los ajustes del sistema. */
 @Composable
 internal fun leerAnimacionesReducidas(): Boolean {
     val resolver = LocalContext.current.contentResolver
-    return remember(resolver) {
+    val leer = {
         runCatching {
             Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
         }.getOrDefault(false)
     }
+    var reducidas by remember(resolver) { mutableStateOf(leer()) }
+    LifecycleResumeEffect(resolver) {
+        reducidas = leer()
+        onPauseOrDispose { }
+    }
+    return reducidas
 }

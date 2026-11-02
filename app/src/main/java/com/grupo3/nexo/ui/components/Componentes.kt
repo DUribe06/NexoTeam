@@ -1,57 +1,26 @@
 package com.grupo3.nexo.ui.components
 
-import com.grupo3.nexo.ui.theme.especColor
-import com.grupo3.nexo.ui.theme.SobreOscuro
-import com.grupo3.nexo.ui.theme.Superficie
-import com.grupo3.nexo.ui.theme.especFundidoSalida
-import com.grupo3.nexo.ui.theme.DuracionCorta
-import com.grupo3.nexo.ui.theme.DuracionMedia
-import com.grupo3.nexo.ui.theme.resortePresion
-import com.grupo3.nexo.ui.theme.EscalaPresionBotonCompacto
-import com.grupo3.nexo.ui.theme.EscalaPresionBoton
-import com.grupo3.nexo.ui.theme.EscalaPresionTarjeta
-import androidx.compose.animation.core.snap
-import com.grupo3.nexo.ui.theme.EspacioAjustado
-import com.grupo3.nexo.ui.theme.EspacioAmplio
-import com.grupo3.nexo.ui.theme.EspacioCercano
-import com.grupo3.nexo.ui.theme.EspacioCorto
-import com.grupo3.nexo.ui.theme.EspacioGrande
-import com.grupo3.nexo.ui.theme.EspacioMedio
-import com.grupo3.nexo.ui.theme.EspacioMicro
-import com.grupo3.nexo.ui.theme.EspacioMinimo
-import com.grupo3.nexo.ui.theme.EspacioSuelto
-import kotlin.math.roundToInt
-import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.navigation.NavBackStackEntry
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.foundation.indication
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import com.grupo3.nexo.ui.theme.TinteBosque
-import com.grupo3.nexo.ui.theme.Divisor
-import com.grupo3.nexo.ui.theme.BosqueMedio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,14 +28,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -83,29 +52,39 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -116,43 +95,69 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.navigation.NavBackStackEntry
 import com.grupo3.nexo.R
-import androidx.compose.animation.core.Animatable
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
-import com.grupo3.nexo.ui.theme.FormaTarjeta
-import com.grupo3.nexo.ui.theme.FormaControl
-import com.grupo3.nexo.ui.theme.FormaOpcion
-import com.grupo3.nexo.ui.theme.EspacioFino
-import com.grupo3.nexo.ui.theme.EspacioNormal
-import com.grupo3.nexo.ui.theme.EspacioMargen
-import com.grupo3.nexo.domain.model.PLAZO_RESPUESTA_HORAS
-import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
-import com.grupo3.nexo.ui.theme.especAparicion
 import com.grupo3.nexo.domain.model.EstadoSolicitud
+import com.grupo3.nexo.domain.model.PLAZO_RESPUESTA_HORAS
 import com.grupo3.nexo.domain.model.siglasUniversidad
+import com.grupo3.nexo.ui.theme.BordeMarcado
+import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.BosqueAcento
+import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
-import com.grupo3.nexo.ui.theme.BordeSutil
+import com.grupo3.nexo.ui.theme.CampoEntrada
+import com.grupo3.nexo.ui.theme.Divisor
+import com.grupo3.nexo.ui.theme.DuracionCorta
+import com.grupo3.nexo.ui.theme.DuracionMedia
+import com.grupo3.nexo.ui.theme.EscalaPresionBoton
+import com.grupo3.nexo.ui.theme.EscalaPresionBotonCompacto
+import com.grupo3.nexo.ui.theme.EscalaPresionTarjeta
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioGrande
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMicro
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EspacioSuelto
+import com.grupo3.nexo.ui.theme.EstrellaVacia
+import com.grupo3.nexo.ui.theme.FormaControl
+import com.grupo3.nexo.ui.theme.FormaOpcion
+import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.FormaTarjeta
 import com.grupo3.nexo.ui.theme.GrisEstado
 import com.grupo3.nexo.ui.theme.Lienzo
+import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.Marcador
+import com.grupo3.nexo.ui.theme.MarcadorCampo
 import com.grupo3.nexo.ui.theme.Menta
-import com.grupo3.nexo.ui.theme.PuntoDesconectado
 import com.grupo3.nexo.ui.theme.Miel
+import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.MielOscura
+import com.grupo3.nexo.ui.theme.NumeroInsignia
+import com.grupo3.nexo.ui.theme.PuntoDesconectado
+import com.grupo3.nexo.ui.theme.RadioOrganico
 import com.grupo3.nexo.ui.theme.Rojo
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
+import com.grupo3.nexo.ui.theme.TinteBosque
 import com.grupo3.nexo.ui.theme.VerdeEstado
+import com.grupo3.nexo.ui.theme.especAparicion
+import com.grupo3.nexo.ui.theme.especColor
+import com.grupo3.nexo.ui.theme.especFundidoSalida
+import com.grupo3.nexo.ui.theme.inicialesAvatar
+import com.grupo3.nexo.ui.theme.resortePresion
 import com.grupo3.nexo.ui.theme.tonosAvatar
 import java.util.Locale
-import com.grupo3.nexo.ui.theme.CampoEntrada
-import com.grupo3.nexo.ui.theme.MarcadorCampo
-import com.grupo3.nexo.ui.theme.NumeroInsignia
-import com.grupo3.nexo.ui.theme.inicialesAvatar
+import kotlin.math.roundToInt
 
 /* ==================== Superficies ==================== */
 
@@ -163,7 +168,7 @@ val CifrasTabulares = TextStyle(fontFeatureSettings = "tnum")
  * Superficie base: blanco sobre el lienzo con un borde fino. Plana a propósito:
  * sin sombras ni degradados, para que la vista descanse y el contenido mande.
  */
-fun Modifier.superficie(forma: Shape = FormaTarjeta): Modifier =
+fun Modifier.superficie(forma: Shape = FormaOrganica): Modifier =
     this
         .background(Superficie, forma)
         .border(1.dp, BordeSutil, forma)
@@ -244,8 +249,8 @@ fun Modifier.pulsable(
 /* ==================== Botones ==================== */
 
 /**
- * Botón principal: verde bosque plano con esquinas de 10 dp; se hunde levemente al presionar.
- * Es el único elemento oscuro de cada pantalla. `conFlecha` marca acciones de avance.
+ * Botón principal: verde bosque plano con la forma de los controles; se hunde levemente al presionar.
+ * Es la acción principal de la pantalla. `conFlecha` marca acciones de avance.
  */
 @Composable
 fun BotonPrimario(
@@ -262,7 +267,11 @@ fun BotonPrimario(
     val presionado by interaccion.collectIsPressedAsState()
     val reducidas = LocalAnimacionesReducidas.current
     val escala by animateFloatAsState(if (presionado && !reducidas) EscalaPresionBoton else 1f, resortePresion(), label = "escala")
-    val desplazamientoFlecha by animateDpAsState(if (presionado) 4.dp else 0.dp, label = "flecha")
+    val desplazamientoFlecha by animateDpAsState(
+        if (presionado && !reducidas) EspacioMinimo else 0.dp,
+        resortePresion(),
+        label = "flecha"
+    )
     val activo = habilitado && !cargando
 
     Box(
@@ -302,7 +311,10 @@ fun BotonPrimario(
                         texto,
                         color = color,
                         style = if (compacto) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge,
-                        maxLines = 1
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
                     if (conFlecha) {
                         Spacer(Modifier.width(EspacioAjustado + desplazamientoFlecha))
@@ -352,7 +364,7 @@ fun BotonSecundario(
             modifier = Modifier
                 .heightIn(min = alto)
                 .background(Superficie, FormaControl)
-                .border(1.dp, if (peligro) Rojo.copy(alpha = 0.30f) else Bosque.copy(alpha = 0.16f), FormaControl)
+                .border(1.dp, if (peligro) Rojo.copy(alpha = 0.30f) else BordeMarcado, FormaControl)
                 .padding(horizontal = if (compacto) EspacioNormal else EspacioMargen)
         ) {
             if (icono != null) {
@@ -363,7 +375,10 @@ fun BotonSecundario(
                 texto,
                 color = colorTexto,
                 style = if (compacto) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge,
-                maxLines = 1
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
             )
         }
     }
@@ -412,32 +427,21 @@ fun BotonTonal(
                 .heightIn(min = 40.dp)
                 .clip(FormaControl)
                 .background(TinteBosque)
-                .padding(horizontal = EspacioCercano, vertical = 9.dp)
+                .padding(horizontal = EspacioCercano, vertical = EspacioAjustado)
         ) {
             if (icono != null) {
                 Icon(icono, contentDescription = null, tint = colorIcono, modifier = Modifier.size(17.dp))
                 Spacer(Modifier.width(EspacioFino))
             }
-            Text(texto, color = BosqueProfundo, style = MaterialTheme.typography.titleSmall, maxLines = 1)
-        }
-    }
-}
-
-/**
- * Lista agrupada: una sola superficie blanca con filas separadas por filetes,
- * en lugar de una tarjeta flotante por elemento.
- */
-@Composable
-fun <T> ListaAgrupada(
-    elementos: List<T>,
-    modifier: Modifier = Modifier,
-    sangriaDivisor: Dp = 16.dp,
-    fila: @Composable (T) -> Unit
-) {
-    Column(modifier.fillMaxWidth().superficie()) {
-        elementos.forEachIndexed { i, e ->
-            if (i > 0) DivisorFila(sangriaDivisor)
-            fila(e)
+            Text(
+                texto,
+                color = BosqueProfundo,
+                style = MaterialTheme.typography.titleSmall,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
         }
     }
 }
@@ -446,33 +450,33 @@ fun <T> ListaAgrupada(
  * Fila de una lista agrupada dentro de una LazyColumn: fondo blanco, esquinas redondeadas solo
  * en la primera y la última, y filete superior con sangría (desde la segunda fila).
  */
-fun Modifier.filaAgrupada(indice: Int, total: Int, sangria: Dp = 16.dp, radio: Dp = 12.dp): Modifier {
+fun Modifier.filaAgrupada(indice: Int, total: Int, sangria: Dp = 16.dp, radio: Dp = RadioOrganico): Modifier {
+    val primera = indice == 0
+    val ultima = indice == total - 1
     val forma = RoundedCornerShape(
-        topStart = if (indice == 0) radio else 0.dp,
-        topEnd = if (indice == 0) radio else 0.dp,
-        bottomStart = if (indice == total - 1) radio else 0.dp,
-        bottomEnd = if (indice == total - 1) radio else 0.dp
+        topStart = if (primera) radio else 0.dp,
+        topEnd = if (primera) radio else 0.dp,
+        bottomStart = if (ultima) radio else 0.dp,
+        bottomEnd = if (ultima) radio else 0.dp
     )
     return this
         .background(Superficie, forma)
         .clip(forma)
-        .then(
-            if (indice > 0) Modifier.drawBehind {
-                drawLine(Divisor, Offset(sangria.toPx(), 0f), Offset(size.width, 0f), 1.dp.toPx())
-            } else Modifier
-        )
-}
-
-/** Filete entre filas, con sangría para alinearse con el texto (no con el avatar). */
-@Composable
-fun DivisorFila(sangria: Dp = 16.dp) {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .padding(start = sangria)
-            .height(1.dp)
-            .background(Divisor)
-    )
+        .drawBehind {
+            // Borde fino solo en el contorno de la lista: el trazo se prolonga fuera de las filas
+            // contiguas para que sus bordes internos queden recortados
+            val trazo = 2.dp.toPx()
+            val arriba = if (primera) 0f else trazo
+            val abajo = if (ultima) 0f else trazo
+            translate(top = -arriba) {
+                drawOutline(
+                    forma.createOutline(Size(size.width, size.height + arriba + abajo), layoutDirection, this),
+                    BordeSutil,
+                    style = Stroke(trazo)
+                )
+            }
+            if (!primera) drawLine(Divisor, Offset(sangria.toPx(), 0f), Offset(size.width, 0f), 1.dp.toPx())
+        }
 }
 
 /**
@@ -493,7 +497,6 @@ fun BotonIcono(
             .minimumInteractiveComponentSize()
             .clickable(
                 role = Role.Button,
-                onClickLabel = descripcion,
                 onClick = alClicar
             )
             .semantics { contentDescription = descripcion },
@@ -537,6 +540,8 @@ fun Campo(
     marcador: String,
     modifier: Modifier = Modifier,
     icono: ImageVector? = null,
+    /** Nombre accesible del campo; si falta se usa el marcador. Se lee siempre, también con texto escrito. */
+    etiqueta: String? = null,
     limpiable: Boolean = false,
     teclado: KeyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
     acciones: KeyboardActions = KeyboardActions.Default,
@@ -544,7 +549,7 @@ fun Campo(
 ) {
     var enfocado by remember { mutableStateOf(false) }
     val colorBorde by animateColorAsState(
-        if (enfocado) BosqueAcento else Bosque.copy(alpha = 0.16f), especColor(), label = "borde"
+        if (enfocado) BosqueAcento else BordeMarcado, especColor(), label = "borde"
     )
     val grosorBorde by animateDpAsState(if (enfocado) 1.5.dp else 1.dp, especColor(), label = "grosor")
     val colorIcono by animateColorAsState(
@@ -566,6 +571,7 @@ fun Campo(
             .fillMaxWidth()
             .background(Superficie, forma)
             .border(grosorBorde, colorBorde, forma)
+            .semantics { contentDescription = etiqueta ?: marcador }
             .onFocusChanged { enfocado = it.isFocused },
         decorationBox = { campo ->
             Row(
@@ -573,10 +579,10 @@ fun Campo(
                 modifier = Modifier
                     .heightIn(min = 52.dp)
                     .padding(
-                        start = 16.dp,
-                        end = if (limpiable && valor.isNotEmpty()) 4.dp else 16.dp,
-                        top = if (multilinea) 8.dp else 0.dp,
-                        bottom = if (multilinea) 8.dp else 0.dp
+                        start = EspacioNormal,
+                        end = if (limpiable && valor.isNotEmpty()) EspacioMinimo else EspacioNormal,
+                        top = if (multilinea) EspacioCorto else 0.dp,
+                        bottom = if (multilinea) EspacioCorto else 0.dp
                     )
             ) {
                 if (icono != null) {
@@ -585,7 +591,7 @@ fun Campo(
                 }
                 Box(Modifier.weight(1f)) {
                     if (valor.isEmpty()) {
-                        Text(marcador, color = Marcador, style = LocalTextStyle.current.merge(MarcadorCampo), maxLines = 1)
+                        Text(marcador, modifier = Modifier.clearAndSetSemantics { }, color = Marcador, style = LocalTextStyle.current.merge(MarcadorCampo), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     campo()
                 }
@@ -646,17 +652,18 @@ fun FiltroOpcion(
             .border(1.dp, borde, FormaOpcion)
             .indication(interaccion, LocalIndication.current)
             .graphicsLayer { alpha = if (habilitado) 1f else 0.4f }
-            .padding(start = if (seleccionado && conMarca) EspacioAjustado else EspacioCercano, end = EspacioCercano, top = 9.dp, bottom = 9.dp)
+            .padding(start = if (seleccionado && conMarca) EspacioAjustado else EspacioCercano, end = EspacioCercano, top = EspacioAjustado, bottom = EspacioAjustado)
     ) {
         if (seleccionado && conMarca) {
             Icon(IconosNexo.Marca, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(5.dp))
+            Spacer(Modifier.width(EspacioMinimo))
         }
         Text(
             texto,
             color = if (seleccionado) BosqueProfundo else BosqueProfundo.copy(alpha = 0.78f),
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Medium),
-            maxLines = 1
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
     }
     }
@@ -671,7 +678,13 @@ fun enumerar(elementos: List<String>): String = when (elementos.size) {
 
 /** Contador de no leídos / pendientes: menta con cifra bosque (contraste AA). */
 @Composable
-fun InsigniaConteo(cantidad: Int, modifier: Modifier = Modifier, bordeColor: Color = Superficie) {
+fun InsigniaConteo(
+    cantidad: Int,
+    modifier: Modifier = Modifier,
+    bordeColor: Color = Superficie,
+    /** Lo que anuncia TalkBack (p. ej. "3 sin leer"); sin él la insignia queda muda, como en la barra. */
+    descripcion: String? = null
+) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
@@ -681,7 +694,7 @@ fun InsigniaConteo(cantidad: Int, modifier: Modifier = Modifier, bordeColor: Col
             .padding(EspacioMicro)
             .background(Menta, CircleShape)
             .padding(horizontal = EspacioMinimo)
-            .clearAndSetSemantics { }
+            .clearAndSetSemantics { if (descripcion != null) contentDescription = descripcion }
     ) {
         Text(
             if (cantidad > 9) "9+" else cantidad.toString(),
@@ -730,10 +743,16 @@ fun Avatar(
     tamano: Dp = 44.dp,
     modifier: Modifier = Modifier,
     enLinea: Boolean? = null,
-    anillo: Color? = null
+    anillo: Color? = null,
+    /** Anuncia "En línea" o "Desconectado" cuando hay punto de estado (no solo el color). */
+    anunciarEstado: Boolean = true
 ) {
     val (oscuro, _) = tonoAvatar(nombre)
-    Box(modifier) {
+    Box(
+        modifier.semantics {
+            if (enLinea != null && anunciarEstado) contentDescription = if (enLinea) "En línea" else "Desconectado"
+        }
+    ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -774,7 +793,7 @@ fun Estrellas(cantidad: Int, tamano: Dp = 14.dp, modifier: Modifier = Modifier) 
             Icon(
                 IconosNexo.Estrella,
                 contentDescription = null,
-                tint = if (indice < cantidad) Miel else Bosque.copy(alpha = 0.12f),
+                tint = if (indice < cantidad) MielFuerte else EstrellaVacia,
                 modifier = Modifier.size(tamano)
             )
         }
@@ -788,8 +807,8 @@ fun Valoracion(valor: Double, modifier: Modifier = Modifier, color: Color = Text
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.semantics(mergeDescendants = true) { }
     ) {
-        Icon(IconosNexo.Estrella, contentDescription = "Calificación", tint = Miel, modifier = Modifier.size(14.dp))
-        Spacer(Modifier.width(3.dp))
+        Icon(IconosNexo.Estrella, contentDescription = "Calificación", tint = MielFuerte, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(EspacioMinimo))
         Text(
             formatoValoracion(valor),
             color = color,
@@ -897,7 +916,13 @@ fun EstadoVacio(
             Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(28.dp))
         }
         Spacer(Modifier.height(EspacioNormal))
-        Text(titulo, color = TextoPrimario, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+        Text(
+            titulo,
+            color = TextoPrimario,
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() }
+        )
         Spacer(Modifier.height(EspacioFino))
         Text(
             mensaje,
@@ -980,24 +1005,6 @@ fun TextoLinea(texto: String, style: TextStyle, color: Color, modifier: Modifier
 }
 
 /* ==================== Marca ==================== */
-
-/** Logo de Nexo en su insignia blanca (la del acceso, en tamaño reducido). */
-@Composable
-fun InsigniaNexo(tamano: Dp = 36.dp, modifier: Modifier = Modifier) {
-    val forma = RoundedCornerShape(tamano * 0.3f)
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .size(tamano)
-            .background(Superficie, forma)
-    ) {
-        Image(
-            painter = painterResource(R.drawable.logo_nexo),
-            contentDescription = "Nexo",
-            modifier = Modifier.size(tamano * 0.64f)
-        )
-    }
-}
 
 /** Curva orgánica del diseño (viewBox 414×56), escalada al ancho real. */
 @Composable
@@ -1114,15 +1121,3 @@ private tailrec fun Context.buscarActividad(): Activity? = when (this) {
     else -> null
 }
 
-/**
- * Filas de cifras cortas en columnas angostas: con letra muy grande, la etiqueta se partiría a media palabra.
- * La letra sigue creciendo hasta el 140 % y ahí se detiene solo en estas filas.
- */
-@Composable
-fun LetraAcotada(maximo: Float = 1.4f, contenido: @Composable () -> Unit) {
-    val densidad = LocalDensity.current
-    CompositionLocalProvider(
-        LocalDensity provides Density(densidad.density, densidad.fontScale.coerceAtMost(maximo)),
-        content = contenido
-    )
-}

@@ -1,14 +1,5 @@
 package com.grupo3.nexo.ui.components
 
-import com.grupo3.nexo.ui.theme.EspacioCercano
-import com.grupo3.nexo.ui.theme.SobreOscuro
-import com.grupo3.nexo.ui.theme.EspacioCorto
-import com.grupo3.nexo.ui.theme.EspacioFino
-import com.grupo3.nexo.ui.theme.EspacioMargen
-import com.grupo3.nexo.ui.theme.EspacioMedio
-import com.grupo3.nexo.ui.theme.EspacioMicro
-import com.grupo3.nexo.ui.theme.EspacioMinimo
-import com.grupo3.nexo.ui.theme.EspacioSuelto
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -37,10 +28,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.R
-import com.grupo3.nexo.ui.theme.Fondo
-import com.grupo3.nexo.ui.theme.TextoPrimario
-import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.BosqueMedio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMicro
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.Fondo
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.SobreOscuroSuave
 import com.grupo3.nexo.ui.theme.veloCabecera
 
 /**
@@ -94,6 +91,8 @@ fun CabeceraSeccion(
     alVolver: (() -> Unit)? = null,
     acciones: @Composable RowScope.() -> Unit = {}
 ) {
+    // La foto es oscura: íconos claros en la barra de estado mientras la cabecera está a la vista
+    IconosClarosEnBarraDeEstado()
     Box(modifier) {
         CabeceraBosque(conFoto = true, alturaOnda = 24.dp) {
             Row(
@@ -119,7 +118,7 @@ fun CabeceraSeccion(
                     )
                     if (subtitulo != null) {
                         Spacer(Modifier.height(EspacioMicro))
-                        Text(subtitulo, color = SobreOscuro.copy(alpha = 0.88f), style = MaterialTheme.typography.bodyMedium)
+                        Text(subtitulo, color = SobreOscuroSuave, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
                 acciones()
@@ -135,65 +134,3 @@ fun CabeceraSeccion(
     }
 }
 
-/** Título de las pestañas principales: grande, como "Enlace directo", con subtítulo en salvia. */
-@Composable
-fun TituloPantalla(
-    titulo: String,
-    modifier: Modifier = Modifier,
-    subtitulo: String? = null,
-    acciones: @Composable RowScope.() -> Unit = {}
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(start = EspacioMargen, end = EspacioMedio, top = EspacioSuelto, bottom = EspacioFino)
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                titulo,
-                color = TextoPrimario,
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.semantics { heading() }
-            )
-            if (subtitulo != null) {
-                Spacer(Modifier.height(EspacioMicro))
-                Text(subtitulo, color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
-            }
-        }
-        acciones()
-    }
-}
-
-/** Barra de las pantallas de detalle: volver + título, sobre el lienzo. */
-@Composable
-fun BarraSuperior(
-    titulo: String,
-    alVolver: () -> Unit,
-    modifier: Modifier = Modifier,
-    acciones: @Composable RowScope.() -> Unit = {}
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = EspacioMedio, vertical = EspacioCorto)
-    ) {
-        BotonIcono(IconosNexo.Atras, "Volver", alVolver)
-        Spacer(Modifier.width(EspacioCorto))
-        Text(
-            titulo,
-            color = TextoPrimario,
-            style = MaterialTheme.typography.headlineSmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .weight(1f)
-                .semantics { heading() }
-                .interruptorDeRevision()
-        )
-        acciones()
-    }
-}

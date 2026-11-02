@@ -1,33 +1,30 @@
 package com.grupo3.nexo.ui.busqueda
 
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import com.grupo3.nexo.ui.theme.BosqueAcento
-import com.grupo3.nexo.ui.theme.SobreOscuro
-import androidx.compose.foundation.border
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -38,23 +35,28 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
+import com.grupo3.nexo.domain.model.AreaEstudio
 import com.grupo3.nexo.domain.model.Franja
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Tutor
@@ -62,31 +64,33 @@ import com.grupo3.nexo.domain.usecase.BuscarTutoresUseCase
 import com.grupo3.nexo.domain.usecase.FiltroTutores
 import com.grupo3.nexo.ui.components.Avatar
 import com.grupo3.nexo.ui.components.BotonIcono
-import com.grupo3.nexo.ui.components.Pestanas
-import com.grupo3.nexo.ui.components.descripcion
-import com.grupo3.nexo.ui.components.filaAgrupada
 import com.grupo3.nexo.ui.components.BotonPrimario
 import com.grupo3.nexo.ui.components.BotonTexto
+import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.Campo
-import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.Carga
+import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.ErrorDeLista
 import com.grupo3.nexo.ui.components.EsqueletoLista
-import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.FiltroOpcion
 import com.grupo3.nexo.ui.components.HojaNexo
+import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.components.Pestanas
 import com.grupo3.nexo.ui.components.RotuloGrupo
 import com.grupo3.nexo.ui.components.TextoLinea
-import com.grupo3.nexo.ui.components.BarraSuperior
 import com.grupo3.nexo.ui.components.Valoracion
+import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
+import com.grupo3.nexo.ui.components.cargaDe
+import com.grupo3.nexo.ui.components.descripcion
+import com.grupo3.nexo.ui.components.filaAgrupada
 import com.grupo3.nexo.ui.components.formatoPrecio
 import com.grupo3.nexo.ui.components.icono
-import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.universidadCorta
 import com.grupo3.nexo.ui.navigation.Rutas
+import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
@@ -99,13 +103,16 @@ import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.FormaOpcion
-import com.grupo3.nexo.ui.theme.cambioContenido
+import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.Salvia
+import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
+import com.grupo3.nexo.ui.theme.cambioContenido
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -113,33 +120,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import javax.inject.Inject
-import com.grupo3.nexo.ui.components.IconosNexo
-import com.grupo3.nexo.ui.components.CabeceraSeccion
-
-/* ==================== Áreas de estudio ==================== */
 
 /**
- * Agrupa las materias en áreas reconocibles para filtrar con un toque
- * ("Matemáticas" encuentra Cálculo I, Álgebra y Matemática Básica).
+ * Alias temporal: [AreaEstudio] pasó a `domain.model`. Solicitudes.kt aún lo importa desde aquí;
+ * al cambiar su import, se borra esta línea.
  */
-enum class AreaEstudio(val etiqueta: String, val claves: List<String>) {
-    MATEMATICAS("Matemáticas", listOf("Cálculo", "Álgebra", "Matemática")),
-    PROGRAMACION("Programación", listOf("Programación", "Python", "Java")),
-    CIENCIAS("Ciencias", listOf("Física", "Química", "Biología", "Estadística")),
-    IDIOMAS("Idiomas", listOf("Inglés", "Redacción")),
-    DATOS("Bases de datos", listOf("Bases de Datos", "SQL")),
-    DISENO("Diseño", listOf("Diseño", "Figma")),
-    NEGOCIOS("Negocios", listOf("Contabilidad", "Economía"));
-
-    companion object {
-        fun desde(nombre: String?): AreaEstudio? = entries.firstOrNull { it.name == nombre }
-
-        /** Área a la que pertenece una materia (para sugerir tutores alternativos, RF6). */
-        fun deMateria(materia: String): AreaEstudio? =
-            entries.firstOrNull { area -> area.claves.any { materia.contains(it, ignoreCase = true) } }
-    }
-}
+typealias AreaEstudio = com.grupo3.nexo.domain.model.AreaEstudio
 
 /* ==================== ViewModel ==================== */
 
@@ -214,7 +200,7 @@ fun PantallaBusqueda(
         CabeceraSeccion("Buscar tutores", alVolver = alVolver) {
             BotonIcono(
                 IconosNexo.Filtros,
-                descripcion = if (estado.filtrosHoja > 0) "Filtros, ${estado.filtrosHoja} activos" else "Filtros",
+                descripcion = if (estado.filtrosHoja > 0) "Filtros, ${estado.filtrosHoja} ${if (estado.filtrosHoja == 1) "activo" else "activos"}" else "Filtros",
                 alClicar = { mostrarFiltros = true },
                 sobreOscuro = true,
                 insignia = estado.filtrosHoja
@@ -303,7 +289,7 @@ private fun resumenResultados(e: BusquedaViewModel.Estado): String = buildString
         if (e.soloEnLinea) "en línea" else null
     )
     if (detalles.isNotEmpty()) append(" · " + detalles.joinToString(" · "))
-    append(" · por calificación")
+    append(" · ordenados por calificación")
 }
 
 /** Filtros de horario y modalidad (HU-05). Se aplican al instante; el botón muestra el resultado. */
@@ -319,7 +305,11 @@ private fun HojaFiltros(
 ) {
     HojaNexo(titulo = "Filtros", subtitulo = "Encuentra a quien pueda cuando tú puedes.", alCerrar = alCerrar) {
         RotuloGrupo("Modalidad", Modifier.padding(top = EspacioHolgado, bottom = EspacioAjustado))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(EspacioCorto), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
+            verticalArrangement = Arrangement.spacedBy(EspacioCorto),
+            modifier = Modifier.selectableGroup()
+        ) {
             FiltroOpcion("Cualquiera", estado.modalidad == null, { alElegirModalidad(null) }, conMarca = false)
             Modalidad.entries.forEach { m ->
                 FiltroIcono(m.etiqueta, m.icono, estado.modalidad == m) { alElegirModalidad(m) }
@@ -327,7 +317,11 @@ private fun HojaFiltros(
         }
 
         RotuloGrupo("Horario", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(EspacioCorto), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
+            verticalArrangement = Arrangement.spacedBy(EspacioCorto),
+            modifier = Modifier.selectableGroup()
+        ) {
             FiltroOpcion("Cualquiera", estado.franja == null, { alElegirFranja(null) }, conMarca = false)
             Franja.entries.forEach { f ->
                 FiltroOpcion("${f.etiqueta} · ${"%02d".format(f.desde)}:00–${"%02d".format(f.hasta + 1)}:00", estado.franja == f, { alElegirFranja(f) }, conMarca = false)
@@ -339,7 +333,7 @@ private fun HojaFiltros(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .superficie()
+                .superficie(FormaOrganica)
                 .toggleable(value = estado.soloEnLinea, role = Role.Switch, onValueChange = alCambiarEnLinea)
                 .heightIn(min = 60.dp)
                 .padding(horizontal = EspacioNormal)
@@ -389,6 +383,7 @@ private fun FiltroIcono(texto: String, icono: ImageVector, seleccionado: Boolean
             .areaTactilSinCambiarMedida()
             .heightIn(min = 48.dp)
             .pulsable(rol = Role.RadioButton, alClicar = alClicar)
+            .semantics { selected = seleccionado }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

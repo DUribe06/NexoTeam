@@ -20,6 +20,7 @@ import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueProfundo
+import com.grupo3.nexo.ui.theme.EspacioMinimo
 
 /** Ícono Phosphor de cada modalidad (cámara o ubicación), la familia de toda la app. */
 val Modalidad.icono: ImageVector
@@ -42,7 +43,7 @@ fun EtiquetaModalidad(modalidad: Modalidad, modifier: Modifier = Modifier) {
         modifier = modifier
     ) {
         Icon(modalidad.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(14.dp))
-        Spacer(Modifier.width(5.dp))
+        Spacer(Modifier.width(EspacioMinimo))
         Text(modalidad.etiqueta, color = BosqueProfundo, style = MaterialTheme.typography.labelMedium)
     }
 }
@@ -55,7 +56,7 @@ fun IconosModalidad(
     tamano: Dp = 14.dp,
     color: Color = BosqueAcento
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = modifier) {
+    Row(horizontalArrangement = Arrangement.spacedBy(EspacioMinimo), modifier = modifier) {
         Modalidad.entries.filter { it in modalidades }.forEach {
             Icon(it.icono, contentDescription = it.etiqueta, tint = color, modifier = Modifier.size(tamano))
         }

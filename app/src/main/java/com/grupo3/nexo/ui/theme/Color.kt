@@ -41,22 +41,26 @@ val TextoSecundario = Color(0xFF587966)
 val TextoTercero = Color(0xFF60776B)
 val Marcador = Bosque.copy(alpha = 0.64f)
 
-val Acento = BosqueAcento
-
 /* Borde fino de 1 dp (mismo que los campos del acceso). */
 val BordeSutil = Bosque.copy(alpha = 0.10f)
 val Divisor = Bosque.copy(alpha = 0.07f)
+/** Borde de botones secundarios, campos y opciones en reposo. */
+val BordeMarcado = Bosque.copy(alpha = 0.16f)
+/** Borde verdoso de las tarjetas con acento (esqueleto, disponibilidad, sesión). */
+val BordeAcento = BosqueAcento.copy(alpha = 0.14f)
 
 /* Estados */
 val Rojo = ErrorBosque
+/** Rojo de las acciones destructivas en texto e íconos secundarios. */
+val RojoSuave = Rojo.copy(alpha = 0.85f)
 val Miel = Color(0xFFD69A1E)
+/** Miel para las estrellas de calificación: 3:1 sobre blanco, sin perder la calidez de Miel. */
+val MielFuerte = Color(0xFFBF8500)
+/** Estrella de calificación sin llenar. */
+val EstrellaVacia = Bosque.copy(alpha = 0.25f)
 val MielOscura = Color(0xFF8A5A00)
-val MielFondo = Color(0xFFF8EDD5)
 val VerdeEstado = Color(0xFF0D6B43)
-val VerdeFondo = Color(0xFFDDF2E6)
-val RojoFondo = Color(0xFFFBE4E1)
 val GrisEstado = Color(0xFF66716B)
-val GrisFondo = Color(0xFFEDF0EE)
 
 /** Gradiente satinado del botón "Vincularse": botones primarios y estados activos. */
 val pincelBosque: Brush
@@ -114,3 +118,5 @@ val SombraSuelo = Color(0xFFD5DBD4)
 val TextoSobreTinte = Color(0xFF4A6B59)
 /** Texto e íconos sobre el verde y sobre la foto. */
 val SobreOscuro = Color.White
+/** Texto secundario sobre el verde y sobre la foto (subtítulos de cabecera). */
+val SobreOscuroSuave = SobreOscuro.copy(alpha = 0.88f)

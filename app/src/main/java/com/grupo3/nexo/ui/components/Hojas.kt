@@ -43,7 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.grupo3.nexo.ui.theme.Bosque
+import com.grupo3.nexo.ui.theme.BordeMarcado
 import com.grupo3.nexo.ui.theme.FormaControl
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Menta
@@ -53,7 +53,7 @@ import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 
 /**
- * Hoja inferior de la app: blanca, esquinas de 28 dp, asa discreta,
+ * Hoja inferior de la app: blanca, esquinas de [FormaHoja], asa discreta,
  * título + subtítulo y contenido desplazable que respeta el teclado.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,7 +76,7 @@ fun HojaNexo(
                 Modifier
                     .padding(top = EspacioMedio, bottom = EspacioCorto)
                     .size(width = 40.dp, height = 4.dp)
-                    .background(Bosque.copy(alpha = 0.16f), CircleShape)
+                    .background(BordeMarcado, CircleShape)
             )
         }
     ) {
