@@ -1,8 +1,5 @@
 package com.grupo3.nexo.ui.perfil
 
-import com.grupo3.nexo.ui.theme.Icono16
-import com.grupo3.nexo.ui.theme.Icono18
-import com.grupo3.nexo.ui.theme.Icono22
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -15,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -58,10 +54,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -82,7 +77,6 @@ import com.grupo3.nexo.ui.components.CabeceraBosque
 import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.DialogoConfirmacion
 import com.grupo3.nexo.ui.components.EncabezadoSeccion
-import com.grupo3.nexo.ui.components.enumerar
 import com.grupo3.nexo.ui.components.ErrorDeLista
 import com.grupo3.nexo.ui.components.Esqueleto
 import com.grupo3.nexo.ui.components.EstadoVacio
@@ -95,17 +89,20 @@ import com.grupo3.nexo.ui.components.Onda
 import com.grupo3.nexo.ui.components.VeloBarraEstado
 import com.grupo3.nexo.ui.components.aparicion
 import com.grupo3.nexo.ui.components.cargaDe
+import com.grupo3.nexo.ui.components.enumerar
 import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.components.formatoValoracion
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.theme.BordeAcento
+import com.grupo3.nexo.ui.theme.BordeRojoSalir
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
+import com.grupo3.nexo.ui.theme.EnfasisMedio
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioCercano
@@ -122,13 +119,16 @@ import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.FormaBoton
 import com.grupo3.nexo.ui.theme.FormaCampoAlto
 import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.IconoCuerpo
+import com.grupo3.nexo.ui.theme.IconoMediano
+import com.grupo3.nexo.ui.theme.IconoNormal
+import com.grupo3.nexo.ui.theme.IconoSecundario
 import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.RojoSuave
-import com.grupo3.nexo.ui.theme.IconoSecundario
-import com.grupo3.nexo.ui.theme.SombraAmbiente
-import com.grupo3.nexo.ui.theme.SombraPuntual
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.SobreOscuroSuave
+import com.grupo3.nexo.ui.theme.SombraAmbiente
+import com.grupo3.nexo.ui.theme.SombraPuntual
 import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TextoCifraResumen
 import com.grupo3.nexo.ui.theme.TextoPrimario
@@ -314,7 +314,7 @@ private fun BotonIr(modifier: Modifier = Modifier) {
             .size(36.dp)
             .background(BosqueMedio, CircleShape)
     ) {
-        Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(Icono16))
+        Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(IconoCuerpo))
     }
 }
 
@@ -444,7 +444,7 @@ private fun ValorCifra(valor: String, conEstrella: Boolean) {
         )
         if (conEstrella) {
             Spacer(Modifier.width(EspacioMinimo))
-            Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(Icono18))
+            Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(IconoNormal))
         }
     }
 }
@@ -548,7 +548,7 @@ private fun AvisoPorCalificar(cantidad: Int, alCalificar: () -> Unit, modifier: 
             .clickable(role = Role.Button, onClickLabel = "Calificar sesiones", onClick = alCalificar)
             .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioCercano, bottom = EspacioCercano)
     ) {
-        Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(Icono22))
+        Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(IconoMediano))
         Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
             Text(
@@ -583,10 +583,10 @@ private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> 
             .fillMaxWidth()
             .heightIn(min = 50.dp)
             .clip(CircleShape)
-            .border(1.dp, rojo.copy(alpha = 0.28f), CircleShape)
+            .border(1.dp, BordeRojoSalir, CircleShape)
             .clickable(role = Role.Button, onClick = alSalir)
     ) {
-        Icon(painterResource(R.drawable.ph_salir), contentDescription = null, tint = rojo, modifier = Modifier.size(Icono18))
+        Icon(painterResource(R.drawable.ph_salir), contentDescription = null, tint = rojo, modifier = Modifier.size(IconoNormal))
         Spacer(Modifier.width(EspacioCorto))
         Text("Cerrar sesión", color = rojo, style = MaterialTheme.typography.titleSmall)
     }
@@ -603,7 +603,7 @@ private fun TarjetaDisponibilidad(alAbrir: () -> Unit) {
             .clickable(role = Role.Button, onClick = alAbrir)
             .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioCercano, bottom = EspacioCercano)
     ) {
-        Icon(painterResource(R.drawable.ph_calendario), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono22))
+        Icon(painterResource(R.drawable.ph_calendario), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(IconoMediano))
         Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
             Text("Mi disponibilidad", color = BosqueProfundo, style = MaterialTheme.typography.titleSmall)
@@ -677,14 +677,14 @@ private fun FilaMenu(icono: Painter, titulo: String, alClicar: () -> Unit) {
             .clickable(role = Role.Button, onClick = alClicar)
             .padding(horizontal = EspacioNormal, vertical = EspacioAjustado)
     ) {
-        Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono22))
+        Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(IconoMediano))
         Spacer(Modifier.width(EspacioNormal))
         Text(
             titulo,
             color = TextoPrimario,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+            style = MaterialTheme.typography.titleMedium.merge(EnfasisMedio),
             modifier = Modifier.weight(1f)
         )
-        Icon(painterResource(R.drawable.ph_caret), contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(Icono18))
+        Icon(painterResource(R.drawable.ph_caret), contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(IconoNormal))
     }
 }

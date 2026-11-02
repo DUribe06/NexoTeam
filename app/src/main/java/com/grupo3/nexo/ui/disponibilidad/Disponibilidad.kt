@@ -1,7 +1,5 @@
 package com.grupo3.nexo.ui.disponibilidad
 
-import com.grupo3.nexo.ui.theme.Icono15
-import com.grupo3.nexo.ui.theme.Icono18
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,9 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,7 +35,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -51,6 +46,7 @@ import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.model.DiaDisponibilidad
 import com.grupo3.nexo.domain.model.HoraDisponible
 import com.grupo3.nexo.domain.model.Modalidad
+import com.grupo3.nexo.domain.usecase.CrearCalendarioUseCase
 import com.grupo3.nexo.domain.usecase.DefinirHoraUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerDisponibilidadUseCase
 import com.grupo3.nexo.ui.components.CabeceraSeccion
@@ -62,6 +58,8 @@ import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.components.LineaHueso
+import com.grupo3.nexo.ui.components.RadioOpcion
+import com.grupo3.nexo.ui.components.SangriaDivisorRadio
 import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
 import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.descripcion
@@ -71,7 +69,6 @@ import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.theme.BordeAcento
 import com.grupo3.nexo.ui.theme.BordeMarcado
-import com.grupo3.nexo.ui.theme.BordeRadio
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
@@ -87,15 +84,17 @@ import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.FormaOpcion
 import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.Icono15
+import com.grupo3.nexo.ui.theme.Icono18
 import com.grupo3.nexo.ui.theme.Menta
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.Superficie
+import com.grupo3.nexo.ui.theme.TextoHoraInactiva
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoSobreTinte
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
-import com.grupo3.nexo.ui.theme.TinteFilaElegida
 import com.grupo3.nexo.ui.theme.VerdeEstado
 import com.grupo3.nexo.ui.theme.especColor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -109,12 +108,17 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class DisponibilidadViewModel @Inject constructor(
     obtenerDisponibilidad: ObtenerDisponibilidadUseCase,
-    private val definirHora: DefinirHoraUseCase
+    private val definirHora: DefinirHoraUseCase,
+    private val crearCalendario: CrearCalendarioUseCase
 ) : ViewModel() {
 
     /** null mientras llegan los datos: así no se muestra "0 horas publicadas" por error. */
     val dias = obtenerDisponibilidad()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null as List<DiaDisponibilidad>?)
+
+    fun empezar() {
+        viewModelScope.launch { crearCalendario() }
+    }
 
     fun definir(dia: String, hora: String, modalidades: Set<Modalidad>) {
         viewModelScope.launch { definirHora(dia, hora, modalidades) }
@@ -163,9 +167,9 @@ fun PantallaDisponibilidad(
                 EstadoVacio(
                     icono = IconosNexo.Calendario,
                     titulo = "Aún no hay horas para publicar",
-                    mensaje = "Cuando tu calendario esté listo podrás elegir aquí cuándo das tutorías.",
-                    accion = "Volver",
-                    alAccion = alVolver
+                    mensaje = "Crea tu semana y elige cuáles horas ofreces, en virtual, presencial o ambas.",
+                    accion = "Agregar horario",
+                    alAccion = viewModel::empezar
                 )
             }
             else if (carga != Carga.LISTO) item(key = "error") { ErrorDeLista(titulo = "No pudimos cargar tu disponibilidad") }
@@ -249,7 +253,7 @@ fun PantallaDisponibilidad(
                     .selectableGroup()
             ) {
                 opcionesHora.forEachIndexed { i, (texto, modalidades) ->
-                    if (i > 0) Box(Modifier.fillMaxWidth().padding(start = 56.dp).height(1.dp).background(Divisor))
+                    if (i > 0) Box(Modifier.fillMaxWidth().padding(start = SangriaDivisorRadio).height(1.dp).background(Divisor))
                     OpcionHora(
                         texto = texto,
                         modalidades = modalidades,
@@ -289,7 +293,7 @@ private fun EsqueletoDias() {
 @Composable
 private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
     val activa = hora.seleccionada
-    val colorTexto by animateColorAsState(if (activa) SobreOscuro else BosqueMedio.copy(alpha = 0.8f), especColor(), label = "textoHora")
+    val colorTexto by animateColorAsState(if (activa) SobreOscuro else TextoHoraInactiva, especColor(), label = "textoHora")
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -326,25 +330,7 @@ private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
 
 @Composable
 private fun OpcionHora(texto: String, modalidades: Set<Modalidad>, seleccionada: Boolean, alClicar: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .selectable(selected = seleccionada, role = Role.RadioButton, onClick = alClicar)
-            .background(if (seleccionada) TinteFilaElegida else Color.Transparent)
-            .padding(horizontal = EspacioNormal)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(20.dp)
-                .border(if (seleccionada) 2.dp else 1.5.dp, if (seleccionada) BosqueMedio else BordeRadio, CircleShape)
-        ) {
-            if (seleccionada) Box(Modifier.size(9.dp).background(Menta, CircleShape))
-        }
-        Spacer(Modifier.width(EspacioNormal))
-        Text(texto, color = TextoPrimario, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+    RadioOpcion(texto, seleccionada, alClicar) {
         Modalidad.entries.filter { it in modalidades }.forEach {
             Icon(it.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono18))
             Spacer(Modifier.width(EspacioMinimo))

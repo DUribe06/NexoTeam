@@ -19,3 +19,22 @@ val Icono20: Dp = 20.dp
 val Icono22: Dp = 22.dp
 val Icono26: Dp = 26.dp
 val Icono28: Dp = 28.dp
+
+/*
+ * Escala semántica: cada nombre apunta a un token numérico y dice para qué sirve.
+ * En las pantallas se usa esta; los numéricos quedan como su respaldo.
+ */
+/** Detalle junto a texto pequeño o dentro de una etiqueta (flecha de enlace, marca de metadato). */
+val IconoDiminuto: Dp = Icono13
+/** Ícono en línea con texto de apoyo (estrella de valoración, viñeta de dato). */
+val IconoPequeno: Dp = Icono14
+/** Ícono que acompaña texto de cuerpo (chips, metadatos, marca de selección). */
+val IconoCuerpo: Dp = Icono16
+/** Ícono de campo, botón o fila (el tamaño habitual). */
+val IconoNormal: Dp = Icono18
+/** Ícono de fila destacada o de encabezado de tarjeta. */
+val IconoMediano: Dp = Icono22
+/** Ícono de botón de acción solo-ícono. */
+val IconoAccion: Dp = Icono22
+/** Ícono protagonista de una tarjeta o de un estado vacío. */
+val IconoGrande: Dp = Icono28

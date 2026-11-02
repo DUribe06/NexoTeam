@@ -60,7 +60,6 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
@@ -71,6 +70,7 @@ import com.grupo3.nexo.ui.theme.CalDia
 import com.grupo3.nexo.ui.theme.CalLinea
 import com.grupo3.nexo.ui.theme.CalOscuro
 import com.grupo3.nexo.ui.theme.CalSalvia
+import com.grupo3.nexo.ui.theme.CodigoEspaciado
 import com.grupo3.nexo.ui.theme.CurvaEstandar
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.DuracionNormal
@@ -809,7 +809,7 @@ fun BarraSesion(haySesiones: Boolean, esTutor: Boolean = false, modifier: Modifi
     }
     // El PIN de la nube (de muestra: aún no hay datos reales)
     val medidor = rememberTextMeasurer()
-    val estiloPin = MaterialTheme.typography.titleSmall.copy(color = TextoPrimario, letterSpacing = 2.sp)
+    val estiloPin = MaterialTheme.typography.titleSmall.merge(CodigoEspaciado).copy(color = TextoPrimario)
     val pin = remember(estiloPin, revision) { if (revision) PIN_MUESTRA.map { medidor.measure(it.toString(), estiloPin) } else emptyList() }
     Column(
         modifier

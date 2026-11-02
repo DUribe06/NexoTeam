@@ -231,17 +231,13 @@ fun NexoApp() {
                     alAbrirDisponibilidad = { controlador.navigate(Rutas.Disponibilidad.ruta) }
                 )
             }
-            composable(Rutas.TutorPerfil.ruta) { entrada ->
-                val tutorId = entrada.arguments?.getString(Rutas.TutorPerfil.ARG_TUTOR).orEmpty()
+            composable(Rutas.TutorPerfil.ruta) {
                 PantallaTutorPerfil(
-                    tutorId = tutorId,
                     alVolver = { controlador.popBackStack() }
                 )
             }
-            composable(Rutas.Conversacion.ruta) { entrada ->
-                val chatId = entrada.arguments?.getString(Rutas.Conversacion.ARG_CHAT).orEmpty()
+            composable(Rutas.Conversacion.ruta) {
                 PantallaConversacion(
-                    chatId = chatId,
                     alVolver = { controlador.popBackStack() }
                 )
             }

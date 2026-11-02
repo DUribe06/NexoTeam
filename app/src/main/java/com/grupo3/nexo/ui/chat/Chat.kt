@@ -1,9 +1,8 @@
 package com.grupo3.nexo.ui.chat
 
-import com.grupo3.nexo.ui.theme.Icono14
-import com.grupo3.nexo.ui.theme.Icono18
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +54,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -94,9 +94,12 @@ import com.grupo3.nexo.ui.components.filaAgrupada
 import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
+import com.grupo3.nexo.ui.navigation.Rutas
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
+import com.grupo3.nexo.ui.theme.EnfasisMedio
+import com.grupo3.nexo.ui.theme.EnfasisNormal
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioCercano
@@ -108,10 +111,13 @@ import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.EspacioRozante
-import com.grupo3.nexo.ui.theme.EspacioSuelto
 import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.FormaControl
 import com.grupo3.nexo.ui.theme.FormaOpcion
+import com.grupo3.nexo.ui.theme.Icono14
+import com.grupo3.nexo.ui.theme.Icono18
+import com.grupo3.nexo.ui.theme.Icono20
+import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.Menta
 import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.RellenoTenue
@@ -158,7 +164,8 @@ class ConversacionViewModel @Inject constructor(
     private val calificarSesion: CalificarSesionUseCase,
     private val sesionDeConversacion: ObtenerSesionDeConversacionUseCase,
     private val enviarMensaje: EnviarMensajeUseCase,
-    private val marcarLeido: MarcarChatLeidoUseCase
+    private val marcarLeido: MarcarChatLeidoUseCase,
+    estadoGuardado: SavedStateHandle
 ) : ViewModel() {
 
     data class Estado(
@@ -172,7 +179,7 @@ class ConversacionViewModel @Inject constructor(
         val esTutor: Boolean = false
     )
 
-    private val chatId = MutableStateFlow("")
+    private val chatId = MutableStateFlow(estadoGuardado.get<String>(Rutas.Conversacion.ARG_CHAT).orEmpty())
 
     val estado = combine(
         chatId,
@@ -195,9 +202,8 @@ class ConversacionViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 
-    fun cargar(id: String) {
-        chatId.value = id
-        viewModelScope.launch { marcarLeido(id) }
+    init {
+        chatId.value.takeIf { it.isNotEmpty() }?.let { id -> viewModelScope.launch { marcarLeido(id) } }
     }
 
     fun calificar(sesionId: String, estrellas: Int, comentario: String?) {
@@ -310,7 +316,7 @@ private fun FilaChat(chat: Chat, alAbrir: () -> Unit, modifier: Modifier = Modif
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextoLinea(
                     chat.ultimoMensaje,
-                    MaterialTheme.typography.bodyMedium.copy(fontWeight = if (sinLeer) FontWeight.Medium else FontWeight.Normal),
+                    MaterialTheme.typography.bodyMedium.merge(if (sinLeer) EnfasisMedio else EnfasisNormal),
                     if (sinLeer) TextoPrimario else TextoSecundario,
                     Modifier.weight(1f)
                 )
@@ -370,11 +376,9 @@ private fun EsqueletoBurbujas(modifier: Modifier = Modifier) {
 
 @Composable
 fun PantallaConversacion(
-    chatId: String,
     alVolver: () -> Unit,
     viewModel: ConversacionViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(chatId) { viewModel.cargar(chatId) }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val listaEstado = rememberLazyListState()
     var texto by rememberSaveable { mutableStateOf("") }
@@ -511,7 +515,11 @@ fun PantallaConversacion(
 
         // Entrada de texto
         val puedeEnviar = texto.isNotBlank()
-        val escalaEnviar by animateFloatAsState(if (puedeEnviar) 1f else 0.9f, resorteRebote(), label = "enviar")
+        val escalaEnviar by animateFloatAsState(
+            if (puedeEnviar) 1f else 0.9f,
+            if (LocalAnimacionesReducidas.current) snap() else resorteRebote(),
+            label = "enviar"
+        )
         Row(
             verticalAlignment = Alignment.Bottom,
             modifier = Modifier
@@ -547,7 +555,7 @@ fun PantallaConversacion(
                     IconosNexo.Enviar,
                     contentDescription = null,
                     tint = if (puedeEnviar) SobreOscuro else TextoTercero,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(Icono20)
                 )
             }
         }

@@ -1,6 +1,5 @@
 package com.grupo3.nexo.ui.auth
 
-import com.grupo3.nexo.ui.theme.Icono19
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -140,6 +139,7 @@ import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.EtiquetaSeparador
 import com.grupo3.nexo.ui.theme.FormaAmplia
+import com.grupo3.nexo.ui.theme.Icono19
 import com.grupo3.nexo.ui.theme.InstrumentSans
 import com.grupo3.nexo.ui.theme.Lienzo
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas

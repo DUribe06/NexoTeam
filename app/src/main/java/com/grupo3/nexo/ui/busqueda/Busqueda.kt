@@ -1,6 +1,5 @@
 package com.grupo3.nexo.ui.busqueda
 
-import com.grupo3.nexo.ui.theme.Icono17
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,7 +46,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
@@ -91,6 +89,7 @@ import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.universidadCorta
 import com.grupo3.nexo.ui.navigation.Rutas
+import com.grupo3.nexo.ui.theme.BordeRadio
 import com.grupo3.nexo.ui.theme.BordeSeleccion
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueMedio
@@ -106,7 +105,7 @@ import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.FormaOpcion
 import com.grupo3.nexo.ui.theme.FormaOrganica
-import com.grupo3.nexo.ui.theme.BordeRadio
+import com.grupo3.nexo.ui.theme.Icono17
 import com.grupo3.nexo.ui.theme.Salvia
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.TextoPrimario
@@ -114,6 +113,7 @@ import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
 import com.grupo3.nexo.ui.theme.cambioContenido
+import com.grupo3.nexo.ui.theme.enfasisSeleccion
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -327,7 +327,7 @@ private fun HojaFiltros(
         ) {
             FiltroOpcion("Cualquiera", estado.franja == null, { alElegirFranja(null) }, conMarca = false)
             Franja.entries.forEach { f ->
-                FiltroOpcion("${f.etiqueta} · ${"%02d".format(f.desde)}:00–${"%02d".format(f.hasta + 1)}:00", estado.franja == f, { alElegirFranja(f) }, conMarca = false)
+                FiltroOpcion("${f.etiqueta} · ${f.rango}", estado.franja == f, { alElegirFranja(f) }, conMarca = false)
             }
         }
 
@@ -400,7 +400,7 @@ private fun FiltroIcono(texto: String, icono: ImageVector, seleccionado: Boolean
         ) {
             Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono17))
             Spacer(Modifier.width(EspacioFino))
-            Text(texto, color = TextoPrimario, style = MaterialTheme.typography.titleSmall.copy(fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Medium))
+            Text(texto, color = TextoPrimario, style = MaterialTheme.typography.titleSmall.merge(enfasisSeleccion(seleccionado)))
         }
     }
 }

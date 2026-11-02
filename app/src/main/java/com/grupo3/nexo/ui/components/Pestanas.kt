@@ -36,7 +36,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.ui.theme.BosqueMedio
@@ -48,6 +47,7 @@ import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.TextoSecundario
+import com.grupo3.nexo.ui.theme.enfasisSeleccion
 import com.grupo3.nexo.ui.theme.especColor
 import kotlin.math.roundToInt
 
@@ -92,7 +92,7 @@ fun Pestanas(
             Text(
                 texto,
                 color = color,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = if (activa) FontWeight.SemiBold else FontWeight.Medium),
+                style = MaterialTheme.typography.titleSmall.merge(enfasisSeleccion(activa)),
                 maxLines = 1,
                 modifier = Modifier
                     .onGloballyPositioned { limites[i] = it.positionInParent().x.roundToInt() to it.size.width }

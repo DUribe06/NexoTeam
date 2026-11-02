@@ -4,6 +4,7 @@ import com.grupo3.nexo.data.mock.MockData
 import com.grupo3.nexo.domain.model.DiaDisponibilidad
 import com.grupo3.nexo.domain.model.HoraDisponible
 import com.grupo3.nexo.domain.model.Modalidad
+import com.grupo3.nexo.domain.model.calendarioVacio
 import com.grupo3.nexo.domain.repository.DisponibilidadRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,6 +19,10 @@ class DisponibilidadRepositoryImpl @Inject constructor() : DisponibilidadReposit
     private val dias = MutableStateFlow(MockData.disponibilidad)
 
     override fun obtener(): Flow<List<DiaDisponibilidad>> = dias.asStateFlow()
+
+    override suspend fun crearCalendario() {
+        dias.update { actual -> actual.ifEmpty { calendarioVacio() } }
+    }
 
     override suspend fun definirHora(dia: String, hora: String, modalidades: Set<Modalidad>) {
         dias.update { actual ->

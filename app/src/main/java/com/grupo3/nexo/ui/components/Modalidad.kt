@@ -1,6 +1,5 @@
 package com.grupo3.nexo.ui.components
 
-import com.grupo3.nexo.ui.theme.Icono14
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +21,7 @@ import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.IconoPequeno
 
 /** Ícono Phosphor de cada modalidad (cámara o ubicación), la familia de toda la app. */
 val Modalidad.icono: ImageVector
@@ -43,7 +43,7 @@ fun EtiquetaModalidad(modalidad: Modalidad, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
     ) {
-        Icon(modalidad.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono14))
+        Icon(modalidad.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(IconoPequeno))
         Spacer(Modifier.width(EspacioMinimo))
         Text(modalidad.etiqueta, color = BosqueProfundo, style = MaterialTheme.typography.labelMedium)
     }

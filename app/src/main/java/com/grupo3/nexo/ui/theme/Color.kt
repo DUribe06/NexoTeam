@@ -69,6 +69,15 @@ val BordeSeleccion = BosqueAcento.copy(alpha = 0.55f)
 val RellenoTenue = Bosque.copy(alpha = 0.07f)
 /** Ícono secundario dentro de un campo o tarjeta (lupa, campana, borrar texto): 3,08:1 sobre blanco. */
 val IconoSecundario = Bosque.copy(alpha = 0.5f)
+/** Hora sin publicar en Disponibilidad. */
+val TextoHoraInactiva = BosqueMedio.copy(alpha = 0.8f)
+/** Fondo tenue de acento (divisor de la tarjeta de próxima sesión). */
+val FondoAcentoTenue = BosqueAcento.copy(alpha = 0.18f)
+/** Capas apiladas de las sesiones siguientes en el Inicio: la segunda y la tercera. */
+val TintePilaCerca = TinteBosque.copy(alpha = 0.62f)
+val TintePilaLejos = TinteBosque.copy(alpha = 0.34f)
+/** Fondo de la franja de horario elegida en la hoja de solicitud. */
+val FondoSuperficieMedia = SuperficieClara.copy(alpha = 0.5f)
 /** Contorno de radios y casillas sin marcar: 3:1 sobre el lienzo. */
 val BordeRadio = Bosque.copy(alpha = 0.52f)
 /** Contorno tenue de las materias que enseña el tutor, sin llegar a ser un control. */
@@ -138,4 +147,10 @@ val TextoSobreTinte = Color(0xFF4A6B59)
 /** Texto e íconos sobre el verde y sobre la foto. */
 val SobreOscuro = Color.White
 /** Texto secundario sobre el verde y sobre la foto (subtítulos de cabecera). */
+/** Borde del botón de acción de peligro (rojo suave sobre superficie clara). */
+val BordeRojoPeligro = Rojo.copy(alpha = 0.30f)
+/** Borde del botón de cerrar sesión (RojoSuave ya atenuado, de ahí el alfa menor). */
+val BordeRojoSalir = RojoSuave.copy(alpha = 0.28f)
 val SobreOscuroSuave = SobreOscuro.copy(alpha = 0.88f)
+/** Anillo del avatar sobre la foto de la cabecera. */
+val AnilloSobreOscuro = SobreOscuro.copy(alpha = 0.9f)

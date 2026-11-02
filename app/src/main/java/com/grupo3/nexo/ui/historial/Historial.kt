@@ -1,6 +1,5 @@
 package com.grupo3.nexo.ui.historial
 
-import com.grupo3.nexo.ui.theme.Icono13
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -44,14 +43,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import com.grupo3.nexo.domain.model.EstadoSesion
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.ResumenActividad
 import com.grupo3.nexo.domain.model.Rol
@@ -95,6 +91,7 @@ import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.IconoDiminuto
 import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.MielOscura
 import com.grupo3.nexo.ui.theme.TextoPrimario
@@ -319,7 +316,7 @@ private fun CifraResumen(
         Text(
             valor,
             color = if (resaltar) MielOscura else BosqueProfundo,
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp).merge(CifrasTabulares)
+            style = MaterialTheme.typography.headlineSmall.merge(CifrasTabulares)
         )
     }
     if (enLinea) {
@@ -383,7 +380,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
                 ) {
                     Text("Te calificó", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.width(EspacioMinimo))
-                    Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(Icono13))
+                    Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(IconoDiminuto))
                     Text("$nota", color = TextoSecundario, style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares))
                 }
             }

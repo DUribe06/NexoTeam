@@ -1,10 +1,5 @@
 package com.grupo3.nexo.ui.tutor
 
-import com.grupo3.nexo.ui.theme.Icono12
-import com.grupo3.nexo.ui.theme.Icono13
-import com.grupo3.nexo.ui.theme.Icono15
-import com.grupo3.nexo.ui.theme.Icono16
-import com.grupo3.nexo.ui.theme.Icono18
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -59,7 +54,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -68,11 +62,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -117,7 +111,9 @@ import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.components.LineaHueso
 import com.grupo3.nexo.ui.components.Onda
 import com.grupo3.nexo.ui.components.PLAZO_RESPUESTA
+import com.grupo3.nexo.ui.components.RadioOpcion
 import com.grupo3.nexo.ui.components.RotuloGrupo
+import com.grupo3.nexo.ui.components.SangriaDivisorRadio
 import com.grupo3.nexo.ui.components.TextoLinea
 import com.grupo3.nexo.ui.components.VeloBarraEstado
 import com.grupo3.nexo.ui.components.aparicion
@@ -130,11 +126,10 @@ import com.grupo3.nexo.ui.components.icono
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
-import com.grupo3.nexo.ui.theme.BordeRadio
+import com.grupo3.nexo.ui.navigation.Rutas
 import com.grupo3.nexo.ui.theme.BordeSeleccion
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.BosqueAcento
-import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.EspacioAjustado
@@ -150,11 +145,17 @@ import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.EspacioPortada
 import com.grupo3.nexo.ui.theme.EspacioSuelto
 import com.grupo3.nexo.ui.theme.Fondo
+import com.grupo3.nexo.ui.theme.FondoSuperficieMedia
 import com.grupo3.nexo.ui.theme.FormaMinima
 import com.grupo3.nexo.ui.theme.FormaOpcion
 import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.GrisEstado
 import com.grupo3.nexo.ui.theme.GrisEstadoSuave
+import com.grupo3.nexo.ui.theme.Icono12
+import com.grupo3.nexo.ui.theme.Icono13
+import com.grupo3.nexo.ui.theme.Icono15
+import com.grupo3.nexo.ui.theme.Icono16
+import com.grupo3.nexo.ui.theme.Icono18
 import com.grupo3.nexo.ui.theme.Menta
 import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.Rojo
@@ -164,8 +165,8 @@ import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
-import com.grupo3.nexo.ui.theme.TinteFilaElegida
 import com.grupo3.nexo.ui.theme.VerdeEstado
+import com.grupo3.nexo.ui.theme.enfasisSeleccion
 import com.grupo3.nexo.ui.theme.especColor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -194,7 +195,8 @@ class TutorPerfilViewModel @Inject constructor(
     private val obtenerResenas: ObtenerResenasUseCase,
     private val enviarSolicitud: EnviarSolicitudUseCase,
     private val reportarTutor: ReportarTutorUseCase,
-    obtenerUsuario: ObtenerUsuarioUseCase
+    obtenerUsuario: ObtenerUsuarioUseCase,
+    estadoGuardado: SavedStateHandle
 ) : ViewModel() {
 
     data class Estado(
@@ -208,7 +210,7 @@ class TutorPerfilViewModel @Inject constructor(
         val esTutor: Boolean = false
     )
 
-    private val tutorId = MutableStateFlow("")
+    private val tutorId = MutableStateFlow(estadoGuardado.get<String>(Rutas.TutorPerfil.ARG_TUTOR).orEmpty())
     private val aviso = MutableStateFlow<AvisoPerfil?>(null)
 
     private val tutor: Flow<Tutor?> = tutorId.flatMapLatest { id ->
@@ -221,10 +223,6 @@ class TutorPerfilViewModel @Inject constructor(
     val estado = combine(tutor, resenas, aviso, obtenerUsuario()) { t, r, a, u ->
         Estado(tutor = t, resenas = r, aviso = a, cargando = false, noEncontrado = t == null, esTutor = u.rol == Rol.TUTOR)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
-
-    fun cargar(id: String) {
-        tutorId.value = id
-    }
 
     fun solicitar(datos: DatosSolicitud) {
         val t = estado.value.tutor ?: return
@@ -259,11 +257,9 @@ private val motivosReporte = listOf(
 
 @Composable
 fun PantallaTutorPerfil(
-    tutorId: String,
     alVolver: () -> Unit,
     viewModel: TutorPerfilViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(tutorId) { viewModel.cargar(tutorId) }
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     val tutor = estado.tutor
 
@@ -922,7 +918,7 @@ private fun OpcionModalidad(
         Text(
             modalidad.etiqueta,
             color = BosqueProfundo,
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = if (seleccionada) FontWeight.SemiBold else FontWeight.Medium)
+            style = MaterialTheme.typography.titleSmall.merge(enfasisSeleccion(seleccionada))
         )
     }
 }
@@ -974,7 +970,7 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .background(SuperficieClara.copy(alpha = 0.5f))
+                .background(FondoSuperficieMedia)
                 .padding(horizontal = EspacioNormal, vertical = EspacioAjustado)
         ) {
             Modalidad.entries.forEach { m ->
@@ -1032,8 +1028,8 @@ private fun HojaReporte(nombre: String, alCerrar: () -> Unit, alEnviar: (String)
                 .selectableGroup()
         ) {
             motivosReporte.forEachIndexed { i, opcion ->
-                if (i > 0) Box(Modifier.fillMaxWidth().padding(start = 52.dp).height(1.dp).background(Divisor))
-                OpcionRadio(opcion, opcion == motivo) { motivo = opcion }
+                if (i > 0) Box(Modifier.fillMaxWidth().padding(start = SangriaDivisorRadio).height(1.dp).background(Divisor))
+                RadioOpcion(opcion, opcion == motivo, { motivo = opcion })
             }
         }
         Spacer(Modifier.height(EspacioHolgado))
@@ -1043,31 +1039,5 @@ private fun HojaReporte(nombre: String, alCerrar: () -> Unit, alEnviar: (String)
             alClicar = { motivo?.let(alEnviar) },
             modifier = Modifier.fillMaxWidth()
         )
-    }
-}
-
-/** Opción de radio del sistema de diseño: anillo bosque con punto menta (DESIGN.md). */
-@Composable
-private fun OpcionRadio(texto: String, seleccionada: Boolean, alClicar: () -> Unit) {
-    val borde by animateColorAsState(if (seleccionada) BosqueMedio else BordeRadio, especColor(), label = "radio")
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .selectable(selected = seleccionada, role = Role.RadioButton, onClick = alClicar)
-            .background(if (seleccionada) TinteFilaElegida else Color.Transparent)
-            .padding(horizontal = EspacioNormal)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(20.dp)
-                .border(if (seleccionada) 2.dp else 1.5.dp, borde, CircleShape)
-        ) {
-            if (seleccionada) Box(Modifier.size(9.dp).background(Menta, CircleShape))
-        }
-        Spacer(Modifier.width(EspacioNormal))
-        Text(texto, color = TextoPrimario, style = MaterialTheme.typography.bodyLarge)
     }
 }

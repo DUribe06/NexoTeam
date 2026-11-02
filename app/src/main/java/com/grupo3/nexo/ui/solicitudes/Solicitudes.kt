@@ -1,7 +1,5 @@
 package com.grupo3.nexo.ui.solicitudes
 
-import com.grupo3.nexo.ui.theme.Icono15
-import com.grupo3.nexo.ui.theme.Icono17
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -42,7 +40,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.withStyle
@@ -54,11 +51,14 @@ import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.AccionesSolicitud
 import com.grupo3.nexo.domain.model.EstadoSolicitud
+import com.grupo3.nexo.domain.model.HORAS_AVISO_PLAZO
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Solicitud
 import com.grupo3.nexo.domain.model.acciones
 import com.grupo3.nexo.domain.model.activa
+import com.grupo3.nexo.domain.model.conPlazoAplicado
 import com.grupo3.nexo.domain.model.contarPendientes
+import com.grupo3.nexo.domain.model.horasRestantes
 import com.grupo3.nexo.domain.model.primerNombre
 import com.grupo3.nexo.domain.usecase.AbrirChatDeSolicitudUseCase
 import com.grupo3.nexo.domain.usecase.ActualizarSolicitudUseCase
@@ -82,15 +82,13 @@ import com.grupo3.nexo.ui.components.FiltroOpcion
 import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.components.InsigniaEstado
-import com.grupo3.nexo.domain.model.horasRestantes
-import com.grupo3.nexo.ui.components.formatoHoras
-import kotlin.math.floor
 import com.grupo3.nexo.ui.components.Pestanas
 import com.grupo3.nexo.ui.components.RotuloGrupo
 import com.grupo3.nexo.ui.components.TextoLinea
 import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
 import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.formatoFecha
+import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.components.icono
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
@@ -110,7 +108,10 @@ import com.grupo3.nexo.ui.theme.EspacioPildora
 import com.grupo3.nexo.ui.theme.EtiquetaBoton
 import com.grupo3.nexo.ui.theme.FormaBoton
 import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.Icono15
+import com.grupo3.nexo.ui.theme.Icono17
 import com.grupo3.nexo.ui.theme.MielOscura
+import com.grupo3.nexo.ui.theme.NotaCursiva
 import com.grupo3.nexo.ui.theme.Rojo
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
@@ -118,10 +119,14 @@ import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
 import com.grupo3.nexo.ui.theme.cambioContenido
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDateTime
 import javax.inject.Inject
+import kotlin.math.floor
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -142,13 +147,24 @@ class SolicitudesViewModel @Inject constructor(
         val solicitudes: List<Solicitud> = emptyList(),
         val conteos: Map<EstadoSolicitud, Int> = emptyMap(),
         val total: Int = 0,
-        val pendientes: Int = 0
+        val pendientes: Int = 0,
+        /** Horas que quedan de plazo por id de solicitud; se recalculan cada minuto. */
+        val horasRestantes: Map<String, Double> = emptyMap()
     )
 
     /** El filtro recuerda el modo en que se eligió: al cambiar de estudiante a tutor se descarta. */
     private val filtro = MutableStateFlow<Pair<Rol, EstadoSolicitud>?>(null)
 
-    val estado = combine(obtenerMisSolicitudes(), obtenerUsuario(), filtro) { propias, usuario, elegido ->
+    /** Reloj que avanza cada minuto mientras la pantalla está a la vista (deja de correr sin suscriptores). */
+    private val ahora = flow {
+        while (true) {
+            emit(LocalDateTime.now())
+            delay(60_000)
+        }
+    }
+
+    val estado = combine(obtenerMisSolicitudes(), obtenerUsuario(), filtro, ahora) { recibidas, usuario, elegido, reloj ->
+        val propias = recibidas.map { it.conPlazoAplicado(reloj) }
         // Si el estado elegido se queda sin solicitudes (p. ej. se aceptó la última pendiente), vuelve a "Todas"
         val f = elegido?.takeIf { it.first == usuario.rol }?.second
             ?.takeIf { filtrado -> propias.any { it.estado == filtrado } }
@@ -159,7 +175,8 @@ class SolicitudesViewModel @Inject constructor(
             solicitudes = propias.filter { f == null || it.estado == f },
             conteos = propias.groupingBy { it.estado }.eachCount(),
             total = propias.size,
-            pendientes = propias.contarPendientes()
+            pendientes = propias.contarPendientes(),
+            horasRestantes = propias.associate { it.id to it.horasRestantes(reloj) }
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 
@@ -255,6 +272,7 @@ fun PantallaSolicitudes(
                             TarjetaSolicitud(
                                 solicitud = solicitud,
                                 esTutor = estado.esTutor,
+                                horas = estado.horasRestantes[solicitud.id] ?: 0.0,
                                 alAceptar = {
                                     viewModel.aceptar(solicitud.id)
                                     avisar("Sesión con ${solicitud.nombreEstudiante.primerNombre} confirmada.")
@@ -323,6 +341,7 @@ private fun plural(e: EstadoSolicitud): String = when (e) {
 private fun TarjetaSolicitud(
     solicitud: Solicitud,
     esTutor: Boolean,
+    horas: Double,
     alAceptar: () -> Unit,
     alRechazar: () -> Unit,
     alCancelar: () -> Unit,
@@ -367,7 +386,7 @@ private fun TarjetaSolicitud(
             Text(
                 "“${solicitud.mensaje}”",
                 color = TextoTercero,
-                style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic)
+                style = MaterialTheme.typography.bodyMedium.merge(NotaCursiva)
             )
         }
 
@@ -387,9 +406,8 @@ private fun TarjetaSolicitud(
         when (solicitud.acciones(esTutor)) {
             AccionesSolicitud.RESPONDER -> {
                 Spacer(Modifier.height(EspacioMedio))
-                val horas = solicitud.horasRestantes()
                 AvisoPlazo(
-                    if (horas < 1) "Queda menos de 1 h para responder" else "Quedan ${formatoHoras(floor(horas))} para responder",
+                    if (horas < 1) "Queda menos de ${formatoHoras(1.0)} para responder" else "Quedan ${formatoHoras(floor(horas))} para responder",
                     urgente = horas <= HORAS_AVISO_PLAZO
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -430,9 +448,8 @@ private fun TarjetaSolicitud(
             }
             AccionesSolicitud.CANCELAR -> {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    val horas = solicitud.horasRestantes()
                     AvisoPlazo(
-                        if (horas < 1) "Expira en menos de 1 h" else "Expira en ${formatoHoras(floor(horas))} si no responde",
+                        if (horas < 1) "Expira en menos de ${formatoHoras(1.0)}" else "Expira en ${formatoHoras(floor(horas))} si no responde",
                         Modifier.weight(1f),
                         conAire = false,
                         urgente = horas <= HORAS_AVISO_PLAZO
@@ -477,9 +494,6 @@ private fun BotonAbrirChat(conQuien: String, alClicar: () -> Unit) {
         }
     }
 }
-
-/** Con estas horas o menos el plazo se resalta con el color de aviso. */
-private const val HORAS_AVISO_PLAZO = 3
 
 /** Plazo de respuesta (RF6) en una línea discreta, igual para estudiante y tutor. */
 @Composable

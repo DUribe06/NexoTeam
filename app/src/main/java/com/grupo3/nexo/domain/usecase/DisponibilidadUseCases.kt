@@ -20,3 +20,10 @@ class DefinirHoraUseCase @Inject constructor(
     suspend operator fun invoke(dia: String, hora: String, modalidades: Set<Modalidad>) =
         repositorio.definirHora(dia, hora, modalidades)
 }
+
+/** Crea la semana editable cuando el tutor aún no tiene calendario, para que pueda empezar a publicar horas (RF7). */
+class CrearCalendarioUseCase @Inject constructor(
+    private val repositorio: DisponibilidadRepository
+) {
+    suspend operator fun invoke() = repositorio.crearCalendario()
+}

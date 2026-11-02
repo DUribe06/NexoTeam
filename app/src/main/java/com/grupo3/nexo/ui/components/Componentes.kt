@@ -1,11 +1,5 @@
 package com.grupo3.nexo.ui.components
 
-import com.grupo3.nexo.ui.theme.Icono14
-import com.grupo3.nexo.ui.theme.Icono16
-import com.grupo3.nexo.ui.theme.Icono17
-import com.grupo3.nexo.ui.theme.Icono18
-import com.grupo3.nexo.ui.theme.Icono19
-import com.grupo3.nexo.ui.theme.Icono28
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -94,7 +88,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -104,12 +97,8 @@ import androidx.core.view.WindowCompat
 import androidx.navigation.NavBackStackEntry
 import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.EstadoSolicitud
-import com.grupo3.nexo.domain.model.PLAZO_RESPUESTA_HORAS
-import com.grupo3.nexo.domain.model.diaYMes
-import com.grupo3.nexo.domain.model.fechaCalendario
-import com.grupo3.nexo.domain.model.mesesCortos
-import com.grupo3.nexo.domain.model.siglasUniversidad
 import com.grupo3.nexo.ui.theme.BordeMarcado
+import com.grupo3.nexo.ui.theme.BordeRojoPeligro
 import com.grupo3.nexo.ui.theme.BordeSeleccion
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.Bosque
@@ -120,6 +109,7 @@ import com.grupo3.nexo.ui.theme.CampoEntrada
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.DuracionCorta
 import com.grupo3.nexo.ui.theme.DuracionMedia
+import com.grupo3.nexo.ui.theme.EnfasisFuerte
 import com.grupo3.nexo.ui.theme.EscalaPresionBoton
 import com.grupo3.nexo.ui.theme.EscalaPresionBotonCompacto
 import com.grupo3.nexo.ui.theme.EscalaPresionTarjeta
@@ -142,6 +132,13 @@ import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.FormaTarjeta
 import com.grupo3.nexo.ui.theme.GrisEstado
 import com.grupo3.nexo.ui.theme.GrisEstadoSuave
+import com.grupo3.nexo.ui.theme.Icono17
+import com.grupo3.nexo.ui.theme.Icono19
+import com.grupo3.nexo.ui.theme.IconoAccion
+import com.grupo3.nexo.ui.theme.IconoCuerpo
+import com.grupo3.nexo.ui.theme.IconoGrande
+import com.grupo3.nexo.ui.theme.IconoNormal
+import com.grupo3.nexo.ui.theme.IconoPequeno
 import com.grupo3.nexo.ui.theme.IconoSecundario
 import com.grupo3.nexo.ui.theme.Lienzo
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
@@ -163,14 +160,13 @@ import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
 import com.grupo3.nexo.ui.theme.VerdeEstado
+import com.grupo3.nexo.ui.theme.enfasisSeleccion
 import com.grupo3.nexo.ui.theme.especAparicion
 import com.grupo3.nexo.ui.theme.especColor
 import com.grupo3.nexo.ui.theme.especFundidoSalida
 import com.grupo3.nexo.ui.theme.inicialesAvatar
 import com.grupo3.nexo.ui.theme.resortePresion
 import com.grupo3.nexo.ui.theme.tonosAvatar
-import java.time.LocalDate
-import java.util.Locale
 import kotlin.math.roundToInt
 
 /* ==================== Superficies ==================== */
@@ -322,7 +318,7 @@ fun BotonPrimario(
                 val color = if (habilitado) Superficie else TextoTercero
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (icono != null) {
-                        Icon(icono, contentDescription = null, tint = color, modifier = Modifier.size(Icono18))
+                        Icon(icono, contentDescription = null, tint = color, modifier = Modifier.size(IconoNormal))
                         Spacer(Modifier.width(EspacioCorto))
                     }
                     Text(
@@ -340,7 +336,7 @@ fun BotonPrimario(
                             IconosNexo.Adelante,
                             contentDescription = null,
                             tint = color,
-                            modifier = Modifier.size(17.dp)
+                            modifier = Modifier.size(Icono17)
                         )
                     }
                 }
@@ -382,11 +378,11 @@ fun BotonSecundario(
             modifier = Modifier
                 .heightIn(min = alto)
                 .background(Superficie, FormaControl)
-                .border(1.dp, if (peligro) Rojo.copy(alpha = 0.30f) else BordeMarcado, FormaControl)
+                .border(1.dp, if (peligro) BordeRojoPeligro else BordeMarcado, FormaControl)
                 .padding(horizontal = if (compacto) EspacioNormal else EspacioMargen)
         ) {
             if (icono != null) {
-                Icon(icono, contentDescription = null, tint = if (peligro) Rojo else colorIcono, modifier = Modifier.size(Icono18))
+                Icon(icono, contentDescription = null, tint = if (peligro) Rojo else colorIcono, modifier = Modifier.size(IconoNormal))
                 Spacer(Modifier.width(EspacioCorto))
             }
             Text(
@@ -530,7 +526,7 @@ fun BotonIcono(
                 icono,
                 contentDescription = null,
                 tint = if (sobreOscuro) SobreOscuro else TextoPrimario,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(IconoAccion)
             )
         }
         if (insignia > 0) {
@@ -677,13 +673,13 @@ fun FiltroOpcion(
             .padding(start = if (seleccionado && conMarca) EspacioAjustado else EspacioCercano, end = EspacioCercano, top = EspacioAjustado, bottom = EspacioAjustado)
     ) {
         if (seleccionado && conMarca) {
-            Icon(IconosNexo.Marca, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono16))
+            Icon(IconosNexo.Marca, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(IconoCuerpo))
             Spacer(Modifier.width(EspacioMinimo))
         }
         Text(
             texto,
             color = if (seleccionado) BosqueProfundo else BosqueProfundo.copy(alpha = 0.78f),
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Medium),
+            style = MaterialTheme.typography.titleSmall.merge(enfasisSeleccion(seleccionado)),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
@@ -739,7 +735,7 @@ fun InsigniaEstado(estado: EstadoSolicitud, modifier: Modifier = Modifier) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         Box(Modifier.size(7.dp).background(punto, CircleShape))
         Spacer(Modifier.width(EspacioFino))
-        Text(estado.etiqueta, color = texto, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold))
+        Text(estado.etiqueta, color = texto, style = MaterialTheme.typography.labelMedium.merge(EnfasisFuerte))
     }
 }
 /* ==================== Personas ==================== */
@@ -829,7 +825,7 @@ fun Valoracion(valor: Double, modifier: Modifier = Modifier, color: Color = Text
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.semantics(mergeDescendants = true) { }
     ) {
-        Icon(IconosNexo.Estrella, contentDescription = "Calificación", tint = MielFuerte, modifier = Modifier.size(Icono14))
+        Icon(IconosNexo.Estrella, contentDescription = "Calificación", tint = MielFuerte, modifier = Modifier.size(IconoPequeno))
         Spacer(Modifier.width(EspacioMinimo))
         Text(
             formatoValoracion(valor),
@@ -839,48 +835,12 @@ fun Valoracion(valor: Double, modifier: Modifier = Modifier, color: Color = Text
         if (resenas != null) {
             Text(
                 " ($resenas)",
-                color = if (color == TextoPrimario) TextoTercero else color.copy(alpha = 0.7f),
+                color = TextoTercero,
                 style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares)
             )
         }
     }
 }
-
-/** Decimales con coma, como se escriben en Colombia: 4,9 y 1,5 h. */
-private val localeColombia = Locale("es", "CO")
-
-fun formatoValoracion(valor: Double): String = String.format(localeColombia, "%.1f", valor)
-/** Nombre corto de la universidad (sigla si se conoce), para filas densas. */
-fun universidadCorta(nombre: String): String = siglasUniversidad[nombre] ?: nombre
-
-/** Pesos colombianos con punto de miles: 25000.0 → "$25.000". */
-fun formatoPrecio(valor: Double): String =
-    "$" + valor.toLong().toString().reversed().chunked(3).joinToString(".").reversed()
-fun formatoHoras(horas: Double): String =
-    if (horas % 1.0 == 0.0) "${horas.toInt()} h" else String.format(localeColombia, "%.1f h", horas)
-
-/** Fecha corta en español: "24 oct", "30 sept" → "30 sep". Si el texto no es una fecha, se devuelve tal cual. */
-fun formatoFecha(texto: String): String =
-    diaYMes(texto)?.let { (dia, mes) -> "$dia ${mesesCortos[mes - 1]}" } ?: texto
-
-/** Fecha de un día del calendario con el mismo mes corto: LocalDate 30-sep → "30 sep". */
-fun formatoFecha(fecha: LocalDate): String = "${fecha.dayOfMonth} ${mesesCortos[fecha.monthValue - 1]}"
-
-private fun String.mayusculaInicial() = replaceFirstChar { it.titlecase(localeColombia) }
-
-/** Fecha larga con el día de la semana: "24 oct" → "Sábado 24 de octubre". Si el texto no es una fecha, se devuelve tal cual. */
-fun fechaLarga(texto: String): String = fechaCalendario(texto)?.let {
-    "${it.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, localeColombia).mayusculaInicial()} ${it.dayOfMonth} de " +
-        it.month.getDisplayName(java.time.format.TextStyle.FULL, localeColombia)
-} ?: texto
-
-/** Día de la semana y número: "26 oct" → "Lun 26". Si el texto no es una fecha, se devuelve tal cual. */
-fun fechaCorta(texto: String): String = fechaCalendario(texto)?.let {
-    "${it.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, localeColombia).trimEnd('.').mayusculaInicial()} ${it.dayOfMonth}"
-} ?: texto
-
-/** Plazo de respuesta del dominio, ya escrito para los textos que lo mencionan. */
-val PLAZO_RESPUESTA = formatoHoras(PLAZO_RESPUESTA_HORAS.toDouble())
 
 /* ==================== Textos estructurales ==================== */
 
@@ -945,7 +905,7 @@ fun EstadoVacio(
                 .size(64.dp)
                 .background(TinteBosque, FormaTarjeta)
         ) {
-            Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono28))
+            Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(IconoGrande))
         }
         Spacer(Modifier.height(EspacioNormal))
         Text(
@@ -1001,7 +961,7 @@ fun EstadoError(
                 painterResource(R.drawable.ph_aviso),
                 contentDescription = null,
                 tint = TextoSecundario,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(IconoGrande)
             )
         }
         Spacer(Modifier.height(EspacioNormal))

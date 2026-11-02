@@ -3,6 +3,7 @@ package com.grupo3.nexo.domain.model
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -13,6 +14,9 @@ import kotlin.math.roundToInt
 
 /** Horas que tiene el tutor para responder una solicitud antes de que expire (RF5, RF6). */
 const val PLAZO_RESPUESTA_HORAS = 24
+
+/** Con estas horas o menos para responder, el plazo se resalta como aviso. */
+const val HORAS_AVISO_PLAZO = 3
 
 enum class Rol(val etiqueta: String) {
     ESTUDIANTE("Estudiante"),
@@ -48,6 +52,9 @@ enum class Franja(val etiqueta: String, val desde: Int, val hasta: Int) {
     MANANA("Mañana", 6, 11),
     TARDE("Tarde", 12, 17),
     NOCHE("Noche", 18, 23);
+
+    /** Rango legible de la franja: "06:00–12:00". */
+    val rango: String get() = String.format(Locale.ROOT, "%02d:00–%02d:00", desde, hasta + 1)
 
     fun incluye(hora: String): Boolean = hora.substringBefore(':').toIntOrNull()?.let { it in desde..hasta } ?: false
 }
@@ -173,6 +180,10 @@ fun fechaCalendario(texto: String, hoy: LocalDate = LocalDate.now()): LocalDate?
     return if (fecha.isBefore(hoy.minusMonths(6))) fecha.plusYears(1) else fecha
 }
 
+/** Días que faltan desde `hoy` hasta una fecha corta ("24 oct"); null si el texto no es una fecha. Negativo si ya pasó. */
+fun diasHasta(fecha: String, hoy: LocalDate = LocalDate.now()): Long? =
+    fechaCalendario(fecha, hoy)?.let { ChronoUnit.DAYS.between(hoy, it) }
+
 /**
  * Clave para ordenar fechas cortas como "24 oct" o "30 sept" y horas "HH:mm".
  */
@@ -241,6 +252,13 @@ data class Mensaje(
     /** true si lo envía el usuario actual. */
     val mio: Boolean
 )
+
+/** Horas que ofrece el calendario semanal del tutor. */
+val HORAS_CALENDARIO = listOf("08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00")
+
+/** Semana completa sin ninguna hora publicada: punto de partida para quien aún no tiene calendario. */
+fun calendarioVacio(): List<DiaDisponibilidad> =
+    DiaSemana.entries.map { d -> DiaDisponibilidad(d.nombre, HORAS_CALENDARIO.map { HoraDisponible(it) }) }
 
 /** Hora de la disponibilidad del tutor en sesión. Sin modalidades = no disponible. */
 data class HoraDisponible(

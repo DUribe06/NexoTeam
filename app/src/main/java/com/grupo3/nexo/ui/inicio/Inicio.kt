@@ -1,12 +1,5 @@
 package com.grupo3.nexo.ui.inicio
 
-import com.grupo3.nexo.ui.theme.Icono14
-import com.grupo3.nexo.ui.theme.Icono16
-import com.grupo3.nexo.ui.theme.Icono17
-import com.grupo3.nexo.ui.theme.Icono18
-import com.grupo3.nexo.ui.theme.Icono20
-import com.grupo3.nexo.ui.theme.Icono22
-import com.grupo3.nexo.ui.theme.Icono26
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
@@ -79,8 +72,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -96,16 +87,16 @@ import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.AreaEstudio
 import com.grupo3.nexo.domain.model.DiaSemana
-import com.grupo3.nexo.domain.model.contarPendientes
-import com.grupo3.nexo.domain.model.horaFin
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Sesion
 import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.model.Usuario
-import com.grupo3.nexo.domain.model.diaYMes
+import com.grupo3.nexo.domain.model.contarPendientes
+import com.grupo3.nexo.domain.model.diasHasta
 import com.grupo3.nexo.domain.model.diasPublicados
 import com.grupo3.nexo.domain.model.fechaCalendario
+import com.grupo3.nexo.domain.model.horaFin
 import com.grupo3.nexo.domain.model.horasPublicadas
 import com.grupo3.nexo.domain.model.primerNombre
 import com.grupo3.nexo.domain.usecase.ObtenerDisponibilidadUseCase
@@ -123,8 +114,6 @@ import com.grupo3.nexo.ui.components.EncabezadoSeccion
 import com.grupo3.nexo.ui.components.ErrorDeLista
 import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
 import com.grupo3.nexo.ui.components.IconosNexo
-import com.grupo3.nexo.ui.components.fechaCorta
-import com.grupo3.nexo.ui.components.fechaLarga
 import com.grupo3.nexo.ui.components.Onda
 import com.grupo3.nexo.ui.components.SesionEsqueleto
 import com.grupo3.nexo.ui.components.TextoLinea
@@ -132,6 +121,8 @@ import com.grupo3.nexo.ui.components.VeloBarraEstado
 import com.grupo3.nexo.ui.components.aparicion
 import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
 import com.grupo3.nexo.ui.components.cargaDe
+import com.grupo3.nexo.ui.components.fechaCorta
+import com.grupo3.nexo.ui.components.fechaLarga
 import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.components.formatoValoracion
 import com.grupo3.nexo.ui.components.pulsable
@@ -140,6 +131,7 @@ import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.superficiePulsable
 import com.grupo3.nexo.ui.components.universidadCorta
+import com.grupo3.nexo.ui.theme.AnilloSobreOscuro
 import com.grupo3.nexo.ui.theme.BordeAcento
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueProfundo
@@ -150,6 +142,9 @@ import com.grupo3.nexo.ui.theme.CurvaEnfatizada
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.DuracionLarga
 import com.grupo3.nexo.ui.theme.DuracionNormal
+import com.grupo3.nexo.ui.theme.EnfasisFuerte
+import com.grupo3.nexo.ui.theme.EnfasisMedio
+import com.grupo3.nexo.ui.theme.EnfasisNormal
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioBotonLateral
@@ -168,11 +163,19 @@ import com.grupo3.nexo.ui.theme.EtiquetaArea
 import com.grupo3.nexo.ui.theme.EtiquetaBoton
 import com.grupo3.nexo.ui.theme.EtiquetaFecha
 import com.grupo3.nexo.ui.theme.Fondo
+import com.grupo3.nexo.ui.theme.FondoAcentoTenue
 import com.grupo3.nexo.ui.theme.FormaBoton
 import com.grupo3.nexo.ui.theme.FormaCampoAlto
 import com.grupo3.nexo.ui.theme.FormaCapaInferior
 import com.grupo3.nexo.ui.theme.FormaControl
 import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.Icono14
+import com.grupo3.nexo.ui.theme.Icono16
+import com.grupo3.nexo.ui.theme.Icono17
+import com.grupo3.nexo.ui.theme.Icono18
+import com.grupo3.nexo.ui.theme.Icono20
+import com.grupo3.nexo.ui.theme.Icono22
+import com.grupo3.nexo.ui.theme.Icono26
 import com.grupo3.nexo.ui.theme.IconoSecundario
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.Marcador
@@ -185,12 +188,13 @@ import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoSobreTinte
 import com.grupo3.nexo.ui.theme.TinteBosque
+import com.grupo3.nexo.ui.theme.TintePilaCerca
+import com.grupo3.nexo.ui.theme.TintePilaLejos
 import com.grupo3.nexo.ui.theme.TituloMateria
 import com.grupo3.nexo.ui.theme.pincelBosque
 import com.grupo3.nexo.ui.theme.resorteCascada
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
@@ -472,7 +476,7 @@ private fun Cabecera(
                     Avatar(
                         nombre = usuario?.nombre ?: "Nexo",
                         tamano = 36.dp,
-                        anillo = SobreOscuro.copy(alpha = 0.9f)
+                        anillo = AnilloSobreOscuro
                     )
                 }
             }
@@ -665,7 +669,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                         .padding(vertical = EspacioMinimo)
                         .width(1.dp)
                         .fillMaxHeight()
-                        .background(BosqueAcento.copy(alpha = 0.18f))
+                        .background(FondoAcentoTenue)
                 )
                 Spacer(Modifier.width(EspacioCercano))
                 Column(Modifier.weight(1f)) {
@@ -685,7 +689,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     primera.tutor?.let { t ->
                         TextoLinea(
                             "${universidadCorta(t.universidad)} · ${formatoValoracion(t.rating)}",
-                            MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                            MaterialTheme.typography.bodySmall.merge(EnfasisMedio),
                             TextoSobreTinte
                         )
                     }
@@ -718,7 +722,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
 
         // Capas de las siguientes sesiones: más angostas y más translúcidas hacia abajo
         orden.drop(1).take(2).forEachIndexed { n, p ->
-            val fondo = TinteBosque.copy(alpha = if (n == 0) 0.62f else 0.34f)
+            val fondo = if (n == 0) TintePilaCerca else TintePilaLejos
             val tinta = if (n == 0) 0.88f else 0.62f
             // Cascada: tras la tarjeta principal, cada capa sale de detrás de la anterior con un resorte suave
             var salio by remember { mutableStateOf(false) }
@@ -874,8 +878,8 @@ private fun TiraSesion(
 
 /** Cuánto falta para una fecha, en palabras: "Hoy", "Mañana", "En 2 días". */
 private fun faltaPara(fecha: String): String {
-    val dia = fechaDe(fecha) ?: return fecha
-    return when (val dias = ChronoUnit.DAYS.between(LocalDate.now(), dia)) {
+    val dias = diasHasta(fecha) ?: return fecha
+    return when (dias) {
         0L -> "Hoy"
         1L -> "Mañana"
         in 2L..Long.MAX_VALUE -> "En $dias días"
@@ -908,7 +912,7 @@ private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Mo
                 else -> "$cantidad solicitudes por responder"
             },
             color = if (cantidad > 0) BosqueProfundo else Marcador,
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = if (cantidad > 0) FontWeight.SemiBold else FontWeight.Normal),
+            style = MaterialTheme.typography.bodyLarge.merge(if (cantidad > 0) EnfasisFuerte else EnfasisNormal),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)

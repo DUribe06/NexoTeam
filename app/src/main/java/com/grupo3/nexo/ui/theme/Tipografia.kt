@@ -5,6 +5,7 @@ import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -104,3 +105,18 @@ val TextoCifraResumen = estilo(22, 28, FontWeight.SemiBold, -0.5).merge(TextStyl
 // Logo animado
 val TituloLogo = estilo(19, 24, FontWeight.SemiBold, -0.4)
 val EtiquetaMiga = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold)
+
+// Énfasis y variantes puntuales: se aplican con `estiloBase.merge(...)` sobre un estilo de la escala.
+/** Peso fuerte para el elemento activo o el estado resaltado. */
+val EnfasisFuerte = TextStyle(fontWeight = FontWeight.SemiBold)
+/** Peso medio para lo inactivo o lo que no está seleccionado. */
+val EnfasisMedio = TextStyle(fontWeight = FontWeight.Medium)
+/** Peso de lectura normal, para lo que no pide énfasis. */
+val EnfasisNormal = TextStyle(fontWeight = FontWeight.Normal)
+/** Cursiva para notas y citas del usuario. */
+val NotaCursiva = TextStyle(fontStyle = FontStyle.Italic)
+/** Código de verificación: dígitos espaciados para leerlos de uno en uno. */
+val CodigoEspaciado = TextStyle(letterSpacing = 2.sp)
+
+/** Fuerte si está activo, medio si no (pestañas, chips, filas elegibles). */
+fun enfasisSeleccion(activo: Boolean) = if (activo) EnfasisFuerte else EnfasisMedio
