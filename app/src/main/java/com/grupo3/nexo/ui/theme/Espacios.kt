@@ -41,6 +41,16 @@ val TamanoAvatarNormal: Dp = 44.dp
 val TamanoAvatarCompacto: Dp = 40.dp
 /** Avatar de cada reseña. */
 val TamanoAvatarResena: Dp = 38.dp
+/** Avatar grande de la cabecera del Perfil de tutor. */
+val TamanoAvatarPerfil: Dp = 98.dp
+/** Avatar de la cabecera de la conversación. */
+val TamanoAvatarCabecera: Dp = 42.dp
+/** Avatar del usuario en la barra superior del Inicio. */
+val TamanoAvatarBarra: Dp = 36.dp
+/** Avatar diminuto dentro de las capas de la pila de sesiones. */
+val TamanoAvatarMini: Dp = 28.dp
+/** Sangría del divisor en filas que empiezan con un avatar de lista: margen + avatar + separación. */
+val SangriaFilaAvatar: Dp = 82.dp
 /** Estrellas de una valoración en una fila, y su versión apretada en listas densas. */
 val TamanoEstrella: Dp = 14.dp
 val TamanoEstrellaCompacta: Dp = 13.dp

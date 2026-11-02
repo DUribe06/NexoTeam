@@ -32,7 +32,7 @@ private val formatoReloj = DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT)
 fun formatoFecha(fecha: LocalDate): String = "${fecha.dayOfMonth} ${mesesCortos[fecha.monthValue - 1]}"
 
 /** Hora de reloj de 24 h con dos dígitos: 10:00 → "10:00", 08:30 → "08:30". */
-fun formatoHora(hora: LocalTime): String = String.format(Locale.ROOT, "%02d:%02d", hora.hour, hora.minute)
+fun formatoHora(hora: LocalTime): String = hora.format(formatoReloj)
 
 private fun String.mayusculaInicial() = replaceFirstChar { it.titlecase(localeColombia) }
 

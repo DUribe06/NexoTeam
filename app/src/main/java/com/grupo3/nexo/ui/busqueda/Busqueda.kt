@@ -1,8 +1,5 @@
 package com.grupo3.nexo.ui.busqueda
 
-import com.grupo3.nexo.ui.theme.AreaTactilMinima
-import com.grupo3.nexo.ui.theme.AltoPildora
-import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,9 +44,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
@@ -84,9 +81,12 @@ import com.grupo3.nexo.ui.components.descripcion
 import com.grupo3.nexo.ui.components.filaAgrupada
 import com.grupo3.nexo.ui.components.formatoPrecio
 import com.grupo3.nexo.ui.components.icono
+import com.grupo3.nexo.ui.components.plural
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.universidadCorta
+import com.grupo3.nexo.ui.theme.AltoPildora
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.BordeRadio
 import com.grupo3.nexo.ui.theme.BordeSeleccion
 import com.grupo3.nexo.ui.theme.BosqueAcento
@@ -101,12 +101,13 @@ import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
-import com.grupo3.nexo.ui.theme.TamanoAvatarLista
 import com.grupo3.nexo.ui.theme.FormaOpcion
 import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.Icono17
 import com.grupo3.nexo.ui.theme.Salvia
+import com.grupo3.nexo.ui.theme.SangriaFilaAvatar
 import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.TamanoAvatarLista
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
@@ -199,7 +200,7 @@ fun PantallaBusqueda(
                             alAbrir = { alAbrirTutor(tutor.id) },
                             modifier = Modifier
                                 .animateItem()
-                                .filaAgrupada(i, estado.resultados.size, sangria = 82.dp)
+                                .filaAgrupada(i, estado.resultados.size, sangria = SangriaFilaAvatar)
                         )
                     }
                 }

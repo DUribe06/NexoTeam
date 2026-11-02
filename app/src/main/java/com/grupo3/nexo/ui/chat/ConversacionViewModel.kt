@@ -1,6 +1,5 @@
 package com.grupo3.nexo.ui.chat
 
-import com.grupo3.nexo.ui.AccionesEnCurso
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,6 +13,7 @@ import com.grupo3.nexo.domain.usecase.ObtenerMensajesUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerSesionDeConversacionUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerSesionesDelModoUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerTutoresUseCase
+import com.grupo3.nexo.ui.AccionesEnCurso
 import com.grupo3.nexo.ui.Recarga
 import com.grupo3.nexo.ui.intentar
 import com.grupo3.nexo.ui.navigation.Rutas
@@ -69,10 +69,10 @@ class ConversacionViewModel @Inject constructor(
             obtenerSesiones()
         ) { id, mensajes, chats, tutores, sesiones ->
             val chat = chats.firstOrNull { it.id == id }
-            // Sin chat todavía (primer mensaje a un tutor) el argumento de la ruta es el id del tutor
-            val contraparteId = chat?.contraparteId ?: id
+            // Toda navegación llega con el id real del chat (el repositorio lo crea antes de navegar)
+            val contraparteId = chat?.contraparteId
             val tutor = tutores.firstOrNull { it.id == contraparteId }
-            val sesion = sesionDeConversacion(sesiones, contraparteId, chat?.soloLectura ?: false)
+            val sesion = contraparteId?.let { sesionDeConversacion(sesiones, it, chat.soloLectura) }
             Estado(
                 cargando = id.isEmpty(),
                 nombre = chat?.nombre ?: tutor?.nombre.orEmpty(),

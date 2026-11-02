@@ -1,14 +1,5 @@
 package com.grupo3.nexo.ui.inicio
 
-import com.grupo3.nexo.ui.components.AvisoNexo
-import com.grupo3.nexo.ui.components.PildoraAbrirChat
-import com.grupo3.nexo.ui.components.avisoFallo
-import com.grupo3.nexo.ui.components.mostrarError
-import kotlinx.coroutines.launch
-import com.grupo3.nexo.ui.components.formatoHora
-import com.grupo3.nexo.ui.theme.AreaTactilMinima
-import com.grupo3.nexo.ui.theme.AltoPildora
-import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
@@ -51,6 +42,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,9 +52,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -107,6 +98,7 @@ import com.grupo3.nexo.domain.model.horaFin
 import com.grupo3.nexo.domain.model.horasPublicadas
 import com.grupo3.nexo.domain.model.primerNombre
 import com.grupo3.nexo.ui.components.Avatar
+import com.grupo3.nexo.ui.components.AvisoNexo
 import com.grupo3.nexo.ui.components.BotonIcono
 import com.grupo3.nexo.ui.components.BotonSecundario
 import com.grupo3.nexo.ui.components.CabeceraBosque
@@ -117,16 +109,21 @@ import com.grupo3.nexo.ui.components.ErrorDeLista
 import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
 import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.components.Onda
+import com.grupo3.nexo.ui.components.PildoraAbrirChat
 import com.grupo3.nexo.ui.components.SesionEsqueleto
 import com.grupo3.nexo.ui.components.TextoLinea
 import com.grupo3.nexo.ui.components.VeloBarraEstado
 import com.grupo3.nexo.ui.components.aparicion
 import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
+import com.grupo3.nexo.ui.components.avisoFallo
 import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.fechaCorta
 import com.grupo3.nexo.ui.components.fechaLarga
+import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.components.formatoValoracion
+import com.grupo3.nexo.ui.components.mostrarError
+import com.grupo3.nexo.ui.components.plural
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
@@ -134,7 +131,9 @@ import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.superficiePulsable
 import com.grupo3.nexo.ui.components.universidadCorta
 import com.grupo3.nexo.ui.theme.AltoBuscador
+import com.grupo3.nexo.ui.theme.AltoPildora
 import com.grupo3.nexo.ui.theme.AnilloSobreOscuro
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.BordeAcento
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueProfundo
@@ -198,6 +197,8 @@ import com.grupo3.nexo.ui.theme.SobreOscuroSuave
 import com.grupo3.nexo.ui.theme.SombraAmbiente
 import com.grupo3.nexo.ui.theme.SombraPuntual
 import com.grupo3.nexo.ui.theme.Superficie
+import com.grupo3.nexo.ui.theme.TamanoAvatarBarra
+import com.grupo3.nexo.ui.theme.TamanoAvatarMini
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoSobreTinte
@@ -210,6 +211,7 @@ import com.grupo3.nexo.ui.theme.resorteCascada
 import java.time.LocalDate
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 /* ==================== Pantalla ==================== */
@@ -412,14 +414,14 @@ private fun Cabecera(
                 )
                 Spacer(Modifier.width(EspacioMinimo))
                 // Anillo blanco fino: hace juego con la insignia blanca del logo
-                // Área de toque de 48 dp; el avatar y lo que lo rodea miden y se ven igual (36 dp)
+                // Área de toque de 48 dp; el avatar y lo que lo rodea miden y se ven igual (TamanoAvatarBarra)
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .padding(end = EspacioMinimo)
                         .layout { medible, _ ->
                             val lado = AreaTactilMinima.roundToPx()
-                            val reducido = 36.dp.roundToPx()
+                            val reducido = TamanoAvatarBarra.roundToPx()
                             val p = medible.measure(Constraints.fixed(lado, lado))
                             layout(reducido, reducido) { p.place(-(lado - reducido) / 2, -(lado - reducido) / 2) }
                         }
@@ -429,7 +431,7 @@ private fun Cabecera(
                 ) {
                     Avatar(
                         nombre = usuario?.nombre ?: "Nexo",
-                        tamano = 36.dp,
+                        tamano = TamanoAvatarBarra,
                         anillo = AnilloSobreOscuro
                     )
                 }
@@ -638,7 +640,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Avatar(s.conQuien, tamano = 28.dp)
+                    Avatar(s.conQuien, tamano = TamanoAvatarMini)
                     Spacer(Modifier.width(EspacioAjustado))
                     Column(Modifier.weight(1f)) {
                         TextoLinea(s.conQuien, CuerpoNombre, BosqueProfundo)

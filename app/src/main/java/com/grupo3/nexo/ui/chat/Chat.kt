@@ -1,13 +1,5 @@
 package com.grupo3.nexo.ui.chat
 
-import com.grupo3.nexo.ui.components.formatoDia
-import com.grupo3.nexo.ui.components.formatoHora
-import com.grupo3.nexo.ui.components.formatoMomento
-import com.grupo3.nexo.ui.theme.TamanoBotonEnviar
-import com.grupo3.nexo.ui.theme.TamanoPuntoEstado
-import com.grupo3.nexo.ui.theme.AreaTactilMinima
-import com.grupo3.nexo.ui.components.avisoFallo
-import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
@@ -57,9 +49,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
@@ -72,15 +64,14 @@ import com.grupo3.nexo.domain.model.EstadoSesion
 import com.grupo3.nexo.domain.model.Mensaje
 import com.grupo3.nexo.domain.model.Sesion
 import com.grupo3.nexo.ui.components.Avatar
+import com.grupo3.nexo.ui.components.AvisoNexo
 import com.grupo3.nexo.ui.components.BotonIcono
 import com.grupo3.nexo.ui.components.BotonSecundario
 import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.Campo
 import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.CifrasTabulares
-import com.grupo3.nexo.ui.components.AvisoNexo
 import com.grupo3.nexo.ui.components.ErrorDeLista
-import com.grupo3.nexo.ui.components.mostrarError
 import com.grupo3.nexo.ui.components.Esqueleto
 import com.grupo3.nexo.ui.components.EsqueletoLista
 import com.grupo3.nexo.ui.components.EstadoVacio
@@ -90,11 +81,18 @@ import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.components.InsigniaConteo
 import com.grupo3.nexo.ui.components.TextoLinea
 import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
+import com.grupo3.nexo.ui.components.avisoFallo
 import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.filaAgrupada
+import com.grupo3.nexo.ui.components.formatoDia
 import com.grupo3.nexo.ui.components.formatoFecha
+import com.grupo3.nexo.ui.components.formatoHora
+import com.grupo3.nexo.ui.components.formatoMomento
+import com.grupo3.nexo.ui.components.mostrarError
+import com.grupo3.nexo.ui.components.plural
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
@@ -110,7 +108,6 @@ import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
-import com.grupo3.nexo.ui.theme.TamanoAvatarLista
 import com.grupo3.nexo.ui.theme.EspacioRozante
 import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.FormaControl
@@ -124,16 +121,21 @@ import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.RadioBurbuja
 import com.grupo3.nexo.ui.theme.RadioBurbujaCola
 import com.grupo3.nexo.ui.theme.RellenoTenue
+import com.grupo3.nexo.ui.theme.SangriaFilaAvatar
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.Superficie
+import com.grupo3.nexo.ui.theme.TamanoAvatarCabecera
+import com.grupo3.nexo.ui.theme.TamanoAvatarLista
+import com.grupo3.nexo.ui.theme.TamanoBotonEnviar
+import com.grupo3.nexo.ui.theme.TamanoPuntoEstado
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
-import java.time.LocalDate
-import kotlinx.coroutines.launch
 import com.grupo3.nexo.ui.theme.VerdeEstado
 import com.grupo3.nexo.ui.theme.cambioContenido
 import com.grupo3.nexo.ui.theme.resorteRebote
+import java.time.LocalDate
+import kotlinx.coroutines.launch
 
 
 
@@ -195,7 +197,7 @@ fun PantallaChats(
                         alAbrir = { alAbrirChat(chat.id) },
                         modifier = Modifier
                             .animateItem()
-                            .filaAgrupada(i, estado.chats.size, sangria = 82.dp)
+                            .filaAgrupada(i, estado.chats.size, sangria = SangriaFilaAvatar)
                     )
                 }
             }
@@ -308,7 +310,7 @@ fun PantallaConversacion(
     // Al abrir, el chat ya aparece en el último mensaje; solo se anima lo que llega después
     var yaPosicionado by remember { mutableStateOf(false) }
     // La lista lleva un separador por cada día, además de los mensajes
-    val elementos = estado.mensajes.size + estado.mensajes.map { it.hora.toLocalDate() }.distinct().size
+    val elementos = remember(estado.mensajes) { estado.mensajes.size + estado.mensajes.map { it.hora.toLocalDate() }.distinct().size }
     LaunchedEffect(elementos) {
         if (estado.mensajes.isEmpty()) return@LaunchedEffect
         if (yaPosicionado) {
@@ -349,7 +351,7 @@ fun PantallaConversacion(
             ) {
                 BotonIcono(IconosNexo.Atras, "Volver", alVolver)
                 Spacer(Modifier.width(EspacioFino))
-                Avatar(estado.nombre.ifBlank { "Nexo" }, tamano = 42.dp, enLinea = estado.enLinea, anunciarEstado = false)
+                Avatar(estado.nombre.ifBlank { "Nexo" }, tamano = TamanoAvatarCabecera, enLinea = estado.enLinea, anunciarEstado = false)
                 Spacer(Modifier.width(EspacioMedio))
                 Column(Modifier.weight(1f)) {
                     TextoLinea(estado.nombre, MaterialTheme.typography.titleMedium, TextoPrimario, Modifier.semantics { heading() })
@@ -528,6 +530,8 @@ private fun SeparadorDia(dia: LocalDate, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .padding(top = EspacioNormal, bottom = EspacioFino)
+            // Con TalkBack se puede saltar de un día a otro como entre encabezados
+            .semantics { heading() }
     )
 }
 

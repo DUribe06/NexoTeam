@@ -1,9 +1,5 @@
 package com.grupo3.nexo.ui.tutor
 
-import com.grupo3.nexo.ui.components.avisoFallo
-import com.grupo3.nexo.ui.components.TarjetaResena
-import com.grupo3.nexo.ui.components.formatoHora
-import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -76,8 +72,8 @@ import com.grupo3.nexo.domain.model.FranjaTutor
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.Tutor
-import com.grupo3.nexo.domain.model.primerNombre
 import com.grupo3.nexo.domain.model.porDia
+import com.grupo3.nexo.domain.model.primerNombre
 import com.grupo3.nexo.domain.usecase.DiaSolicitable
 import com.grupo3.nexo.domain.usecase.diasSolicitables
 import com.grupo3.nexo.domain.usecase.franjaValida
@@ -93,7 +89,6 @@ import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.EncabezadoSeccion
 import com.grupo3.nexo.ui.components.ErrorDeLista
-import com.grupo3.nexo.ui.components.mostrarError
 import com.grupo3.nexo.ui.components.Esqueleto
 import com.grupo3.nexo.ui.components.EsqueletoLista
 import com.grupo3.nexo.ui.components.EstadoVacio
@@ -111,19 +106,23 @@ import com.grupo3.nexo.ui.components.PLAZO_RESPUESTA
 import com.grupo3.nexo.ui.components.RadioOpcion
 import com.grupo3.nexo.ui.components.RotuloGrupo
 import com.grupo3.nexo.ui.components.SangriaDivisorRadio
+import com.grupo3.nexo.ui.components.TarjetaResena
 import com.grupo3.nexo.ui.components.TextoLinea
 import com.grupo3.nexo.ui.components.VeloBarraEstado
 import com.grupo3.nexo.ui.components.aparicion
+import com.grupo3.nexo.ui.components.avisoFallo
 import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.enumerar
 import com.grupo3.nexo.ui.components.formatoFecha
+import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.components.formatoPrecio
 import com.grupo3.nexo.ui.components.formatoValoracion
 import com.grupo3.nexo.ui.components.icono
+import com.grupo3.nexo.ui.components.mostrarError
+import com.grupo3.nexo.ui.components.plural
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
-import com.grupo3.nexo.ui.theme.TamanoEstrella
 import com.grupo3.nexo.ui.theme.BordeSeleccion
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.BosqueAcento
@@ -158,6 +157,8 @@ import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.Rojo
 import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.SuperficieClara
+import com.grupo3.nexo.ui.theme.TamanoAvatarPerfil
+import com.grupo3.nexo.ui.theme.TamanoEstrella
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
@@ -468,7 +469,7 @@ private fun Identidad(tutor: Tutor, modifier: Modifier = Modifier) {
                 .background(Superficie, CircleShape)
                 .padding(EspacioMinimo)
         ) {
-            Avatar(tutor.nombre, tamano = 98.dp)
+            Avatar(tutor.nombre, tamano = TamanoAvatarPerfil)
         }
         Spacer(Modifier.height(EspacioCercano))
         Text(
