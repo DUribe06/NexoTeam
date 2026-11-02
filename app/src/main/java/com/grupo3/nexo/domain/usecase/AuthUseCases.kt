@@ -1,5 +1,6 @@
 package com.grupo3.nexo.domain.usecase
 
+import com.grupo3.nexo.domain.model.ResultadoAcceso
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Usuario
 import com.grupo3.nexo.domain.repository.AuthRepository
@@ -9,7 +10,7 @@ import javax.inject.Inject
 class IniciarSesionUseCase @Inject constructor(
     private val repositorio: AuthRepository
 ) {
-    suspend operator fun invoke(correo: String, contrasena: String): Boolean =
+    suspend operator fun invoke(correo: String, contrasena: String): ResultadoAcceso =
         repositorio.iniciarSesion(correo, contrasena)
 }
 
@@ -35,8 +36,60 @@ class ValidarAccesoUseCase @Inject constructor() {
 class RegistrarseUseCase @Inject constructor(
     private val repositorio: AuthRepository
 ) {
-    suspend operator fun invoke(nombre: String, correo: String, contrasena: String): Boolean =
+    suspend operator fun invoke(nombre: String, correo: String, contrasena: String): ResultadoAcceso =
         repositorio.registrarse(nombre, correo, contrasena)
+}
+
+/** Confirma el correo con el código de 6 dígitos y abre la sesión. */
+class VerificarCorreoUseCase @Inject constructor(
+    private val repositorio: AuthRepository
+) {
+    suspend operator fun invoke(correo: String, codigo: String) = repositorio.verificarCorreo(correo, codigo)
+}
+
+/** Pide otro código para confirmar el correo. */
+class ReenviarCodigoUseCase @Inject constructor(
+    private val repositorio: AuthRepository
+) {
+    suspend operator fun invoke(correo: String) = repositorio.reenviarCodigo(correo)
+}
+
+/** Pide el código para restablecer la contraseña. */
+class RecuperarContrasenaUseCase @Inject constructor(
+    private val repositorio: AuthRepository
+) {
+    suspend operator fun invoke(correo: String) = repositorio.recuperarContrasena(correo)
+}
+
+/** Cambia la contraseña con el código recibido. */
+class RestablecerContrasenaUseCase @Inject constructor(
+    private val repositorio: AuthRepository
+) {
+    suspend operator fun invoke(correo: String, codigo: String, nueva: String) =
+        repositorio.restablecerContrasena(correo, codigo, nueva)
+}
+
+/** Valida los datos de la contraseña nueva; devuelve el mensaje de error o null si todo está en orden. */
+class ValidarRestablecerUseCase @Inject constructor() {
+    operator fun invoke(codigo: String, nueva: String): String? = when {
+        codigo.length != LARGO_CODIGO -> "Escribe los $LARGO_CODIGO dígitos del código"
+        nueva.length < MINIMO_CONTRASENA -> "La contraseña debe tener al menos $MINIMO_CONTRASENA caracteres"
+        else -> null
+    }
+
+    private companion object {
+        const val MINIMO_CONTRASENA = 8
+    }
+}
+
+/** Dígitos del código que llega al correo. */
+const val LARGO_CODIGO = 6
+
+/** Dice si hay sesión abierta; si pasa a false, la interfaz vuelve al acceso. */
+class ObtenerAutenticadoUseCase @Inject constructor(
+    private val repositorio: AuthRepository
+) {
+    operator fun invoke(): kotlinx.coroutines.flow.StateFlow<Boolean> = repositorio.autenticado
 }
 
 /** Inicia sesión con Google (flujo simplificado para el prototipo). */

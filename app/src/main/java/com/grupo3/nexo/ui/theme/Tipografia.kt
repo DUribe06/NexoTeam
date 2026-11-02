@@ -77,6 +77,7 @@ val TextoBotonSecundario = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.M
 
 /** Texto escrito en los campos del acceso (sin interlineado propio). */
 val CampoAcceso = TextStyle(fontFamily = InstrumentSans, fontWeight = FontWeight.Medium, fontSize = 15.sp)
+val DigitoCodigo = TextStyle(fontFamily = InstrumentSans, fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
 
 // Componentes compartidos
 val CampoEntrada = TextStyle(fontFamily = InstrumentSans, fontWeight = FontWeight.Medium, fontSize = 15.sp, lineHeight = 21.sp)

@@ -34,7 +34,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.grupo3.nexo.ui.auth.PantallaConfirmarCorreo
 import com.grupo3.nexo.ui.auth.PantallaLogin
+import com.grupo3.nexo.ui.auth.PantallaRecuperarContrasena
 import com.grupo3.nexo.ui.busqueda.PantallaBusqueda
 import com.grupo3.nexo.ui.chat.PantallaChats
 import com.grupo3.nexo.ui.chat.PantallaConversacion
@@ -44,6 +46,7 @@ import com.grupo3.nexo.ui.disponibilidad.PantallaDisponibilidad
 import com.grupo3.nexo.ui.historial.PantallaHistorial
 import com.grupo3.nexo.ui.inicio.PantallaInicio
 import com.grupo3.nexo.ui.navigation.Rutas
+import com.grupo3.nexo.ui.navigation.rutasDeAcceso
 import com.grupo3.nexo.ui.navigation.rutasDeBarra
 import com.grupo3.nexo.ui.perfil.PantallaPerfil
 import com.grupo3.nexo.ui.solicitudes.PantallaSolicitudes
@@ -75,6 +78,9 @@ import kotlinx.coroutines.delay
 private const val RetrasoBarraTrasAcceso = 320
 /** Espera antes de dar por terminada la llegada desde el acceso. */
 private const val RetrasoReinicioTrasAcceso = 800L
+
+/** Clave con la que Recuperar contraseña le deja al acceso el correo ya restablecido. */
+private const val ClaveCorreoRestablecido = "correoRestablecido"
 
 private val ordenPestanas = listOf(Rutas.Inicio.ruta, Rutas.Solicitudes.ruta, Rutas.Chat.ruta, Rutas.Perfil.ruta)
 
@@ -144,6 +150,20 @@ fun NexoApp() {
         }
     }
 
+    // Sesión que cambia sola: vence con la app abierta o estaba guardada al abrirla. Se lee la ruta del controlador,
+    // no la de la composición: al cerrar sesión desde el Perfil la navegación ya ocurrió y aquí no hay nada que hacer
+    val cuentaViewModel: CuentaViewModel = hiltViewModel()
+    val autenticado by cuentaViewModel.autenticado.collectAsStateWithLifecycle()
+    LaunchedEffect(autenticado) {
+        val ruta = controlador.currentDestination?.route ?: return@LaunchedEffect
+        if (autenticado && ruta in rutasDeAcceso) {
+            vieneDelAcceso = true
+            controlador.irAInicio()
+        } else if (!autenticado && ruta !in rutasDeAcceso) {
+            controlador.irAInicioSesion()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -164,17 +184,60 @@ fun NexoApp() {
             composable(
                 Rutas.Login.ruta,
                 exitTransition = { if (reducidas) ExitTransition.None else fadeOut(tween(DuracionCorta, easing = CurvaSalida)) }
+            ) { pila ->
+                val correoRestablecido by pila.savedStateHandle
+                    .getStateFlow<String?>(ClaveCorreoRestablecido, null)
+                    .collectAsStateWithLifecycle()
+                PantallaLogin(
+                    alEntrar = {
+                        vieneDelAcceso = true
+                        controlador.irAInicio()
+                    },
+                    alVerificarCorreo = { correo, reenviar ->
+                        controlador.navigate(Rutas.ConfirmarCorreo.crear(correo, reenviar)) { launchSingleTop = true }
+                    },
+                    alOlvidarContrasena = { correo ->
+                        controlador.navigate(Rutas.RecuperarContrasena.crear(correo)) { launchSingleTop = true }
+                    },
+                    correoRestablecido = correoRestablecido,
+                    alConsumirRestablecido = { pila.savedStateHandle[ClaveCorreoRestablecido] = null }
+                )
+            }
+            composable(
+                Rutas.ConfirmarCorreo.ruta,
+                arguments = listOf(
+                    navArgument(Rutas.ConfirmarCorreo.ARG_CORREO) { type = NavType.StringType },
+                    navArgument(Rutas.ConfirmarCorreo.ARG_REENVIAR) { type = NavType.BoolType }
+                ),
+                exitTransition = { if (reducidas) ExitTransition.None else fadeOut(tween(DuracionCorta, easing = CurvaSalida)) }
             ) {
-                PantallaLogin(alEntrar = {
-                    vieneDelAcceso = true
-                    controlador.irAInicio()
-                })
+                PantallaConfirmarCorreo(
+                    alEntrar = {
+                        vieneDelAcceso = true
+                        controlador.irAInicio()
+                    },
+                    alVolver = { controlador.popBackStack() }
+                )
+            }
+            composable(
+                Rutas.RecuperarContrasena.ruta,
+                arguments = listOf(
+                    navArgument(Rutas.RecuperarContrasena.ARG_CORREO) { type = NavType.StringType }
+                )
+            ) {
+                PantallaRecuperarContrasena(
+                    alTerminar = { correo ->
+                        controlador.previousBackStackEntry?.savedStateHandle?.set(ClaveCorreoRestablecido, correo)
+                        controlador.popBackStack()
+                    },
+                    alVolver = { controlador.popBackStack() }
+                )
             }
             composable(
                 Rutas.Inicio.ruta,
                 enterTransition = {
                     if (reducidas) EnterTransition.None
-                    else if (initialState.destination.route == Rutas.Login.ruta) {
+                    else if (initialState.destination.route in rutasDeAcceso) {
                         fadeIn(especFundidoEntrada())
                     } else entrada()
                 }
@@ -271,8 +334,10 @@ fun NexoApp() {
 }
 
 private fun NavHostController.irAInicio() {
+    // launchSingleTop: el acceso y la observación de la sesión pueden pedirlo a la vez
     navigate(Rutas.Inicio.ruta) {
         popUpTo(Rutas.Login.ruta) { inclusive = true }
+        launchSingleTop = true
     }
 }
 

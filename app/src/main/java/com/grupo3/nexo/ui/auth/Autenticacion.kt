@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,7 +48,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -189,6 +192,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun PantallaLogin(
     alEntrar: () -> Unit,
+    alVerificarCorreo: (correo: String, reenviarAlAbrir: Boolean) -> Unit,
+    alOlvidarContrasena: (correo: String) -> Unit,
+    /** Correo con la contraseña recién cambiada, al volver de restablecerla; null en cualquier otro caso. */
+    correoRestablecido: String? = null,
+    alConsumirRestablecido: () -> Unit = {},
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -197,6 +205,20 @@ fun PantallaLogin(
         if (estado.autenticado) {
             alEntrar()
             viewModel.consumirNavegacion()
+        }
+    }
+
+    LaunchedEffect(estado.correoPorVerificar) {
+        estado.correoPorVerificar?.let { correo ->
+            alVerificarCorreo(correo, estado.reenviarAlVerificar)
+            viewModel.consumirNavegacion()
+        }
+    }
+
+    LaunchedEffect(correoRestablecido) {
+        correoRestablecido?.let { correo ->
+            viewModel.contrasenaRestablecida(correo)
+            alConsumirRestablecido()
         }
     }
 
@@ -210,7 +232,8 @@ fun PantallaLogin(
         alCambiarCondiciones = viewModel::cambiarCondiciones,
         alEnviar = viewModel::entrar,
         alEntrarConGoogle = viewModel::entrarGoogle,
-        alAlternarModo = viewModel::alternarModo
+        alAlternarModo = viewModel::alternarModo,
+        alOlvidarContrasena = { alOlvidarContrasena(estado.correo) }
     )
 }
 
@@ -223,7 +246,8 @@ private fun ContenidoAcceso(
     alCambiarCondiciones: (Boolean) -> Unit,
     alEnviar: () -> Unit,
     alEntrarConGoogle: () -> Unit,
-    alAlternarModo: () -> Unit
+    alAlternarModo: () -> Unit,
+    alOlvidarContrasena: () -> Unit
 ) {
     val focos = LocalFocusManager.current
     val enviar = {
@@ -231,10 +255,168 @@ private fun ContenidoAcceso(
         alEnviar()
     }
 
-    // Entrada escalonada: solo la primera vez (no se repite al rotar la pantalla).
+    val iniciado = recordarEntradaIniciada()
+
+    MarcoAcceso(iniciado = iniciado) {
+        Spacer(Modifier.height(EspacioCercano))
+        Text(
+            "Nexo",
+            style = LocalTextStyle.current.merge(TituloMarca),
+            modifier = Modifier
+                .semantics { heading() }
+                .entrada(1, iniciado)
+        )
+        Spacer(Modifier.height(EspacioMinimo))
+        AnimatedContent(
+            targetState = estado.esRegistro,
+            transitionSpec = { fadeIn(tween(DuracionMedia)) togetherWith fadeOut(tween(DuracionCorta)) },
+            label = "subtitulo",
+            modifier = Modifier.entrada(1, iniciado)
+        ) { esRegistro ->
+            Text(
+                if (esRegistro) "Acceso a la red colaborativa de tutorías."
+                else "Qué bueno verte de nuevo. Inicia sesión.",
+                color = TextoSecundario,
+                style = LocalTextStyle.current.merge(MaterialTheme.typography.bodyMedium),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 300.dp)
+            )
+        }
+
+        Spacer(Modifier.height(EspacioAmplio))
+
+        // Formulario
+        AnimatedVisibility(
+            visible = estado.esRegistro,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            CampoPildora(
+                valor = estado.nombre,
+                alCambiar = alCambiarNombre,
+                marcador = "Nombre o alias",
+                icono = IconosNexo.Usuario,
+                teclado = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words,
+                    imeAction = ImeAction.Next
+                ),
+                modifier = Modifier
+                    .padding(bottom = EspacioMedio)
+                    .entrada(2, iniciado)
+            )
+        }
+        CampoPildora(
+            valor = estado.correo,
+            alCambiar = alCambiarCorreo,
+            marcador = "correo@ejemplo.com",
+            icono = IconosNexo.Correo,
+            teclado = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+            modifier = Modifier.entrada(3, iniciado)
+        )
+        Spacer(Modifier.height(EspacioMedio))
+        CampoPildora(
+            valor = estado.contrasena,
+            alCambiar = alCambiarContrasena,
+            marcador = if (estado.esRegistro) "Contraseña segura" else "Contraseña",
+            icono = IconosNexo.Candado,
+            esContrasena = true,
+            teclado = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+            alPulsarListo = enviar,
+            modifier = Modifier.entrada(4, iniciado)
+        )
+
+        AnimatedVisibility(
+            visible = !estado.esRegistro,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Box(
+                contentAlignment = Alignment.CenterEnd,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .entrada(4, iniciado)
+            ) {
+                Text(
+                    "¿Olvidaste tu contraseña?",
+                    color = Bosque,
+                    fontWeight = FontWeight.SemiBold,
+                    style = LocalTextStyle.current.merge(CuerpoEnlace),
+                    modifier = Modifier
+                        .padding(end = EspacioMedio)
+                        .areaTactilSinCambiarMedida()
+                        .clickable(role = Role.Button, onClick = alOlvidarContrasena)
+                        .heightIn(min = AreaTactilMinima)
+                        .wrapContentHeight()
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = estado.esRegistro,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column(Modifier.entrada(5, iniciado)) {
+                CasillaCondiciones(
+                    aceptado = estado.aceptaCondiciones,
+                    alCambiar = alCambiarCondiciones,
+                    modifier = Modifier.padding(top = EspacioFino)
+                )
+            }
+        }
+
+        MensajeAcceso(error = estado.error, aviso = estado.aviso)
+
+        Spacer(Modifier.height(EspacioNormal))
+        BotonVincularse(
+            texto = if (estado.esRegistro) "Vincularse" else "Iniciar sesión",
+            cargando = estado.cargando,
+            alClicar = enviar,
+            modifier = Modifier.entrada(5, iniciado)
+        )
+
+        Spacer(Modifier.height(EspacioSeparadorAcceso))
+        SeparadorSocial(Modifier.entrada(6, iniciado))
+        Spacer(Modifier.height(EspacioCercano))
+        BotonGoogle(
+            habilitado = !estado.cargando,
+            alClicar = alEntrarConGoogle,
+            modifier = Modifier.entrada(6, iniciado)
+        )
+
+        Spacer(Modifier.height(EspacioAjustado))
+        EnlaceAcceso(
+            pregunta = if (estado.esRegistro) "¿Ya perteneces a Nexo? " else "¿Aún no tienes cuenta? ",
+            accion = if (estado.esRegistro) "Iniciar sesión" else "Vincúlate",
+            alClicar = alAlternarModo,
+            modifier = Modifier.entrada(7, iniciado)
+        )
+        Spacer(Modifier.height(EspacioNormal))
+    }
+}
+
+/* ==================== Marco común de las pantallas de cuenta ==================== */
+
+/** Entrada escalonada: solo la primera vez (no se repite al rotar la pantalla). */
+@Composable
+internal fun recordarEntradaIniciada(): Boolean {
     var iniciado by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { iniciado = true }
+    return iniciado
+}
 
+/**
+ * Lo que comparten las pantallas de cuenta: foto con onda, insignia del logo y columna centrada.
+ * Las que abren el teclado al entrar piden [desplazable] y una portada más baja, para que el formulario
+ * se pueda alcanzar con el teclado abierto.
+ */
+@Composable
+internal fun MarcoAcceso(
+    iniciado: Boolean,
+    altoMaximoPortada: Dp = 360.dp,
+    desplazable: Boolean = false,
+    contenido: @Composable ColumnScope.() -> Unit
+) {
     ProvideTextStyle(TextStyle(fontFamily = InstrumentSans, color = BosqueProfundo)) {
         // El alto se mide sin teclado: así la portada no se encoge al escribir y el
         // scroll solo aparece cuando el teclado (o un teléfono muy bajo) lo exige.
@@ -246,9 +428,11 @@ private fun ContenidoAcceso(
             val altoPantalla = maxHeight
             PortadaAjustable(
                 altoPantalla = altoPantalla,
+                altoMaximoPortada = altoMaximoPortada,
                 modifier = Modifier
                     .fillMaxSize()
-                    .imePadding(),
+                    .imePadding()
+                    .then(if (desplazable) Modifier.verticalScroll(rememberScrollState()) else Modifier),
                 portada = { Portada() }
             ) {
                 Column(
@@ -268,134 +452,58 @@ private fun ContenidoAcceso(
                         modifier = Modifier
                             .widthIn(max = 440.dp)
                             .fillMaxWidth()
-                            .padding(horizontal = EspacioExtenso)
-                    ) {
-                        Spacer(Modifier.height(EspacioCercano))
-                        Text(
-                            "Nexo",
-                            style = LocalTextStyle.current.merge(TituloMarca),
-                            modifier = Modifier
-                                .semantics { heading() }
-                                .entrada(1, iniciado)
-                        )
-                        Spacer(Modifier.height(EspacioMinimo))
-                        AnimatedContent(
-                            targetState = estado.esRegistro,
-                            transitionSpec = { fadeIn(tween(DuracionMedia)) togetherWith fadeOut(tween(DuracionCorta)) },
-                            label = "subtitulo",
-                            modifier = Modifier.entrada(1, iniciado)
-                        ) { esRegistro ->
-                            Text(
-                                if (esRegistro) "Acceso a la red colaborativa de tutorías."
-                                else "Qué bueno verte de nuevo. Inicia sesión.",
-                                color = TextoSecundario,
-                                style = LocalTextStyle.current.merge(MaterialTheme.typography.bodyMedium),
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.widthIn(max = 300.dp)
-                            )
-                        }
-
-                        Spacer(Modifier.height(EspacioAmplio))
-
-                        // Formulario
-                        AnimatedVisibility(
-                            visible = estado.esRegistro,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            CampoPildora(
-                                valor = estado.nombre,
-                                alCambiar = alCambiarNombre,
-                                marcador = "Nombre o alias",
-                                icono = IconosNexo.Usuario,
-                                teclado = KeyboardOptions(
-                                    capitalization = KeyboardCapitalization.Words,
-                                    imeAction = ImeAction.Next
-                                ),
-                                modifier = Modifier
-                                    .padding(bottom = EspacioMedio)
-                                    .entrada(2, iniciado)
-                            )
-                        }
-                        CampoPildora(
-                            valor = estado.correo,
-                            alCambiar = alCambiarCorreo,
-                            marcador = "correo@ejemplo.com",
-                            icono = IconosNexo.Correo,
-                            teclado = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                            modifier = Modifier.entrada(3, iniciado)
-                        )
-                        Spacer(Modifier.height(EspacioMedio))
-                        CampoPildora(
-                            valor = estado.contrasena,
-                            alCambiar = alCambiarContrasena,
-                            marcador = if (estado.esRegistro) "Contraseña segura" else "Contraseña",
-                            icono = IconosNexo.Candado,
-                            esContrasena = true,
-                            teclado = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                            alPulsarListo = enviar,
-                            modifier = Modifier.entrada(4, iniciado)
-                        )
-
-                        AnimatedVisibility(
-                            visible = estado.esRegistro,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            Column(Modifier.entrada(5, iniciado)) {
-                                CasillaCondiciones(
-                                    aceptado = estado.aceptaCondiciones,
-                                    alCambiar = alCambiarCondiciones,
-                                    modifier = Modifier.padding(top = EspacioFino)
-                                )
-                            }
-                        }
-
-                        AnimatedVisibility(
-                            visible = estado.error != null,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            Text(
-                                estado.error.orEmpty(),
-                                color = ErrorBosque,
-                                style = LocalTextStyle.current.merge(CuerpoAviso),
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = EspacioAjustado)
-                                    .semantics { liveRegion = LiveRegionMode.Polite }
-                            )
-                        }
-
-                        Spacer(Modifier.height(EspacioNormal))
-                        BotonVincularse(
-                            texto = if (estado.esRegistro) "Vincularse" else "Iniciar sesión",
-                            cargando = estado.cargando,
-                            alClicar = enviar,
-                            modifier = Modifier.entrada(5, iniciado)
-                        )
-
-                        Spacer(Modifier.height(EspacioSeparadorAcceso))
-                        SeparadorSocial(Modifier.entrada(6, iniciado))
-                        Spacer(Modifier.height(EspacioCercano))
-                        BotonGoogle(
-                            habilitado = !estado.cargando,
-                            alClicar = alEntrarConGoogle,
-                            modifier = Modifier.entrada(6, iniciado)
-                        )
-
-                        Spacer(Modifier.height(EspacioAjustado))
-                        EnlaceCambioModo(
-                            esRegistro = estado.esRegistro,
-                            alClicar = alAlternarModo,
-                            modifier = Modifier.entrada(7, iniciado)
-                        )
-                        Spacer(Modifier.height(EspacioNormal))
-                    }
+                            .padding(horizontal = EspacioExtenso),
+                        content = contenido
+                    )
                 }
             }
         }
+    }
+}
+
+/** Título y texto de apoyo de las pantallas de cuenta. */
+@Composable
+internal fun EncabezadoAcceso(titulo: String, subtitulo: String, iniciado: Boolean) {
+    Spacer(Modifier.height(EspacioCercano))
+    Text(
+        titulo,
+        style = LocalTextStyle.current.merge(TituloMarca),
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .semantics { heading() }
+            .entrada(1, iniciado)
+    )
+    Spacer(Modifier.height(EspacioMinimo))
+    Text(
+        subtitulo,
+        color = TextoSecundario,
+        style = LocalTextStyle.current.merge(MaterialTheme.typography.bodyMedium),
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .widthIn(max = 300.dp)
+            .entrada(1, iniciado)
+    )
+    Spacer(Modifier.height(EspacioAmplio))
+}
+
+/** Línea de error, o de confirmación en verde si no hay error, justo encima del botón principal. */
+@Composable
+internal fun MensajeAcceso(error: String?, aviso: String? = null) {
+    AnimatedVisibility(
+        visible = error != null || aviso != null,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut()
+    ) {
+        Text(
+            error ?: aviso.orEmpty(),
+            color = if (error != null) ErrorBosque else Bosque,
+            style = LocalTextStyle.current.merge(CuerpoAviso),
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = EspacioAjustado)
+                .semantics { liveRegion = LiveRegionMode.Polite }
+        )
     }
 }
 
@@ -527,7 +635,7 @@ private fun InsigniaLogo(modifier: Modifier = Modifier) {
 
 /** Campo en forma de píldora blanca, con realce animado al enfocarse. */
 @Composable
-private fun CampoPildora(
+internal fun CampoPildora(
     valor: String,
     alCambiar: (String) -> Unit,
     marcador: String,
@@ -678,7 +786,7 @@ private fun HojaCondiciones(alCerrar: () -> Unit) {
 
 /** Botón principal: píldora verde satinada. */
 @Composable
-private fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> Unit, modifier: Modifier = Modifier) {
+internal fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> Unit, modifier: Modifier = Modifier) {
     val interaccion = remember { MutableInteractionSource() }
     val presionado by interaccion.collectIsPressedAsState()
     val escala by animateFloatAsState(if (presionado) 0.97f else 1f, resorteSuave(), label = "escala")
@@ -764,13 +872,14 @@ private fun BotonGoogle(habilitado: Boolean, alClicar: () -> Unit, modifier: Mod
     }
 }
 
+/** Enlace al pie: una pregunta y la acción en verde. */
 @Composable
-private fun EnlaceCambioModo(esRegistro: Boolean, alClicar: () -> Unit, modifier: Modifier = Modifier) {
+internal fun EnlaceAcceso(pregunta: String, accion: String, alClicar: () -> Unit, modifier: Modifier = Modifier) {
     Text(
         buildAnnotatedString {
-            append(if (esRegistro) "¿Ya perteneces a Nexo? " else "¿Aún no tienes cuenta? ")
+            append(pregunta)
             withStyle(SpanStyle(color = Bosque, fontWeight = FontWeight.SemiBold)) {
-                append(if (esRegistro) "Iniciar sesión" else "Vincúlate")
+                append(accion)
             }
         },
         color = TextoSecundario,
@@ -797,7 +906,7 @@ private fun EnlaceCambioModo(esRegistro: Boolean, alClicar: () -> Unit, modifier
 
 /** Aparición escalonada (desvanecido + ligero ascenso) según el orden del elemento. */
 @Composable
-private fun Modifier.entrada(orden: Int, iniciado: Boolean): Modifier {
+internal fun Modifier.entrada(orden: Int, iniciado: Boolean): Modifier {
     val progreso by animateFloatAsState(
         targetValue = if (iniciado) 1f else 0f,
         animationSpec = tween(DuracionEntradaAcceso, delayMillis = RetrasoEntradaAcceso + orden * PasoEntradaAcceso, easing = CurvaAparicion),
@@ -831,6 +940,7 @@ private fun VistaPreviaAcceso() {
         alCambiarCondiciones = {},
         alEnviar = {},
         alEntrarConGoogle = {},
-        alAlternarModo = {}
+        alAlternarModo = {},
+        alOlvidarContrasena = {}
     )
 }

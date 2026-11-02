@@ -9,6 +9,15 @@ import android.net.Uri
  */
 sealed class Rutas(val ruta: String) {
     data object Login : Rutas("login")
+    data object ConfirmarCorreo : Rutas("confirmar-correo?correo={correo}&reenviar={reenviar}") {
+        const val ARG_CORREO = "correo"
+        const val ARG_REENVIAR = "reenviar"
+        fun crear(correo: String, reenviar: Boolean) = "confirmar-correo?correo=${Uri.encode(correo)}&reenviar=$reenviar"
+    }
+    data object RecuperarContrasena : Rutas("recuperar-contrasena?correo={correo}") {
+        const val ARG_CORREO = "correo"
+        fun crear(correo: String) = "recuperar-contrasena?correo=${Uri.encode(correo)}"
+    }
     data object Inicio : Rutas("inicio")
     data object Busqueda : Rutas("busqueda?area={area}") {
         const val ARG_AREA = "area"
@@ -35,4 +44,11 @@ val rutasDeBarra = setOf(
     Rutas.Solicitudes.ruta,
     Rutas.Chat.ruta,
     Rutas.Perfil.ruta
+)
+
+/** Pantallas que se ven sin sesión. */
+val rutasDeAcceso = setOf(
+    Rutas.Login.ruta,
+    Rutas.ConfirmarCorreo.ruta,
+    Rutas.RecuperarContrasena.ruta
 )

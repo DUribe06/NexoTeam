@@ -1,6 +1,8 @@
 package com.grupo3.nexo.di
 
+import com.grupo3.nexo.BuildConfig
 import com.grupo3.nexo.data.repository.AuthRepositoryImpl
+import com.grupo3.nexo.data.repository.AuthRepositoryRemoto
 import com.grupo3.nexo.data.repository.ChatRepositoryImpl
 import com.grupo3.nexo.data.repository.DisponibilidadRepositoryImpl
 import com.grupo3.nexo.data.repository.SesionRepositoryImpl
@@ -16,6 +18,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Provider
 import javax.inject.Singleton
 
 /**
@@ -26,6 +29,7 @@ import javax.inject.Singleton
  * Para conectar la API: crear `XxxRepositoryRemoto` que implemente la interfaz de `domain/repository/`
  * (lanzando excepción ante fallos de red o del servidor) y cambiar el parámetro `impl` del provider
  * correspondiente por esa clase. Nada más cambia: casos de uso, ViewModels y pantallas siguen igual.
+ * Cuentas ya tiene las dos y elige por `BuildConfig.USAR_API`; los `Provider` evitan crear la que no se usa.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -53,5 +57,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun proveerAuthRepository(impl: AuthRepositoryImpl): AuthRepository = impl
+    fun proveerAuthRepository(
+        simulado: Provider<AuthRepositoryImpl>,
+        remoto: Provider<AuthRepositoryRemoto>
+    ): AuthRepository = if (BuildConfig.USAR_API) remoto.get() else simulado.get()
 }

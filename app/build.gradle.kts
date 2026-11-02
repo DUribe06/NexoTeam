@@ -23,10 +23,14 @@ android {
         debug {
             // 10.0.2.2 es el localhost de la máquina vista desde el emulador
             buildConfigField("String", "API_URL", "\"http://10.0.2.2:8080/\"")
+            // Se activa cuando todos los módulos estén conectados; en false la app usa los datos simulados
+            buildConfigField("Boolean", "USAR_API", "false")
         }
         release {
             // Pendiente: URL real del backend desplegado
             buildConfigField("String", "API_URL", "\"https://api.nexo.invalid/\"")
+            // Se activa cuando todos los módulos estén conectados; en false la app usa los datos simulados
+            buildConfigField("Boolean", "USAR_API", "false")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

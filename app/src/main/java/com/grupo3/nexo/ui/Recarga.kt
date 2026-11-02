@@ -48,3 +48,13 @@ suspend fun intentar(accion: suspend () -> Unit): Boolean =
     } catch (e: Exception) {
         false
     }
+
+/** Como [intentar], pero conserva el resultado o la excepción para decidir qué mostrar. */
+suspend fun <T> resultadoDe(accion: suspend () -> T): Result<T> =
+    try {
+        Result.success(accion())
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
