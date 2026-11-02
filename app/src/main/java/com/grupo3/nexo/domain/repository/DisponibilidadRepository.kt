@@ -4,6 +4,12 @@ import com.grupo3.nexo.domain.model.DiaDisponibilidad
 import com.grupo3.nexo.domain.model.Modalidad
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Contrato de datos de la disponibilidad del tutor.
+ *
+ * Las lecturas (`Flow`) y las escrituras (`suspend`) de una implementación remota deben lanzar una excepción
+ * ante fallos de red o del servidor: la UI la captura, muestra el error con "Reintentar" o un aviso breve.
+ */
 interface DisponibilidadRepository {
     fun obtener(): Flow<List<DiaDisponibilidad>>
     /** Define en qué modalidades se ofrece una hora; un conjunto vacío la desactiva (RF7). */

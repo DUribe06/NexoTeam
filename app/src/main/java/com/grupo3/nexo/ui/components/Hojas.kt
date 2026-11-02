@@ -23,7 +23,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarData
 import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarVisuals
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -31,12 +33,14 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import com.grupo3.nexo.R
 import com.grupo3.nexo.ui.theme.BordeMarcado
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.EspacioAjustado
@@ -159,9 +163,25 @@ fun AvisoNexo(estado: SnackbarHostState, modifier: Modifier = Modifier) {
                 .background(BosqueProfundo, FormaControl)
                 .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
         ) {
-            Icon(IconosNexo.MarcaCirculo, contentDescription = null, tint = Menta, modifier = Modifier.size(IconoNormal))
+            if (datos.visuals is VisualesError) {
+                Icon(painterResource(R.drawable.ph_aviso), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(IconoNormal))
+            } else {
+                Icon(IconosNexo.MarcaCirculo, contentDescription = null, tint = Menta, modifier = Modifier.size(IconoNormal))
+            }
             Spacer(Modifier.width(EspacioAjustado))
             Text(datos.visuals.message, color = SobreOscuro, style = MaterialTheme.typography.titleSmall)
         }
     }
+}
+
+private class VisualesError(override val message: String) : SnackbarVisuals {
+    override val actionLabel: String? = null
+    override val withDismissAction: Boolean = false
+    override val duration: SnackbarDuration = SnackbarDuration.Short
+}
+
+/** Aviso de que una acción no se pudo completar: igual que el de éxito, con el ícono de aviso en vez del check. */
+suspend fun SnackbarHostState.mostrarError(mensaje: String) {
+    currentSnackbarData?.dismiss()
+    showSnackbar(VisualesError(mensaje))
 }

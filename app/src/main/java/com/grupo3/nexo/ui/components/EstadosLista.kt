@@ -54,8 +54,9 @@ object RevisionEstados {
 }
 
 /** Estado de una lista, respetando lo que pida el interruptor de revisión. Llamar durante la composición. */
-fun cargaDe(cargando: Boolean, vacia: Boolean): Carga =
+fun cargaDe(cargando: Boolean, vacia: Boolean, error: Boolean = false): Carga =
     RevisionEstados.forzado ?: when {
+        error -> Carga.ERROR
         cargando -> Carga.CARGANDO
         vacia -> Carga.VACIO
         else -> Carga.LISTO
@@ -105,8 +106,15 @@ fun EsqueletoLista(modifier: Modifier = Modifier, filas: Int = 5) {
     }
 }
 
-/** Error de una lista. "Reintentar" vuelve a pedir los datos; con datos simulados basta con apagar el interruptor. */
+/** Error de una lista. "Reintentar" apaga el interruptor de revisión y llama a `alReintentar` (normalmente `viewModel.reintentar()`). */
 @Composable
-fun ErrorDeLista(modifier: Modifier = Modifier, titulo: String = "No pudimos cargar esto") {
-    EstadoError(modifier = modifier, titulo = titulo, alReintentar = RevisionEstados::limpiar)
+fun ErrorDeLista(modifier: Modifier = Modifier, titulo: String = "No pudimos cargar esto", alReintentar: () -> Unit = {}) {
+    EstadoError(
+        modifier = modifier,
+        titulo = titulo,
+        alReintentar = {
+            RevisionEstados.limpiar()
+            alReintentar()
+        }
+    )
 }

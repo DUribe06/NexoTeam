@@ -22,6 +22,10 @@ import javax.inject.Singleton
  * Módulo de inyección de dependencias.
  * La UI y los casos de uso dependen de las INTERFACES de dominio;
  * aquí se decide la implementación concreta (mock ahora, remota después).
+ *
+ * Para conectar la API: crear `XxxRepositoryRemoto` que implemente la interfaz de `domain/repository/`
+ * (lanzando excepción ante fallos de red o del servidor) y cambiar el parámetro `impl` del provider
+ * correspondiente por esa clase. Nada más cambia: casos de uso, ViewModels y pantallas siguen igual.
  */
 @Module
 @InstallIn(SingletonComponent::class)

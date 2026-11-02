@@ -6,6 +6,7 @@ import com.grupo3.nexo.domain.usecase.IniciarSesionGoogleUseCase
 import com.grupo3.nexo.domain.usecase.IniciarSesionUseCase
 import com.grupo3.nexo.domain.usecase.RegistrarseUseCase
 import com.grupo3.nexo.domain.usecase.ValidarAccesoUseCase
+import com.grupo3.nexo.ui.intentar
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,13 +53,21 @@ class LoginViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _estado.update { it.copy(cargando = true) }
-            val exito = if (e.esRegistro) registrarse(e.nombre.trim(), e.correo, e.contrasena)
+            var exito = false
+            // Una excepción es un fallo de red o del servidor; que devuelva false son credenciales incorrectas
+            val llegoRespuesta = intentar {
+                exito = if (e.esRegistro) registrarse(e.nombre.trim(), e.correo, e.contrasena)
                         else iniciarSesion(e.correo, e.contrasena)
+            }
             _estado.update {
                 it.copy(
                     cargando = false,
                     autenticado = exito,
-                    error = if (exito) null else "No pudimos validar tus datos. Revisa el correo y la contraseña."
+                    error = when {
+                        !llegoRespuesta -> MENSAJE_SIN_CONEXION
+                        exito -> null
+                        else -> "No pudimos validar tus datos. Revisa el correo y la contraseña."
+                    }
                 )
             }
         }
@@ -68,10 +77,17 @@ class LoginViewModel @Inject constructor(
         if (_estado.value.cargando) return
         viewModelScope.launch {
             _estado.update { it.copy(cargando = true, error = null) }
-            iniciarSesionGoogle()
-            _estado.update { it.copy(cargando = false, autenticado = true) }
+            val llegoRespuesta = intentar { iniciarSesionGoogle() }
+            _estado.update {
+                if (llegoRespuesta) it.copy(cargando = false, autenticado = true)
+                else it.copy(cargando = false, error = MENSAJE_SIN_CONEXION)
+            }
         }
     }
 
     fun consumirNavegacion() = _estado.update { it.copy(autenticado = false) }
+
+    private companion object {
+        const val MENSAJE_SIN_CONEXION = "No pudimos conectarnos. Revisa tu conexión e inténtalo de nuevo."
+    }
 }

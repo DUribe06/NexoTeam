@@ -67,6 +67,7 @@ import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.DialogoConfirmacion
 import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.mostrarError
 import com.grupo3.nexo.ui.components.EsqueletoLista
 import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.FiltroOpcion
@@ -130,6 +131,7 @@ fun PantallaSolicitudes(
         avisos.currentSnackbarData?.dismiss()
         avisos.showSnackbar(texto)
     }
+    fun avisarError(texto: String) = alcance.launch { avisos.mostrarError(texto) }
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
@@ -156,7 +158,7 @@ fun PantallaSolicitudes(
                 )
             }
 
-            val carga = cargaDe(estado.cargando, estado.solicitudes.isEmpty())
+            val carga = cargaDe(estado.cargando, estado.solicitudes.isEmpty(), estado.error)
             AnimatedContent(
                 targetState = carga,
                 transitionSpec = { cambioContenido() },
@@ -166,7 +168,7 @@ fun PantallaSolicitudes(
                 if (fase == Carga.CARGANDO) {
                     EsqueletoLista()
                 } else if (fase == Carga.ERROR) {
-                    ErrorDeLista(titulo = "No pudimos cargar tus solicitudes")
+                    ErrorDeLista(titulo = "No pudimos cargar tus solicitudes", alReintentar = viewModel::reintentar)
                 } else if (fase == Carga.VACIO) {
                     EstadoVacio(
                         icono = IconosNexo.Calendario,
@@ -188,12 +190,14 @@ fun PantallaSolicitudes(
                                 horas = estado.horasRestantes[solicitud.id] ?: 0.0,
                                 horasEnteras = estado.horasEnteras[solicitud.id] ?: 0.0,
                                 alAceptar = {
-                                    viewModel.aceptar(solicitud.id)
-                                    avisar("Sesión con ${solicitud.nombreEstudiante.primerNombre} confirmada.")
+                                    viewModel.aceptar(solicitud.id) { exito ->
+                                        if (exito) avisar("Sesión con ${solicitud.nombreEstudiante.primerNombre} confirmada.")
+                                        else avisarError("No se pudo aceptar la solicitud. Revisa tu conexión e inténtalo de nuevo.")
+                                    }
                                 },
                                 alRechazar = { porRechazar = solicitud },
                                 alCancelar = { porCancelar = solicitud },
-                                alEscribir = { viewModel.abrirConversacion(solicitud, alAbrirChat) },
+                                alEscribir = { viewModel.abrirConversacion(solicitud, alAbrirChat) { avisarError("No se pudo abrir el chat. Revisa tu conexión e inténtalo de nuevo.") } },
                                 alVerOtros = { alBuscar(AreaEstudio.deMateria(solicitud.materia)?.name) },
                                 modifier = Modifier.animateItem()
                             )
@@ -216,9 +220,11 @@ fun PantallaSolicitudes(
             solicitud = s,
             alCerrar = { porRechazar = null },
             alConfirmar = { motivo ->
-                viewModel.rechazar(s.id, motivo)
+                viewModel.rechazar(s.id, motivo) { exito ->
+                    if (exito) avisar("Solicitud rechazada. Le avisaremos a ${s.nombreEstudiante.primerNombre}.")
+                    else avisarError("No se pudo rechazar la solicitud. Revisa tu conexión e inténtalo de nuevo.")
+                }
                 porRechazar = null
-                avisar("Solicitud rechazada. Le avisaremos a ${s.nombreEstudiante.primerNombre}.")
             }
         )
     }
@@ -231,9 +237,11 @@ fun PantallaSolicitudes(
             else "${s.nombreTutor} ya no verá esta solicitud.",
             confirmar = if (aceptada) "Cancelar sesión" else "Cancelar solicitud",
             alConfirmar = {
-                viewModel.cancelar(s.id)
+                viewModel.cancelar(s.id) { exito ->
+                    if (exito) avisar(if (aceptada) "Sesión cancelada." else "Solicitud cancelada.")
+                    else avisarError(if (aceptada) "No se pudo cancelar la sesión. Revisa tu conexión e inténtalo de nuevo." else "No se pudo cancelar la solicitud. Revisa tu conexión e inténtalo de nuevo.")
+                }
                 porCancelar = null
-                avisar(if (aceptada) "Sesión cancelada." else "Solicitud cancelada.")
             },
             alCerrar = { porCancelar = null }
         )

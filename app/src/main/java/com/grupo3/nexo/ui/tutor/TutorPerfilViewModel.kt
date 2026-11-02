@@ -12,6 +12,8 @@ import com.grupo3.nexo.domain.usecase.ObtenerResenasUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerTutorUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.domain.usecase.ReportarTutorUseCase
+import com.grupo3.nexo.ui.Recarga
+import com.grupo3.nexo.ui.intentar
 import com.grupo3.nexo.ui.navigation.Rutas
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -29,6 +31,8 @@ import kotlinx.coroutines.launch
 sealed interface AvisoPerfil {
     data class SolicitudEnviada(val tutor: String) : AvisoPerfil
     data object ReporteEnviado : AvisoPerfil
+    data object SolicitudFallida : AvisoPerfil
+    data object ReporteFallido : AvisoPerfil
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -50,7 +54,9 @@ class TutorPerfilViewModel @Inject constructor(
         val cargando: Boolean = true,
         val noEncontrado: Boolean = false,
         /** Un tutor viendo a otro tutor no puede solicitarle tutorías. */
-        val esTutor: Boolean = false
+        val esTutor: Boolean = false,
+        /** Falló la lectura: la pantalla muestra el error con "Reintentar". */
+        val error: Boolean = false
     )
 
     private val tutorId = MutableStateFlow(estadoGuardado.get<String>(Rutas.TutorPerfil.ARG_TUTOR).orEmpty())
@@ -63,23 +69,28 @@ class TutorPerfilViewModel @Inject constructor(
         if (id.isEmpty()) emptyFlow() else obtenerResenas(id)
     }
 
-    val estado = combine(tutor, resenas, aviso, obtenerUsuario()) { t, r, a, u ->
-        Estado(tutor = t, resenas = r, aviso = a, cargando = false, noEncontrado = t == null, esTutor = u.rol == Rol.TUTOR)
+    private val recarga = Recarga()
+
+    fun reintentar() = recarga.reintentar()
+
+    val estado = recarga.proteger(alCargar = { Estado() }, alFallar = { Estado(cargando = false, error = true) }) {
+        combine(tutor, resenas, aviso, obtenerUsuario()) { t, r, a, u ->
+            Estado(tutor = t, resenas = r, aviso = a, cargando = false, noEncontrado = t == null, esTutor = u.rol == Rol.TUTOR)
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 
     fun solicitar(datos: DatosSolicitud) {
         val t = estado.value.tutor ?: return
         viewModelScope.launch {
-            enviarSolicitud(t, datos.materia, datos.tema, datos.fecha, datos.hora, datos.modalidad, datos.mensaje)
-            aviso.value = AvisoPerfil.SolicitudEnviada(t.nombre.primerNombre)
+            val exito = intentar { enviarSolicitud(t, datos.materia, datos.tema, datos.fecha, datos.hora, datos.modalidad, datos.mensaje) }
+            aviso.value = if (exito) AvisoPerfil.SolicitudEnviada(t.nombre.primerNombre) else AvisoPerfil.SolicitudFallida
         }
     }
 
     fun reportar(motivo: String) {
         val t = estado.value.tutor ?: return
         viewModelScope.launch {
-            reportarTutor(t.id, motivo)
-            aviso.value = AvisoPerfil.ReporteEnviado
+            aviso.value = if (intentar { reportarTutor(t.id, motivo) }) AvisoPerfil.ReporteEnviado else AvisoPerfil.ReporteFallido
         }
     }
 

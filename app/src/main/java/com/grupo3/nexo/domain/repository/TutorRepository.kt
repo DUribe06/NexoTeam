@@ -4,6 +4,12 @@ import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.Tutor
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Contrato de datos de los tutores, sus reseñas y reportes.
+ *
+ * Las lecturas (`Flow`) y las escrituras (`suspend`) de una implementación remota deben lanzar una excepción
+ * ante fallos de red o del servidor: la UI la captura, muestra el error con "Reintentar" o un aviso breve.
+ */
 interface TutorRepository {
     fun obtenerTutores(): Flow<List<Tutor>>
     fun obtenerTutor(id: String): Flow<Tutor?>

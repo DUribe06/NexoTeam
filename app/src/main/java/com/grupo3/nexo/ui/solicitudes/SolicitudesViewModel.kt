@@ -13,6 +13,8 @@ import com.grupo3.nexo.domain.usecase.AbrirChatDeSolicitudUseCase
 import com.grupo3.nexo.domain.usecase.ActualizarSolicitudUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerMisSolicitudesUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
+import com.grupo3.nexo.ui.Recarga
+import com.grupo3.nexo.ui.intentar
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -44,8 +46,14 @@ class SolicitudesViewModel @Inject constructor(
         /** Horas que quedan de plazo por id de solicitud; se recalculan cada minuto. */
         val horasRestantes: Map<String, Double> = emptyMap(),
         /** Las mismas horas redondeadas hacia abajo, tal como se muestran en el aviso. */
-        val horasEnteras: Map<String, Double> = emptyMap()
+        val horasEnteras: Map<String, Double> = emptyMap(),
+        /** Falló la lectura: la pantalla muestra el error con "Reintentar". */
+        val error: Boolean = false
     )
+
+    private val recarga = Recarga()
+
+    fun reintentar() = recarga.reintentar()
 
     /** El filtro recuerda el modo en que se eligió: al cambiar de estudiante a tutor se descarta. */
     private val filtro = MutableStateFlow<Pair<Rol, EstadoSolicitud>?>(null)
@@ -58,22 +66,24 @@ class SolicitudesViewModel @Inject constructor(
         }
     }
 
-    val estado = combine(obtenerMisSolicitudes(), obtenerUsuario(), filtro, ahora) { recibidas, usuario, elegido, reloj ->
-        val propias = recibidas.map { it.conPlazoAplicado(reloj) }
-        // Si el estado elegido se queda sin solicitudes (p. ej. se aceptó la última pendiente), vuelve a "Todas"
-        val f = elegido?.takeIf { it.first == usuario.rol }?.second
-            ?.takeIf { filtrado -> propias.any { it.estado == filtrado } }
-        Estado(
-            cargando = false,
-            esTutor = usuario.rol == Rol.TUTOR,
-            filtro = f,
-            solicitudes = propias.filter { f == null || it.estado == f },
-            conteos = propias.groupingBy { it.estado }.eachCount(),
-            total = propias.size,
-            pendientes = propias.contarPendientes(),
-            horasRestantes = propias.associate { it.id to it.horasRestantes(reloj) },
-            horasEnteras = propias.associate { it.id to floor(it.horasRestantes(reloj)) }
-        )
+    val estado = recarga.proteger(alCargar = { Estado() }, alFallar = { Estado(cargando = false, error = true) }) {
+        combine(obtenerMisSolicitudes(), obtenerUsuario(), filtro, ahora) { recibidas, usuario, elegido, reloj ->
+            val propias = recibidas.map { it.conPlazoAplicado(reloj) }
+            // Si el estado elegido se queda sin solicitudes (p. ej. se aceptó la última pendiente), vuelve a "Todas"
+            val f = elegido?.takeIf { it.first == usuario.rol }?.second
+                ?.takeIf { filtrado -> propias.any { it.estado == filtrado } }
+            Estado(
+                cargando = false,
+                esTutor = usuario.rol == Rol.TUTOR,
+                filtro = f,
+                solicitudes = propias.filter { f == null || it.estado == f },
+                conteos = propias.groupingBy { it.estado }.eachCount(),
+                total = propias.size,
+                pendientes = propias.contarPendientes(),
+                horasRestantes = propias.associate { it.id to it.horasRestantes(reloj) },
+                horasEnteras = propias.associate { it.id to floor(it.horasRestantes(reloj)) }
+            )
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 
     fun filtrar(valor: EstadoSolicitud?) {
@@ -81,16 +91,21 @@ class SolicitudesViewModel @Inject constructor(
         filtro.value = if (valor == null || estado.value.filtro == valor) null else rol to valor
     }
 
-    fun aceptar(id: String) = cambiar(id, EstadoSolicitud.ACEPTADA)
-    fun rechazar(id: String, motivo: String?) = cambiar(id, EstadoSolicitud.RECHAZADA, motivo)
-    fun cancelar(id: String) = cambiar(id, EstadoSolicitud.CANCELADA)
+    /** Las tres acciones avisan con `alTerminar(true)` si se guardó y `alTerminar(false)` si falló. */
+    fun aceptar(id: String, alTerminar: (Boolean) -> Unit) = cambiar(id, EstadoSolicitud.ACEPTADA, null, alTerminar)
+    fun rechazar(id: String, motivo: String?, alTerminar: (Boolean) -> Unit) = cambiar(id, EstadoSolicitud.RECHAZADA, motivo, alTerminar)
+    fun cancelar(id: String, alTerminar: (Boolean) -> Unit) = cambiar(id, EstadoSolicitud.CANCELADA, null, alTerminar)
 
     /** El chat existe solo para solicitudes aceptadas (RF8): se crea si aún no existe y se abre. */
-    fun abrirConversacion(solicitud: Solicitud, alListo: (String) -> Unit) {
-        viewModelScope.launch { abrirChat(solicitud)?.let(alListo) }
+    /** Abre (o crea) el chat de la solicitud; si falla, `alFallar` muestra el aviso. */
+    fun abrirConversacion(solicitud: Solicitud, alListo: (String) -> Unit, alFallar: () -> Unit) {
+        viewModelScope.launch {
+            var id: String? = null
+            if (intentar { id = abrirChat(solicitud) }) id?.let(alListo) else alFallar()
+        }
     }
 
-    private fun cambiar(id: String, nuevo: EstadoSolicitud, motivo: String? = null) {
-        viewModelScope.launch { actualizarSolicitud(id, nuevo, motivo) }
+    private fun cambiar(id: String, nuevo: EstadoSolicitud, motivo: String?, alTerminar: (Boolean) -> Unit) {
+        viewModelScope.launch { alTerminar(intentar { actualizarSolicitud(id, nuevo, motivo) }) }
     }
 }

@@ -89,6 +89,7 @@ import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.EncabezadoSeccion
 import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.mostrarError
 import com.grupo3.nexo.ui.components.Esqueleto
 import com.grupo3.nexo.ui.components.EsqueletoLista
 import com.grupo3.nexo.ui.components.EstadoVacio
@@ -186,12 +187,13 @@ fun PantallaTutorPerfil(
     val avisos = remember { SnackbarHostState() }
 
     LaunchedEffect(estado.aviso) {
-        val texto = when (val aviso = estado.aviso) {
-            is AvisoPerfil.SolicitudEnviada -> "Solicitud enviada. ${aviso.tutor} tiene $PLAZO_RESPUESTA para responder."
-            AvisoPerfil.ReporteEnviado -> "Reporte enviado. Gracias por cuidar la comunidad."
-            null -> return@LaunchedEffect
+        val aviso = estado.aviso ?: return@LaunchedEffect
+        when (aviso) {
+            is AvisoPerfil.SolicitudEnviada -> avisos.showSnackbar("Solicitud enviada. ${aviso.tutor} tiene $PLAZO_RESPUESTA para responder.")
+            AvisoPerfil.ReporteEnviado -> avisos.showSnackbar("Reporte enviado. Gracias por cuidar la comunidad.")
+            AvisoPerfil.SolicitudFallida -> avisos.mostrarError("No se pudo enviar la solicitud. Revisa tu conexión e inténtalo de nuevo.")
+            AvisoPerfil.ReporteFallido -> avisos.mostrarError("No se pudo enviar el reporte. Revisa tu conexión e inténtalo de nuevo.")
         }
-        avisos.showSnackbar(texto)
         viewModel.descartarAviso()
     }
 
@@ -208,8 +210,8 @@ fun PantallaTutorPerfil(
             // La misma portada con foto que el perfil cargado: la cabecera no cambia de aspecto al llegar los datos
             Column(Modifier.fillMaxSize()) {
                 Portada(alVolver = alVolver, alReportar = null)
-                when (cargaDe(cargando = estado.cargando, vacia = estado.noEncontrado)) {
-                    Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar este perfil")
+                when (cargaDe(cargando = estado.cargando, vacia = estado.noEncontrado, error = estado.error)) {
+                    Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar este perfil", alReintentar = viewModel::reintentar)
                     Carga.VACIO -> EstadoVacio(
                         icono = IconosNexo.SinResultados,
                         titulo = "No encontramos a este tutor",
@@ -301,7 +303,7 @@ fun PantallaTutorPerfil(
                     when (cargaDe(cargando = false, vacia = estado.resenas.isEmpty())) {
                         Carga.CARGANDO -> item(key = "cargandoResenas") { EsqueletoLista(filas = 2) }
                         Carga.ERROR -> item(key = "errorResenas") {
-                            ErrorDeLista(titulo = "No pudimos cargar las reseñas")
+                            ErrorDeLista(titulo = "No pudimos cargar las reseñas", alReintentar = viewModel::reintentar)
                         }
                         Carga.VACIO -> item(key = "sinResenas") {
                             EstadoVacio(

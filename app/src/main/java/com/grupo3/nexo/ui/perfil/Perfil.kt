@@ -202,13 +202,16 @@ fun PantallaPerfil(
                                 TarjetaDisponibilidad(alAbrirDisponibilidad)
                             }
                             Cifras(estado.resumen, true, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto))
-                            BloqueTutor(usuario, estado.resenas, cargando = estado.resumen == null, alVerTodas = alAbrirHistorial, alPublicarHorario = alAbrirDisponibilidad)
+                            BloqueTutor(usuario, estado.resenas, cargando = estado.resumen == null, error = estado.error, alReintentar = viewModel::reintentar, alVerTodas = alAbrirHistorial, alPublicarHorario = alAbrirDisponibilidad)
                         } else {
                             val pendientes = estado.resumen?.porCalificar ?: 0
                             if (pendientes > 0) {
                                 AvisoPorCalificar(pendientes, alAbrirHistorial, Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto))
                             }
                             Cifras(estado.resumen, false, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto))
+                            if (estado.error) {
+                                ErrorDeLista(titulo = "No pudimos cargar tu actividad", alReintentar = viewModel::reintentar)
+                            }
                             estado.resumen?.materias?.takeIf { it.isNotEmpty() }?.let {
                                 Materias("Has estudiado", it, Modifier.padding(horizontal = EspacioMargen))
                             }
@@ -416,10 +419,12 @@ private fun BloqueTutor(
     usuario: Usuario,
     resenas: List<Resena>,
     cargando: Boolean,
+    error: Boolean,
+    alReintentar: () -> Unit,
     alVerTodas: () -> Unit,
     alPublicarHorario: () -> Unit
 ) {
-    val carga = cargaDe(cargando, resenas.isEmpty())
+    val carga = cargaDe(cargando, resenas.isEmpty(), error)
     Column(Modifier.padding(horizontal = EspacioMargen)) {
         if (usuario.materias.isNotEmpty()) {
             Materias("Enseñas", usuario.materias)
@@ -445,7 +450,7 @@ private fun BloqueTutor(
         )
         when (carga) {
             Carga.CARGANDO -> EsqueletoSinMargen(filas = 2)
-            Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus reseñas")
+            Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus reseñas", alReintentar = alReintentar)
             Carga.VACIO -> EstadoVacio(
                 icono = IconosNexo.Resena,
                 titulo = "Aún sin reseñas",

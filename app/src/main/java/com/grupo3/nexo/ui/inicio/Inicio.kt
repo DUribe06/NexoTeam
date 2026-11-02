@@ -296,9 +296,9 @@ fun PantallaInicio(
                 Box(Modifier.fillMaxWidth().padding(top = EspacioMicro).height(1.dp).background(Divisor))
             }
 
-            // Mientras cargan los datos no debe decir "Sin sesiones": arranca en la fase agendada
+            // Mientras cargan los datos (o si fallaron) no debe decir "Sin sesiones": arranca en la fase agendada
             BarraSesion(
-                haySesiones = estado.cargando || estado.proximas.isNotEmpty(),
+                haySesiones = estado.cargando || estado.error || estado.proximas.isNotEmpty(),
                 esTutor = estado.esTutor,
                 modifier = Modifier.padding(top = EspacioFino)
             )
@@ -309,7 +309,7 @@ fun PantallaInicio(
                     .aparicion(4, iniciado)
             ) {
                 EncabezadoSeccion(
-                    titulo = if (estado.cargando || estado.proximas.size > 1) "Tus próximas sesiones" else "Tu próxima sesión",
+                    titulo = if (estado.cargando || estado.error || estado.proximas.size > 1) "Tus próximas sesiones" else "Tu próxima sesión",
                     accion = if (estado.proximas.isNotEmpty()) "Ver solicitudes" else null,
                     alAccion = alVerSolicitudes
                 )
@@ -321,14 +321,14 @@ fun PantallaInicio(
                 SideEffect { if (estado.proximas.isNotEmpty()) ultimasProximas.value = estado.proximas }
                 val proximasVisibles = estado.proximas.ifEmpty { ultimasProximas.value }
                 Crossfade(
-                    targetState = cargaDe(estado.cargando, estado.proximas.isEmpty()),
+                    targetState = cargaDe(estado.cargando, estado.proximas.isEmpty(), estado.error),
                     animationSpec = tween(DuracionNormal),
                     label = "proximas"
                 ) { carga ->
                     when (carga) {
                         Carga.CARGANDO -> SesionEsqueleto()
                         Carga.VACIO -> SinSesiones(esTutor = estado.esTutor, alBuscar = { alBuscar(null) }, alVerSolicitudes = alVerSolicitudes)
-                        Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus sesiones")
+                        Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus sesiones", alReintentar = viewModel::reintentar)
                         Carga.LISTO -> proximasVisibles.takeIf { it.isNotEmpty() }?.let { TarjetaProximas(it, alAbrirChat) }
                     }
                 }

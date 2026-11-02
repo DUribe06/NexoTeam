@@ -4,6 +4,12 @@ import com.grupo3.nexo.domain.model.Chat
 import com.grupo3.nexo.domain.model.Mensaje
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Contrato de datos de las conversaciones y los mensajes.
+ *
+ * Las lecturas (`Flow`) y las escrituras (`suspend`) de una implementación remota deben lanzar una excepción
+ * ante fallos de red o del servidor: la UI la captura, muestra el error con "Reintentar" o un aviso breve.
+ */
 interface ChatRepository {
     fun obtenerChats(): Flow<List<Chat>>
     fun obtenerMensajes(chatId: String): Flow<List<Mensaje>>

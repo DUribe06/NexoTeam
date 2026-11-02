@@ -161,7 +161,7 @@ fun PantallaBusqueda(
         )
 
         AnimatedContent(
-            targetState = cargaDe(estado.cargando, estado.resultados.isEmpty()),
+            targetState = cargaDe(estado.cargando, estado.resultados.isEmpty(), estado.error),
             transitionSpec = { cambioContenido() },
             label = "resultados",
             modifier = Modifier.weight(1f)
@@ -169,7 +169,7 @@ fun PantallaBusqueda(
             if (carga == Carga.CARGANDO) {
                 EsqueletoLista()
             } else if (carga == Carga.ERROR) {
-                ErrorDeLista(titulo = "No pudimos cargar los tutores")
+                ErrorDeLista(titulo = "No pudimos cargar los tutores", alReintentar = viewModel::reintentar)
             } else if (carga == Carga.VACIO) {
                 EstadoVacio(
                     icono = IconosNexo.SinResultados,

@@ -32,12 +32,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,7 +69,9 @@ import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.Campo
 import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.CifrasTabulares
+import com.grupo3.nexo.ui.components.AvisoNexo
 import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.mostrarError
 import com.grupo3.nexo.ui.components.Esqueleto
 import com.grupo3.nexo.ui.components.EsqueletoLista
 import com.grupo3.nexo.ui.components.EstadoVacio
@@ -116,6 +120,7 @@ import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
+import kotlinx.coroutines.launch
 import com.grupo3.nexo.ui.theme.VerdeEstado
 import com.grupo3.nexo.ui.theme.cambioContenido
 import com.grupo3.nexo.ui.theme.resorteRebote
@@ -145,7 +150,7 @@ fun PantallaChats(
         )
 
         AnimatedContent(
-            targetState = cargaDe(estado.cargando, estado.chats.isEmpty()),
+            targetState = cargaDe(estado.cargando, estado.chats.isEmpty(), estado.error),
             transitionSpec = { cambioContenido() },
             label = "chats",
             modifier = Modifier.weight(1f)
@@ -153,7 +158,7 @@ fun PantallaChats(
             if (carga == Carga.CARGANDO) {
                 EsqueletoLista()
             } else if (carga == Carga.ERROR) {
-                ErrorDeLista(titulo = "No pudimos cargar tus chats")
+                ErrorDeLista(titulo = "No pudimos cargar tus chats", alReintentar = viewModel::reintentar)
             } else if (carga == Carga.VACIO) {
                 if (estado.esTutor) {
                     EstadoVacio(
@@ -302,169 +307,177 @@ fun PantallaConversacion(
         }
     }
 
+    val avisos = remember { SnackbarHostState() }
+    val alcance = rememberCoroutineScope()
+
     fun enviar(valor: String) {
-        viewModel.enviar(valor)
+        viewModel.enviar(valor) { exito ->
+            // Si el mensaje no salió, el texto vuelve a la caja para reintentar (salvo que ya se haya escrito otra cosa)
+            if (!exito) {
+                if (texto.isEmpty()) texto = valor
+                alcance.launch { avisos.mostrarError("No se pudo enviar el mensaje. Revisa tu conexión e inténtalo de nuevo.") }
+            }
+        }
         texto = ""
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Fondo)
-            .imePadding()
-    ) {
-        // Cabecera
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Superficie)
-                .drawBehind {
-                    drawLine(Divisor, Offset(0f, size.height), Offset(size.width, size.height), 1.dp.toPx())
-                }
-                .statusBarsPadding()
-                .padding(start = EspacioCorto, end = EspacioNormal, top = EspacioFino, bottom = EspacioAjustado)
-        ) {
-            BotonIcono(IconosNexo.Atras, "Volver", alVolver)
-            Spacer(Modifier.width(EspacioFino))
-            Avatar(estado.nombre.ifBlank { "Nexo" }, tamano = 42.dp, enLinea = estado.enLinea, anunciarEstado = false)
-            Spacer(Modifier.width(EspacioMedio))
-            Column(Modifier.weight(1f)) {
-                TextoLinea(estado.nombre, MaterialTheme.typography.titleMedium, TextoPrimario, Modifier.semantics { heading() })
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (estado.enLinea) {
-                        Box(Modifier.size(7.dp).background(Menta, CircleShape))
-                        Spacer(Modifier.width(EspacioIcono))
+    Box(Modifier.fillMaxSize().background(Fondo).imePadding()) {
+        Column(Modifier.fillMaxSize()) {
+            // Cabecera
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Superficie)
+                    .drawBehind {
+                        drawLine(Divisor, Offset(0f, size.height), Offset(size.width, size.height), 1.dp.toPx())
                     }
-                    Text(
-                        if (estado.enLinea) "En línea" else "Desconectado",
-                        color = if (estado.enLinea) VerdeEstado else TextoTercero,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    estado.sesion?.let { sesion ->
+                    .statusBarsPadding()
+                    .padding(start = EspacioCorto, end = EspacioNormal, top = EspacioFino, bottom = EspacioAjustado)
+            ) {
+                BotonIcono(IconosNexo.Atras, "Volver", alVolver)
+                Spacer(Modifier.width(EspacioFino))
+                Avatar(estado.nombre.ifBlank { "Nexo" }, tamano = 42.dp, enLinea = estado.enLinea, anunciarEstado = false)
+                Spacer(Modifier.width(EspacioMedio))
+                Column(Modifier.weight(1f)) {
+                    TextoLinea(estado.nombre, MaterialTheme.typography.titleMedium, TextoPrimario, Modifier.semantics { heading() })
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (estado.enLinea) {
+                            Box(Modifier.size(7.dp).background(Menta, CircleShape))
+                            Spacer(Modifier.width(EspacioIcono))
+                        }
                         Text(
-                            " · ${sesion.materia} · ${formatoFecha(sesion.fecha)}",
-                            color = TextoTercero,
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            if (estado.enLinea) "En línea" else "Desconectado",
+                            color = if (estado.enLinea) VerdeEstado else TextoTercero,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        estado.sesion?.let { sesion ->
+                            Text(
+                                " · ${sesion.materia} · ${formatoFecha(sesion.fecha)}",
+                                color = TextoTercero,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Mensajes
+            val cargaMensajes = cargaDe(estado.cargando, estado.mensajes.isEmpty(), estado.error)
+            if (cargaMensajes == Carga.CARGANDO) {
+                Box(Modifier.weight(1f).fillMaxWidth()) { EsqueletoBurbujas() }
+            } else if (cargaMensajes == Carga.ERROR) {
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    ErrorDeLista(titulo = "No pudimos cargar los mensajes", alReintentar = viewModel::reintentar)
+                }
+            } else if (estado.mensajes.isEmpty()) {
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    EstadoVacio(
+                        icono = IconosNexo.Chat,
+                        titulo = "Empieza la conversación",
+                        mensaje = "Coordina el tema, la fecha y el enlace de la sesión."
+                    )
+                }
+                if (!estado.soloLectura) LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
+                    contentPadding = PaddingValues(horizontal = EspacioNormal)
+                ) {
+                    items(if (estado.esTutor) respuestasRapidasTutor else respuestasRapidas, key = { it }) { sugerencia ->
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .areaTactilSinCambiarMedida()
+                                .heightIn(min = 48.dp)
+                                .pulsable { enviar(sugerencia) }
+                        ) {
+                        Text(
+                            sugerencia,
+                            color = BosqueProfundo,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .superficie(FormaOpcion)
+                                .padding(horizontal = EspacioCercano, vertical = EspacioAjustado)
+                        )
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    state = listaEstado,
+                    contentPadding = PaddingValues(horizontal = EspacioNormal, vertical = EspacioNormal),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    itemsIndexed(estado.mensajes, key = { _, m -> m.id }) { indice, mensaje ->
+                        val anterior = estado.mensajes.getOrNull(indice - 1)
+                        val siguiente = estado.mensajes.getOrNull(indice + 1)
+                        Burbuja(
+                            mensaje = mensaje,
+                            iniciaGrupo = anterior?.mio != mensaje.mio,
+                            cierraGrupo = siguiente?.mio != mensaje.mio,
+                            modifier = Modifier.animateItem()
                         )
                     }
                 }
             }
-        }
 
-        // Mensajes
-        val cargaMensajes = cargaDe(estado.cargando, estado.mensajes.isEmpty())
-        if (cargaMensajes == Carga.CARGANDO) {
-            Box(Modifier.weight(1f).fillMaxWidth()) { EsqueletoBurbujas() }
-        } else if (cargaMensajes == Carga.ERROR) {
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                ErrorDeLista(titulo = "No pudimos cargar los mensajes")
+            if (estado.soloLectura) {
+                PieSesionTerminada(estado.sesion, alCalificar = { calificando = true })
+                return@Column
             }
-        } else if (estado.mensajes.isEmpty()) {
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                EstadoVacio(
-                    icono = IconosNexo.Chat,
-                    titulo = "Empieza la conversación",
-                    mensaje = "Coordina el tema, la fecha y el enlace de la sesión."
-                )
-            }
-            if (!estado.soloLectura) LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
-                contentPadding = PaddingValues(horizontal = EspacioNormal)
-            ) {
-                items(if (estado.esTutor) respuestasRapidasTutor else respuestasRapidas, key = { it }) { sugerencia ->
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .areaTactilSinCambiarMedida()
-                            .heightIn(min = 48.dp)
-                            .pulsable { enviar(sugerencia) }
-                    ) {
-                    Text(
-                        sugerencia,
-                        color = BosqueProfundo,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier
-                            .superficie(FormaOpcion)
-                            .padding(horizontal = EspacioCercano, vertical = EspacioAjustado)
-                    )
-                    }
-                }
-            }
-        } else {
-            LazyColumn(
-                state = listaEstado,
-                contentPadding = PaddingValues(horizontal = EspacioNormal, vertical = EspacioNormal),
-                modifier = Modifier.weight(1f)
-            ) {
-                itemsIndexed(estado.mensajes, key = { _, m -> m.id }) { indice, mensaje ->
-                    val anterior = estado.mensajes.getOrNull(indice - 1)
-                    val siguiente = estado.mensajes.getOrNull(indice + 1)
-                    Burbuja(
-                        mensaje = mensaje,
-                        iniciaGrupo = anterior?.mio != mensaje.mio,
-                        cierraGrupo = siguiente?.mio != mensaje.mio,
-                        modifier = Modifier.animateItem()
-                    )
-                }
-            }
-        }
+            // Mientras carga o falla no hay a quién escribir: sin campo de texto
+            if (cargaMensajes == Carga.CARGANDO || cargaMensajes == Carga.ERROR) return@Column
 
-        if (estado.soloLectura) {
-            PieSesionTerminada(estado.sesion, alCalificar = { calificando = true })
-            return@Column
-        }
-        // Mientras carga o falla no hay a quién escribir: sin campo de texto
-        if (cargaMensajes == Carga.CARGANDO || cargaMensajes == Carga.ERROR) return@Column
-
-        // Entrada de texto
-        val puedeEnviar = texto.isNotBlank()
-        val escalaEnviar by animateFloatAsState(
-            if (puedeEnviar) 1f else 0.9f,
-            if (LocalAnimacionesReducidas.current) snap() else resorteRebote(),
-            label = "enviar"
-        )
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioAjustado, bottom = EspacioAjustado)
-        ) {
-            Campo(
-                valor = texto,
-                alCambiar = { texto = it },
-                marcador = "Escribe un mensaje",
-                lineasMaximas = 4,
-                teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                modifier = Modifier.weight(1f)
+            // Entrada de texto
+            val puedeEnviar = texto.isNotBlank()
+            val escalaEnviar by animateFloatAsState(
+                if (puedeEnviar) 1f else 0.9f,
+                if (LocalAnimacionesReducidas.current) snap() else resorteRebote(),
+                label = "enviar"
             )
-            Spacer(Modifier.width(EspacioAjustado))
-            Box(
-                contentAlignment = Alignment.Center,
+            Row(
+                verticalAlignment = Alignment.Bottom,
                 modifier = Modifier
-                    .size(52.dp)
-                    .graphicsLayer {
-                        scaleX = escalaEnviar
-                        scaleY = escalaEnviar
-                    }
-                    .pulsable(habilitado = puedeEnviar) { enviar(texto) }
-                    .then(
-                        if (puedeEnviar) Modifier.background(BosqueMedio, FormaControl)
-                        else Modifier.background(RellenoTenue, FormaControl)
-                    )
-                    .semantics { contentDescription = "Enviar mensaje" }
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioAjustado, bottom = EspacioAjustado)
             ) {
-                Icon(
-                    IconosNexo.Enviar,
-                    contentDescription = null,
-                    tint = if (puedeEnviar) SobreOscuro else TextoTercero,
-                    modifier = Modifier.size(Icono20)
+                Campo(
+                    valor = texto,
+                    alCambiar = { texto = it },
+                    marcador = "Escribe un mensaje",
+                    lineasMaximas = 4,
+                    teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                    modifier = Modifier.weight(1f)
                 )
+                Spacer(Modifier.width(EspacioAjustado))
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(52.dp)
+                        .graphicsLayer {
+                            scaleX = escalaEnviar
+                            scaleY = escalaEnviar
+                        }
+                        .pulsable(habilitado = puedeEnviar) { enviar(texto) }
+                        .then(
+                            if (puedeEnviar) Modifier.background(BosqueMedio, FormaControl)
+                            else Modifier.background(RellenoTenue, FormaControl)
+                        )
+                        .semantics { contentDescription = "Enviar mensaje" }
+                ) {
+                    Icon(
+                        IconosNexo.Enviar,
+                        contentDescription = null,
+                        tint = if (puedeEnviar) SobreOscuro else TextoTercero,
+                        modifier = Modifier.size(Icono20)
+                    )
+                }
             }
         }
+
+        AvisoNexo(avisos, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = EspacioAmplio))
     }
 
     val sesionPorCalificar = estado.sesion
@@ -474,7 +487,12 @@ fun PantallaConversacion(
             esTutor = estado.esTutor,
             alCerrar = { calificando = false },
             alEnviar = { estrellas, comentario ->
-                viewModel.calificar(sesionPorCalificar.id, estrellas, comentario)
+                viewModel.calificar(sesionPorCalificar.id, estrellas, comentario) { exito ->
+                    alcance.launch {
+                        if (exito) avisos.showSnackbar(if (estado.esTutor) "Gracias, tu calificación quedó guardada" else "Gracias, tu calificación ayuda a otros estudiantes")
+                        else avisos.mostrarError("No se pudo guardar tu calificación. Revisa tu conexión e inténtalo de nuevo.")
+                    }
+                }
                 calificando = false
             }
         )

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,9 +27,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -45,7 +49,9 @@ import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.ui.components.CabeceraSeccion
 import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.CifrasTabulares
+import com.grupo3.nexo.ui.components.AvisoNexo
 import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.mostrarError
 import com.grupo3.nexo.ui.components.Esqueleto
 import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.HojaNexo
@@ -73,6 +79,7 @@ import com.grupo3.nexo.ui.theme.EspacioExtenso
 import com.grupo3.nexo.ui.theme.EspacioFino
 import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
+import kotlinx.coroutines.launch
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.FormaOpcion
@@ -113,93 +120,102 @@ fun PantallaDisponibilidad(
 ) {
     val diasCargados by viewModel.dias.collectAsStateWithLifecycle()
     val dias = diasCargados.orEmpty()
-    val carga = cargaDe(cargando = diasCargados == null, vacia = dias.isEmpty())
+    val fallo by viewModel.error.collectAsStateWithLifecycle()
+    val carga = cargaDe(cargando = diasCargados == null, vacia = dias.isEmpty(), error = fallo)
+    val avisos = remember { SnackbarHostState() }
+    val alcance = rememberCoroutineScope()
+    fun alTerminar(mensaje: String): (Boolean) -> Unit = { exito ->
+        if (!exito) alcance.launch { avisos.mostrarError(mensaje) }
+    }
     var enEdicion by rememberSaveable { mutableStateOf<HoraEnEdicion?>(null) }
 
     val resumen by viewModel.resumen.collectAsStateWithLifecycle()
     val (total, virtuales, presenciales, diasActivos) = resumen
 
-    Column(Modifier.fillMaxSize()) {
-        CabeceraSeccion("Mi disponibilidad", alVolver = alVolver)
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            CabeceraSeccion("Mi disponibilidad", alVolver = alVolver)
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(EspacioMedio),
-            contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioNormal, bottom = EspacioExtenso + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
-        ) {
-            if (carga == Carga.CARGANDO) item(key = "cargando") { EsqueletoDias() }
-            else if (carga == Carga.VACIO) item(key = "vacio") {
-                EstadoVacio(
-                    icono = IconosNexo.Calendario,
-                    titulo = "Aún no hay horas para publicar",
-                    mensaje = "Crea tu semana y elige cuáles horas ofreces, en virtual, presencial o ambas.",
-                    accion = "Agregar horario",
-                    alAccion = viewModel::empezar
-                )
-            }
-            else if (carga != Carga.LISTO) item(key = "error") { ErrorDeLista(titulo = "No pudimos cargar tu disponibilidad") }
-            else item(key = "resumen") {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(TinteBosque, FormaOrganica)
-                        .border(1.dp, BordeAcento, FormaOrganica)
-                        .padding(EspacioNormal)
-                ) {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text("$total", color = BosqueProfundo, style = MaterialTheme.typography.displaySmall.merge(CifrasTabulares))
-                        Spacer(Modifier.width(EspacioCorto))
-                        Text(
-                            if (total == 1) "hora publicada" else "horas publicadas",
-                            color = TextoSobreTinte,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(bottom = EspacioMinimo)
-                        )
-                    }
-                    Text(
-                        "en $diasActivos ${if (diasActivos == 1) "día" else "días"} · $virtuales ${if (virtuales == 1) "virtual" else "virtuales"} · $presenciales ${if (presenciales == 1) "presencial" else "presenciales"}",
-                        color = TextoSobreTinte,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Spacer(Modifier.height(EspacioMedio))
-                    Text(
-                        "Toca una hora para elegir si la ofreces virtual, presencial o ambas. Los estudiantes solo pueden solicitarte tutorías en tus horas publicadas.",
-                        color = TextoSobreTinte,
-                        style = MaterialTheme.typography.bodySmall
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(EspacioMedio),
+                contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioNormal, bottom = EspacioExtenso + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+            ) {
+                if (carga == Carga.CARGANDO) item(key = "cargando") { EsqueletoDias() }
+                else if (carga == Carga.VACIO) item(key = "vacio") {
+                    EstadoVacio(
+                        icono = IconosNexo.Calendario,
+                        titulo = "Aún no hay horas para publicar",
+                        mensaje = "Crea tu semana y elige cuáles horas ofreces, en virtual, presencial o ambas.",
+                        accion = "Agregar horario",
+                        alAccion = { viewModel.empezar(alTerminar("No se pudo crear tu calendario. Revisa tu conexión e inténtalo de nuevo.")) }
                     )
                 }
-            }
-
-            if (carga == Carga.LISTO) items(dias, key = { it.dia }) { dia ->
-                val activas = dia.horasActivas
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .superficie(FormaOrganica)
-                        .padding(EspacioNormal)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(dia.dia, color = TextoPrimario, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                else if (carga != Carga.LISTO) item(key = "error") { ErrorDeLista(titulo = "No pudimos cargar tu disponibilidad", alReintentar = viewModel::reintentar) }
+                else item(key = "resumen") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(TinteBosque, FormaOrganica)
+                            .border(1.dp, BordeAcento, FormaOrganica)
+                            .padding(EspacioNormal)
+                    ) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text("$total", color = BosqueProfundo, style = MaterialTheme.typography.displaySmall.merge(CifrasTabulares))
+                            Spacer(Modifier.width(EspacioCorto))
+                            Text(
+                                if (total == 1) "hora publicada" else "horas publicadas",
+                                color = TextoSobreTinte,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(bottom = EspacioMinimo)
+                            )
+                        }
                         Text(
-                            when (activas) {
-                                0 -> "Sin horas"
-                                else -> formatoHoras(activas.toDouble())
-                            },
-                            color = if (activas > 0) VerdeEstado else TextoTercero,
-                            style = MaterialTheme.typography.labelMedium
+                            "en $diasActivos ${if (diasActivos == 1) "día" else "días"} · $virtuales ${if (virtuales == 1) "virtual" else "virtuales"} · $presenciales ${if (presenciales == 1) "presencial" else "presenciales"}",
+                            color = TextoSobreTinte,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(Modifier.height(EspacioMedio))
+                        Text(
+                            "Toca una hora para elegir si la ofreces virtual, presencial o ambas. Los estudiantes solo pueden solicitarte tutorías en tus horas publicadas.",
+                            color = TextoSobreTinte,
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
-                    Spacer(Modifier.height(EspacioMedio))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
-                        verticalArrangement = Arrangement.spacedBy(EspacioCorto)
+                }
+
+                if (carga == Carga.LISTO) items(dias, key = { it.dia }) { dia ->
+                    val activas = dia.horasActivas
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .superficie(FormaOrganica)
+                            .padding(EspacioNormal)
                     ) {
-                        dia.horas.forEach { hora ->
-                            ChipHora(hora, alClicar = { enEdicion = HoraEnEdicion(dia.dia, hora.hora) })
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(dia.dia, color = TextoPrimario, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                            Text(
+                                when (activas) {
+                                    0 -> "Sin horas"
+                                    else -> formatoHoras(activas.toDouble())
+                                },
+                                color = if (activas > 0) VerdeEstado else TextoTercero,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                        Spacer(Modifier.height(EspacioMedio))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
+                            verticalArrangement = Arrangement.spacedBy(EspacioCorto)
+                        ) {
+                            dia.horas.forEach { hora ->
+                                ChipHora(hora, alClicar = { enEdicion = HoraEnEdicion(dia.dia, hora.hora) })
+                            }
                         }
                     }
                 }
             }
         }
+        AvisoNexo(avisos, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = EspacioMedio))
     }
 
     enEdicion?.let { edicion ->
@@ -223,7 +239,7 @@ fun PantallaDisponibilidad(
                         modalidades = modalidades,
                         seleccionada = (actual?.modalidades ?: emptySet<Modalidad>()) == modalidades,
                         alClicar = {
-                            viewModel.definir(edicion.dia, edicion.hora, modalidades)
+                            viewModel.definir(edicion.dia, edicion.hora, modalidades, alTerminar("No se pudo guardar la hora. Revisa tu conexión e inténtalo de nuevo."))
                             enEdicion = null
                         }
                     )

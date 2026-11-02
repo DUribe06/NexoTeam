@@ -54,6 +54,7 @@ class ActualizarSolicitudUseCase @Inject constructor(
      * Aceptar agenda la sesión y deja activo el chat con esa persona; cancelar una aceptada la cancela
      * también y, si no quedan sesiones por venir con ella, el chat pasa a solo lectura (RF6 → RF8, RF10).
      */
+    // Con el backend real esta orquestación (solicitud, sesión y chat) puede pasar al servidor, en una sola llamada
     suspend operator fun invoke(id: String, estado: EstadoSolicitud, motivo: String? = null) {
         val anterior = repositorio.obtenerSolicitudes().first().firstOrNull { it.id == id } ?: return
         repositorio.actualizarEstado(id, estado, motivo?.trim())

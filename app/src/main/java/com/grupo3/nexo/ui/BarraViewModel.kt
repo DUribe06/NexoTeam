@@ -8,6 +8,7 @@ import com.grupo3.nexo.domain.usecase.ObtenerMisSolicitudesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
@@ -24,10 +25,13 @@ class BarraViewModel @Inject constructor(
     /** Tutor: pendientes recibidas. Estudiante: pendientes enviadas por él. */
     val pendientes = obtenerMisSolicitudes()
         .map { lista -> lista.contarPendientes() }
+        // Si la lectura falla, la insignia simplemente no se muestra: el error lo enseña la pantalla
+        .catch { emit(0) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     /** Mensajes sin leer de las conversaciones del modo actual. */
     val noLeidos = obtenerChats()
         .map { lista -> lista.sumOf { it.noLeidos } }
+        .catch { emit(0) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 }

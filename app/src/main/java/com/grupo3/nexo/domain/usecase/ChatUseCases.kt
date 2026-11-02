@@ -66,6 +66,7 @@ class AbrirChatDeSolicitudUseCase @Inject constructor(
     private val auth: AuthRepository,
     private val tutores: ObtenerTutoresUseCase
 ) {
+    // Con el backend real la creación del chat de una solicitud aceptada puede pasar al servidor
     suspend operator fun invoke(solicitud: Solicitud): String? =
         if (auth.usuarioActual.value.rol == Rol.TUTOR) {
             abrirChat.conEstudiante(solicitud.estudianteId, solicitud.nombreEstudiante)

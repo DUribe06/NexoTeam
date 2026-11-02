@@ -55,6 +55,7 @@ import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.EncabezadoSeccion
 import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.mostrarError
 import com.grupo3.nexo.ui.components.EsqueletoLista
 import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.Estrellas
@@ -110,7 +111,7 @@ fun PantallaHistorial(
         Column(Modifier.fillMaxSize()) {
             CabeceraSeccion(if (estado.esTutor) "Tutorías dadas" else "Tus tutorías", alVolver = alVolver)
 
-            val carga = cargaDe(estado.cargando, estado.todas.isEmpty())
+            val carga = cargaDe(estado.cargando, estado.todas.isEmpty(), estado.error)
             AnimatedContent(
                 targetState = carga,
                 transitionSpec = { cambioContenido() },
@@ -119,7 +120,7 @@ fun PantallaHistorial(
             ) { fase ->
                 when (fase) {
                     Carga.CARGANDO -> EsqueletoLista()
-                    Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tu historial")
+                    Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tu historial", alReintentar = viewModel::reintentar)
                     Carga.VACIO -> EstadoVacio(
                         icono = IconosNexo.Historial,
                         titulo = "Aún no hay sesiones",
@@ -177,9 +178,14 @@ fun PantallaHistorial(
             esTutor = estado.esTutor,
             alCerrar = { porCalificarId = null },
             alEnviar = { estrellas, comentario ->
-                viewModel.calificar(sesion.id, estrellas, comentario)
+                val esTutor = estado.esTutor
+                viewModel.calificar(sesion.id, estrellas, comentario) { exito ->
+                    alcance.launch {
+                        if (exito) avisos.showSnackbar(if (esTutor) "Gracias, tu calificación quedó guardada" else "Gracias, tu calificación ayuda a otros estudiantes")
+                        else avisos.mostrarError("No se pudo guardar tu calificación. Revisa tu conexión e inténtalo de nuevo.")
+                    }
+                }
                 porCalificarId = null
-                alcance.launch { avisos.showSnackbar(if (estado.esTutor) "Gracias, tu calificación quedó guardada" else "Gracias, tu calificación ayuda a otros estudiantes") }
             }
         )
     }

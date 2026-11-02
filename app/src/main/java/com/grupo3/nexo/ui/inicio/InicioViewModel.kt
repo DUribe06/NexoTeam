@@ -15,6 +15,7 @@ import com.grupo3.nexo.domain.usecase.ObtenerMisSolicitudesUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerProximasSesionesUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerTutoresUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
+import com.grupo3.nexo.ui.Recarga
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -45,30 +46,40 @@ class InicioViewModel @Inject constructor(
         val horasPublicadas: Int = 0,
         val diasPublicados: List<DiaSemana> = emptyList(),
         /** Modo tutor: tema que pidió el estudiante para la próxima sesión (RF5). */
-        val temaProximo: String? = null
+        val temaProximo: String? = null,
+        /** Falló la lectura: la pantalla muestra el error con "Reintentar". */
+        val error: Boolean = false
     ) {
         val esTutor get() = usuario?.rol == Rol.TUTOR
     }
 
-    val estado = combine(
-        obtenerTutores(),
-        // Las sesiones llegan del servidor: mientras tanto se emite null y la tarjeta muestra su esqueleto,
-        // sin retener el saludo ni la insignia de pendientes, que ya están disponibles
-        obtenerProximas().map<List<Sesion>, List<Sesion>?> { it }.onStart { emit(null) },
-        obtenerUsuario(),
-        obtenerMisSolicitudes(),
-        obtenerDisponibilidad()
-    ) { tutores, proximas, usuario, solicitudes, dias ->
-        Estado(
-            horasPublicadas = dias.horasPublicadas,
-            diasPublicados = dias.diasPublicados,
-            cargando = proximas == null,
-            usuario = usuario,
-            proximas = proximas.orEmpty().map { sesion ->
-                SesionProxima(sesion, sesion.contraparteId, tutores.find { !sesion.comoTutor && it.id == sesion.contraparteId })
-            },
-            pendientes = solicitudes.contarPendientes(),
-            temaProximo = proximas?.firstOrNull()?.solicitudId?.let { id -> solicitudes.find { it.id == id }?.tema },
-        )
+    private val recarga = Recarga()
+    /** El usuario no depende del servidor de sesiones: si esa lectura falla, el saludo y el avatar se conservan. */
+    private val usuario = obtenerUsuario()
+
+    fun reintentar() = recarga.reintentar()
+
+    val estado = recarga.proteger(alCargar = { Estado(usuario = usuario.value) }, alFallar = { Estado(cargando = false, usuario = usuario.value, error = true) }) {
+        combine(
+            obtenerTutores(),
+            // Las sesiones llegan del servidor: mientras tanto se emite null y la tarjeta muestra su esqueleto,
+            // sin retener el saludo ni la insignia de pendientes, que ya están disponibles
+            obtenerProximas().map<List<Sesion>, List<Sesion>?> { it }.onStart { emit(null) },
+            usuario,
+            obtenerMisSolicitudes(),
+            obtenerDisponibilidad()
+        ) { tutores, proximas, usuario, solicitudes, dias ->
+            Estado(
+                horasPublicadas = dias.horasPublicadas,
+                diasPublicados = dias.diasPublicados,
+                cargando = proximas == null,
+                usuario = usuario,
+                proximas = proximas.orEmpty().map { sesion ->
+                    SesionProxima(sesion, sesion.contraparteId, tutores.find { !sesion.comoTutor && it.id == sesion.contraparteId })
+                },
+                pendientes = solicitudes.contarPendientes(),
+                temaProximo = proximas?.firstOrNull()?.solicitudId?.let { id -> solicitudes.find { it.id == id }?.tema },
+            )
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 }

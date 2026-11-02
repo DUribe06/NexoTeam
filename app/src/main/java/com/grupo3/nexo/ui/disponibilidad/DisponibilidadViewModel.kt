@@ -7,6 +7,8 @@ import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.usecase.CrearCalendarioUseCase
 import com.grupo3.nexo.domain.usecase.DefinirHoraUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerDisponibilidadUseCase
+import com.grupo3.nexo.ui.Recarga
+import com.grupo3.nexo.ui.intentar
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,9 +31,24 @@ class DisponibilidadViewModel @Inject constructor(
     private val crearCalendario: CrearCalendarioUseCase
 ) : ViewModel() {
 
+    /** Lo que llegó de la semana: `dias` es null mientras cargan o si falló la lectura. */
+    private data class Lectura(val dias: List<DiaDisponibilidad>? = null, val error: Boolean = false)
+
+    private val recarga = Recarga()
+
+    fun reintentar() = recarga.reintentar()
+
+    private val lectura = recarga.proteger(alCargar = { Lectura() }, alFallar = { Lectura(error = true) }) {
+        obtenerDisponibilidad().map { Lectura(it) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Lectura())
+
     /** null mientras llegan los datos: así no se muestra "0 horas publicadas" por error. */
-    val dias = obtenerDisponibilidad()
+    val dias = lectura.map { it.dias }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null as List<DiaDisponibilidad>?)
+
+    /** Falló la lectura: la pantalla muestra el error con "Reintentar". */
+    val error = lectura.map { it.error }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     val resumen = dias.map { lista ->
         val horas = lista.orEmpty().flatMap { it.horas }
@@ -43,11 +60,12 @@ class DisponibilidadViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ResumenDisponibilidad())
 
-    fun empezar() {
-        viewModelScope.launch { crearCalendario() }
+    /** Las dos acciones avisan con `alTerminar(true)` si se guardó y `alTerminar(false)` si falló. */
+    fun empezar(alTerminar: (Boolean) -> Unit) {
+        viewModelScope.launch { alTerminar(intentar { crearCalendario() }) }
     }
 
-    fun definir(dia: String, hora: String, modalidades: Set<Modalidad>) {
-        viewModelScope.launch { definirHora(dia, hora, modalidades) }
+    fun definir(dia: String, hora: String, modalidades: Set<Modalidad>, alTerminar: (Boolean) -> Unit) {
+        viewModelScope.launch { alTerminar(intentar { definirHora(dia, hora, modalidades) }) }
     }
 }

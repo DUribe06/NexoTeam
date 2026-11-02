@@ -11,6 +11,7 @@ import com.grupo3.nexo.domain.usecase.CerrarSesionUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerMisResenasUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerResumenActividadUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
+import com.grupo3.nexo.ui.Recarga
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,15 +31,23 @@ class PerfilViewModel @Inject constructor(
         val usuario: Usuario,
         /** null mientras llegan las sesiones: las cifras muestran guiones en vez de ceros falsos. */
         val resumen: ResumenActividad? = null,
-        val resenas: List<Resena> = emptyList()
+        val resenas: List<Resena> = emptyList(),
+        /** Falló la lectura: el bloque de reseñas muestra el error con "Reintentar". */
+        val error: Boolean = false
     ) {
         val esTutor get() = usuario.rol == Rol.TUTOR
     }
 
     private val usuario = obtenerUsuario()
 
-    val estado = combine(usuario, obtenerResumen(), obtenerMisResenas()) { u, resumen, resenas ->
-        Estado(u, resumen, resenas)
+    private val recarga = Recarga()
+
+    fun reintentar() = recarga.reintentar()
+
+    val estado = recarga.proteger(alCargar = { Estado(usuario.value) }, alFallar = { Estado(usuario.value, error = true) }) {
+        combine(usuario, obtenerResumen(), obtenerMisResenas()) { u, resumen, resenas ->
+            Estado(u, resumen, resenas)
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado(usuario.value))
 
     fun elegirModo(rol: Rol) = cambiarModo(rol)
