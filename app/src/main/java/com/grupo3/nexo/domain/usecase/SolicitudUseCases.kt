@@ -2,17 +2,17 @@ package com.grupo3.nexo.domain.usecase
 
 import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.Modalidad
+import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Solicitud
 import com.grupo3.nexo.domain.model.Tutor
-import com.grupo3.nexo.domain.repository.ChatRepository
-import com.grupo3.nexo.domain.repository.SolicitudRepository
-import kotlinx.coroutines.flow.Flow
-import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.repository.AuthRepository
-import kotlinx.coroutines.flow.combine
+import com.grupo3.nexo.domain.repository.ChatRepository
 import com.grupo3.nexo.domain.repository.SesionRepository
-import kotlinx.coroutines.flow.first
+import com.grupo3.nexo.domain.repository.SolicitudRepository
 import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 
 /** Devuelve todas las solicitudes (enviadas y recibidas). */
 class ObtenerSolicitudesUseCase @Inject constructor(

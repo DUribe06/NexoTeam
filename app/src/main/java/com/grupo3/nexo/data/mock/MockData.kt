@@ -27,6 +27,7 @@ import com.grupo3.nexo.domain.model.Sesion
 import com.grupo3.nexo.domain.model.Solicitud
 import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.model.Usuario
+import com.grupo3.nexo.domain.model.mesesCortos
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -38,8 +39,6 @@ import java.util.Locale
  * fuente remota sin tocar los repositorios ni la capa de dominio.
  */
 object MockData {
-
-    private val mesesCortos = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
 
     /** Fecha corta ("3 nov") a tantos días de hoy, para que lo agendado siempre quede por delante. */
     private fun enDias(dias: Long): String =
@@ -173,23 +172,23 @@ object MockData {
 
     /** Reseñas de cada tutor, de la más reciente a la más antigua (RF4). */
     val resenas = listOf(
-        Resena("t1", "Valeria R.", "@vale.r", "Ana explica paso a paso y nunca te hace sentir tonto por preguntar. Pasé Cálculo I con 4,5.", 5, "hace 2 sem"),
-        Resena("t1", "Jorge L.", "@jorgel", "Sus trucos para los parciales son oro. Muy puntual y preparada.", 5, "hace 1 mes"),
-        Resena("t1", "Camila T.", "@camt", "Buena explicación, aunque a veces la sesión se pasa del tiempo (para bien).", 4, "hace 2 meses"),
-        Resena("t2", "Sebastián M.", "@sebasm", "Armamos una API completa en tres sesiones. Aprendí más que en todo el semestre.", 5, "hace 3 sem"),
-        Resena("t2", "Andrea P.", "@andrep", "Carlos se adapta a tu ritmo. Recomendadísimo para Python desde cero.", 5, "hace 1 mes"),
-        Resena("t2", "Luis F.", "@luisf", "Muy bueno, aunque me gustarían más ejercicios para la casa.", 4, "hace 2 meses"),
-        Resena("t3", "Renzo C.", "@renzc", "La física por fin tiene sentido. Los diagramas antes de las fórmulas ayudan muchísimo.", 5, "hace 1 sem"),
-        Resena("t3", "Marta G.", "@martag", "Explica estadística con ejemplos del día a día. Excelente.", 5, "hace 3 sem"),
-        Resena("t4", "Iván R.", "@ivanr", "Mi speaking mejoró muchísimo en un mes. Corrige con paciencia.", 5, "hace 2 sem"),
-        Resena("t4", "Paola D.", "@paolad", "Buenas sesiones de redacción; ojalá más práctica de listening.", 4, "hace 1 mes"),
-        Resena("t5", "Bruno S.", "@brunos", "Con el portafolio que armé en Figma conseguí la práctica. Gracias, Pablo.", 5, "hace 1 sem"),
-        Resena("t5", "Nadia K.", "@nadiak", "Metodología clara y retroalimentación directa sobre tus diseños.", 5, "hace 2 meses"),
-        Resena("t7", "Frank O.", "@franko", "SQL dejó de dar miedo. El proyecto final lo usé en toda la materia.", 5, "hace 2 sem"),
+        Resena("r1", "t1", "Valeria R.", "@vale.r", "Ana explica paso a paso y nunca te hace sentir tonto por preguntar. Pasé Cálculo I con 4,5.", 5, "hace 2 sem"),
+        Resena("r2", "t1", "Jorge L.", "@jorgel", "Sus trucos para los parciales son oro. Muy puntual y preparada.", 5, "hace 1 mes"),
+        Resena("r3", "t1", "Camila T.", "@camt", "Buena explicación, aunque a veces la sesión se pasa del tiempo (para bien).", 4, "hace 2 meses"),
+        Resena("r4", "t2", "Sebastián M.", "@sebasm", "Armamos una API completa en tres sesiones. Aprendí más que en todo el semestre.", 5, "hace 3 sem"),
+        Resena("r5", "t2", "Andrea P.", "@andrep", "Carlos se adapta a tu ritmo. Recomendadísimo para Python desde cero.", 5, "hace 1 mes"),
+        Resena("r6", "t2", "Luis F.", "@luisf", "Muy bueno, aunque me gustarían más ejercicios para la casa.", 4, "hace 2 meses"),
+        Resena("r7", "t3", "Renzo C.", "@renzc", "La física por fin tiene sentido. Los diagramas antes de las fórmulas ayudan muchísimo.", 5, "hace 1 sem"),
+        Resena("r8", "t3", "Marta G.", "@martag", "Explica estadística con ejemplos del día a día. Excelente.", 5, "hace 3 sem"),
+        Resena("r9", "t4", "Iván R.", "@ivanr", "Mi speaking mejoró muchísimo en un mes. Corrige con paciencia.", 5, "hace 2 sem"),
+        Resena("r10", "t4", "Paola D.", "@paolad", "Buenas sesiones de redacción; ojalá más práctica de listening.", 4, "hace 1 mes"),
+        Resena("r11", "t5", "Bruno S.", "@brunos", "Con el portafolio que armé en Figma conseguí la práctica. Gracias, Pablo.", 5, "hace 1 sem"),
+        Resena("r12", "t5", "Nadia K.", "@nadiak", "Metodología clara y retroalimentación directa sobre tus diseños.", 5, "hace 2 meses"),
+        Resena("r13", "t7", "Frank O.", "@franko", "SQL dejó de dar miedo. El proyecto final lo usé en toda la materia.", 5, "hace 2 sem"),
         // Reseñas que recibió Diego como tutor
-        Resena("u1", "Renzo Cruz", "@renzc", "Me explicó funciones con ejemplos de mi propio taller. Muy claro y paciente.", 5, "hace 3 días"),
-        Resena("u1", "Valeria Ríos", "@vale.r", "Repasamos límites antes del parcial y saqué 4,3. Lo recomiendo.", 5, "hace 1 sem"),
-        Resena("u1", "Jorge Luna", "@jorgel", "Buena sesión de recursión, aunque empezamos un poco tarde.", 4, "hace 3 sem")
+        Resena("r14", "u1", "Renzo Cruz", "@renzc", "Me explicó funciones con ejemplos de mi propio taller. Muy claro y paciente.", 5, "hace 3 días"),
+        Resena("r15", "u1", "Valeria Ríos", "@vale.r", "Repasamos límites antes del parcial y saqué 4,3. Lo recomiendo.", 5, "hace 1 sem"),
+        Resena("r16", "u1", "Jorge Luna", "@jorgel", "Buena sesión de recursión, aunque empezamos un poco tarde.", 4, "hace 3 sem")
     )
 
     val solicitudes = listOf(

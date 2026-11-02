@@ -95,6 +95,10 @@ import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Sesion
 import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.model.Usuario
+import com.grupo3.nexo.domain.model.diaYMes
+import com.grupo3.nexo.domain.model.diasPublicados
+import com.grupo3.nexo.domain.model.horasPublicadas
+import com.grupo3.nexo.domain.model.primerNombre
 import com.grupo3.nexo.domain.usecase.ObtenerDisponibilidadUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerMisSolicitudesUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerProximasSesionesUseCase
@@ -125,7 +129,7 @@ import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.superficiePulsable
 import com.grupo3.nexo.ui.components.universidadCorta
-import com.grupo3.nexo.ui.theme.Bosque
+import com.grupo3.nexo.ui.theme.BordeAcento
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.CifraHora
@@ -137,15 +141,18 @@ import com.grupo3.nexo.ui.theme.DuracionLarga
 import com.grupo3.nexo.ui.theme.DuracionNormal
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioBotonLateral
 import com.grupo3.nexo.ui.theme.EspacioCercano
 import com.grupo3.nexo.ui.theme.EspacioCorto
 import com.grupo3.nexo.ui.theme.EspacioFino
 import com.grupo3.nexo.ui.theme.EspacioHolgado
+import com.grupo3.nexo.ui.theme.EspacioIcono
 import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMicro
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EspacioPildora
 import com.grupo3.nexo.ui.theme.EtiquetaArea
 import com.grupo3.nexo.ui.theme.EtiquetaBoton
 import com.grupo3.nexo.ui.theme.EtiquetaFecha
@@ -155,8 +162,12 @@ import com.grupo3.nexo.ui.theme.FormaCampoAlto
 import com.grupo3.nexo.ui.theme.FormaCapaInferior
 import com.grupo3.nexo.ui.theme.FormaControl
 import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.IconoSecundario
 import com.grupo3.nexo.ui.theme.Marcador
 import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.SobreOscuroSuave
+import com.grupo3.nexo.ui.theme.SombraAmbiente
+import com.grupo3.nexo.ui.theme.SombraPuntual
 import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
@@ -217,8 +228,8 @@ class InicioViewModel @Inject constructor(
         obtenerDisponibilidad()
     ) { tutores, proximas, usuario, solicitudes, dias ->
         Estado(
-            horasPublicadas = dias.sumOf { d -> d.horas.count { it.seleccionada } },
-            diasPublicados = dias.filter { d -> d.horas.any { it.seleccionada } }.mapNotNull { d -> DiaSemana.entries.firstOrNull { it.nombre == d.dia } },
+            horasPublicadas = dias.horasPublicadas,
+            diasPublicados = dias.diasPublicados,
             cargando = proximas == null,
             usuario = usuario,
             proximas = proximas.orEmpty().map { sesion ->
@@ -351,7 +362,7 @@ fun PantallaInicio(
                 val proximasVisibles = estado.proximas.ifEmpty { ultimasProximas.value }
                 Crossfade(
                     targetState = cargaDe(estado.cargando, estado.proximas.isEmpty()),
-                    animationSpec = tween(280),
+                    animationSpec = tween(DuracionNormal),
                     label = "proximas"
                 ) { carga ->
                     when (carga) {
@@ -446,7 +457,7 @@ private fun Cabecera(
 
             // El alto sobrante de la pantalla se ve como más foto entre la marca y el saludo
             Spacer(Modifier.height(aire))
-            val nombre = usuario?.nombre?.substringBefore(' ').orEmpty()
+            val nombre = usuario?.nombre?.primerNombre.orEmpty()
             Column(
                 Modifier
                     .padding(start = EspacioAmplio, end = EspacioAmplio, top = EspacioHolgado, bottom = EspacioMargen)
@@ -462,7 +473,7 @@ private fun Cabecera(
                 Spacer(Modifier.height(EspacioMicro))
                 Text(
                     if (usuario?.rol == Rol.TUTOR) "Tus estudiantes te esperan." else "¿Qué quieres aprender hoy?",
-                    color = SobreOscuro.copy(alpha = 0.88f),
+                    color = SobreOscuroSuave,
                     style = MaterialTheme.typography.bodyLarge,
                     onTextLayout = layoutPregunta,
                     modifier = modPregunta
@@ -491,11 +502,11 @@ private fun Buscador(alClicar: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 54.dp)
-            .shadow(14.dp, forma, ambientColor = BosqueProfundo.copy(alpha = 0.22f), spotColor = BosqueProfundo.copy(alpha = 0.38f))
+            .shadow(14.dp, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
             .superficiePulsable(forma, etiqueta = "Buscar tutores", alClicar = alClicar)
-            .padding(start = EspacioMargen, end = 7.dp)
+            .padding(start = EspacioMargen, end = EspacioBotonLateral)
     ) {
-        Icon(painterResource(R.drawable.ph_lupa), contentDescription = null, tint = Bosque.copy(alpha = 0.5f), modifier = Modifier.size(20.dp))
+        Icon(painterResource(R.drawable.ph_lupa), contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(EspacioMedio))
         Text(
             "Busca un tutor o una materia",
@@ -536,7 +547,7 @@ private fun AccesoTira(icono: Int, etiqueta: String, accion: String, descripcion
             .padding(horizontal = EspacioCorto, vertical = EspacioCorto)
     ) {
         Icon(painterResource(icono), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(26.dp))
-        Spacer(Modifier.height(5.dp))
+        Spacer(Modifier.height(EspacioIcono))
         Text(
             etiqueta,
             color = BosqueProfundo,
@@ -579,7 +590,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     primera.tutorId?.let { id -> Modifier.pulsable(etiqueta = "Escribir a ${s.conQuien}") { alAbrirChat(id) } } ?: Modifier
                 )
                 .background(TinteBosque, formaFrente)
-                .border(1.dp, BosqueAcento.copy(alpha = 0.14f), formaFrente)
+                .border(1.dp, BordeAcento, formaFrente)
                 .padding(start = EspacioNormal, end = EspacioCercano, top = EspacioCercano, bottom = EspacioMedio)
         ) {
           AnimatedContent(
@@ -670,7 +681,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                             modifier = Modifier
                                 .heightIn(min = 40.dp)
                                 .background(Superficie, FormaBoton)
-                                .padding(horizontal = 15.dp)
+                                .padding(horizontal = EspacioPildora)
                         ) {
                             Icon(painterResource(R.drawable.ph_chat), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(17.dp))
                             Spacer(Modifier.width(EspacioFino))
@@ -695,14 +706,23 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                 resorteCascada(),
                 label = "capa$n"
             )
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            // El área pulsable llega a 48 dp, pero la capa conserva su alto visible (46 o 44 dp)
+            val altoCapa = if (n == 0) 46.dp else 44.dp
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .zIndex(2f - n)
                     .padding(horizontal = (8 * (n + 1)).dp)
                     .fillMaxWidth()
-                    .heightIn(min = if (n == 0) 46.dp else 44.dp)
+                    .areaTactilSinCambiarMedida(altoCapa)
+                    .heightIn(min = 48.dp)
                     .pulsable(etiqueta = "Pasar al frente la sesión de ${p.sesion.materia}") { inicio = (inicio + 1 + n) % proximas.size }
+            ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = altoCapa)
                     .background(fondo, FormaCapaInferior)
                     .padding(start = EspacioCercano, end = EspacioCercano, top = EspacioCercano)
                     .graphicsLayer {
@@ -741,21 +761,16 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     }
                 }
             }
+            }
         }
     }
 }
 
 /* Fechas de las sesiones: los datos vienen como "24 oct"; se muestran como "Sábado 24 de octubre" y "Lun 26". */
-private val mesesCortos = mapOf(
-    "ene" to 1, "feb" to 2, "mar" to 3, "abr" to 4, "may" to 5, "jun" to 6,
-    "jul" to 7, "ago" to 8, "sep" to 9, "sept" to 9, "oct" to 10, "nov" to 11, "dic" to 12
-)
 private val espanol = Locale("es", "CO")
 
 private fun fechaDe(texto: String): LocalDate? {
-    val partes = texto.trim().split(" ")
-    val dia = partes.getOrNull(0)?.toIntOrNull() ?: return null
-    val mes = mesesCortos[partes.getOrNull(1)?.lowercase()?.trimEnd('.')] ?: return null
+    val (dia, mes) = diaYMes(texto) ?: return null
     val hoy = LocalDate.now()
     val fecha = runCatching { LocalDate.of(hoy.year, mes, dia) }.getOrNull() ?: return null
     return if (fecha.isBefore(hoy.minusMonths(6))) fecha.plusYears(1) else fecha
@@ -882,11 +897,11 @@ private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Mo
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 54.dp)
-            .shadow(14.dp, forma, ambientColor = BosqueProfundo.copy(alpha = 0.22f), spotColor = BosqueProfundo.copy(alpha = 0.38f))
+            .shadow(14.dp, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
             .superficiePulsable(forma, etiqueta = "Ver solicitudes recibidas", alClicar = alRevisar)
-            .padding(start = EspacioMargen, end = 7.dp)
+            .padding(start = EspacioMargen, end = EspacioBotonLateral)
     ) {
-        Icon(painterResource(R.drawable.ph_campana), contentDescription = null, tint = Bosque.copy(alpha = 0.5f), modifier = Modifier.size(20.dp))
+        Icon(painterResource(R.drawable.ph_campana), contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(EspacioMedio))
         Text(
             when (cantidad) {

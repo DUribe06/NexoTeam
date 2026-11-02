@@ -6,13 +6,13 @@ import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Solicitud
 import com.grupo3.nexo.domain.repository.AuthRepository
 import com.grupo3.nexo.domain.repository.SolicitudRepository
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Singleton
 class SolicitudRepositoryImpl @Inject constructor(

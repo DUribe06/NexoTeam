@@ -90,6 +90,7 @@ import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.universidadCorta
 import com.grupo3.nexo.ui.navigation.Rutas
+import com.grupo3.nexo.ui.theme.BordeSeleccion
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.EspacioAjustado
@@ -390,7 +391,7 @@ private fun FiltroIcono(texto: String, icono: ImageVector, seleccionado: Boolean
             modifier = Modifier
                 .heightIn(min = 40.dp)
                 .then(
-                    if (seleccionado) Modifier.background(TinteBosque, FormaOpcion).border(1.dp, BosqueAcento.copy(alpha = 0.55f), FormaOpcion)
+                    if (seleccionado) Modifier.background(TinteBosque, FormaOpcion).border(1.dp, BordeSeleccion, FormaOpcion)
                     else Modifier.superficie(FormaOpcion)
                 )
                 .padding(horizontal = EspacioCercano)

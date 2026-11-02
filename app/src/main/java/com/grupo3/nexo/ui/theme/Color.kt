@@ -56,11 +56,28 @@ val RojoSuave = Rojo.copy(alpha = 0.85f)
 val Miel = Color(0xFFD69A1E)
 /** Miel para las estrellas de calificación: 3:1 sobre blanco, sin perder la calidez de Miel. */
 val MielFuerte = Color(0xFFBF8500)
-/** Estrella de calificación sin llenar. */
-val EstrellaVacia = Bosque.copy(alpha = 0.25f)
+/** Estrella de calificación sin llenar: 3,08:1 sobre blanco (mínimo 3:1 para componentes gráficos). */
+val EstrellaVacia = Bosque.copy(alpha = 0.50f)
 val MielOscura = Color(0xFF8A5A00)
 val VerdeEstado = Color(0xFF0D6B43)
 val GrisEstado = Color(0xFF66716B)
+
+/* Alfas que se repiten entre pantallas, con nombre. */
+/** Borde de la opción elegida (modalidad, día, materia, tarjeta de selección). */
+val BordeSeleccion = BosqueAcento.copy(alpha = 0.55f)
+/** Relleno tenue del botón deshabilitado y de los bloques sin acción. */
+val RellenoTenue = Bosque.copy(alpha = 0.07f)
+/** Ícono secundario dentro de un campo o tarjeta (lupa, campana, borrar texto): 3,08:1 sobre blanco. */
+val IconoSecundario = Bosque.copy(alpha = 0.5f)
+/** Contorno del botón de radio sin marcar. */
+val BordeRadio = Bosque.copy(alpha = 0.3f)
+/** Fondo de la fila elegida en las listas de opciones. */
+val TinteFilaElegida = TinteBosque.copy(alpha = 0.5f)
+/** Punto de estado apagado (sin conexión, cancelada). */
+val GrisEstadoSuave = GrisEstado.copy(alpha = 0.6f)
+/** Sombra de las tarjetas elevadas: luz ambiente y luz puntual. */
+val SombraAmbiente = BosqueProfundo.copy(alpha = 0.22f)
+val SombraPuntual = BosqueProfundo.copy(alpha = 0.38f)
 
 /** Gradiente satinado del botón "Vincularse": botones primarios y estados activos. */
 val pincelBosque: Brush

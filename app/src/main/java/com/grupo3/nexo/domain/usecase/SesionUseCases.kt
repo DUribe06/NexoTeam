@@ -9,12 +9,12 @@ import com.grupo3.nexo.domain.model.claveFecha
 import com.grupo3.nexo.domain.repository.AuthRepository
 import com.grupo3.nexo.domain.repository.SesionRepository
 import com.grupo3.nexo.domain.repository.TutorRepository
+import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import javax.inject.Inject
 
 /** Sesiones del modo actual: como estudiante, las tomadas; como tutor, las dadas. */
 class ObtenerSesionesDelModoUseCase @Inject constructor(

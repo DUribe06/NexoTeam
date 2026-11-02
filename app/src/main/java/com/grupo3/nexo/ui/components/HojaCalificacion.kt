@@ -1,11 +1,5 @@
 package com.grupo3.nexo.ui.components
 
-import com.grupo3.nexo.ui.theme.EspacioAjustado
-import com.grupo3.nexo.ui.theme.EspacioAmplio
-import com.grupo3.nexo.ui.theme.EspacioCorto
-import com.grupo3.nexo.ui.theme.EspacioFino
-import com.grupo3.nexo.ui.theme.EspacioHolgado
-import com.grupo3.nexo.ui.theme.EspacioMargen
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -28,10 +22,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -42,9 +36,16 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.domain.model.Sesion
-import com.grupo3.nexo.ui.theme.Bosque
+import com.grupo3.nexo.domain.model.primerNombre
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioHolgado
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EstrellaVacia
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
-import com.grupo3.nexo.ui.theme.Miel
+import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.VerdeEstado
 import com.grupo3.nexo.ui.theme.cambioContenido
@@ -59,7 +60,7 @@ fun HojaCalificacion(sesion: Sesion, esTutor: Boolean, alCerrar: () -> Unit, alE
     var comentario by rememberSaveable { mutableStateOf("") }
 
     HojaNexo(
-        titulo = "¿Cómo te fue con ${sesion.conQuien.substringBefore(' ')}?",
+        titulo = "¿Cómo te fue con ${sesion.conQuien.primerNombre}?",
         subtitulo = "${sesion.materia} · ${formatoFecha(sesion.fecha)}",
         alCerrar = alCerrar
     ) {
@@ -93,7 +94,7 @@ fun HojaCalificacion(sesion: Sesion, esTutor: Boolean, alCerrar: () -> Unit, alE
                     Icon(
                         IconosNexo.Estrella,
                         contentDescription = null,
-                        tint = if (llena) Miel else Bosque.copy(alpha = 0.12f),
+                        tint = if (llena) MielFuerte else EstrellaVacia,
                         modifier = Modifier
                             .size(44.dp)
                             .graphicsLayer {

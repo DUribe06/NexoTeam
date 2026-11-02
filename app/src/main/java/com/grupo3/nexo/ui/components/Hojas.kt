@@ -1,16 +1,5 @@
 package com.grupo3.nexo.ui.components
 
-import com.grupo3.nexo.ui.theme.EspacioAjustado
-import com.grupo3.nexo.ui.theme.SobreOscuro
-import com.grupo3.nexo.ui.theme.EspacioAmplio
-import com.grupo3.nexo.ui.theme.EspacioCercano
-import com.grupo3.nexo.ui.theme.EspacioCorto
-import com.grupo3.nexo.ui.theme.EspacioMargen
-import com.grupo3.nexo.ui.theme.EspacioMedio
-import com.grupo3.nexo.ui.theme.EspacioMinimo
-import com.grupo3.nexo.ui.theme.EspacioNormal
-import com.grupo3.nexo.ui.theme.FormaHoja
-import com.grupo3.nexo.ui.theme.FormaPanel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,11 +32,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
 import com.grupo3.nexo.ui.theme.BordeMarcado
-import com.grupo3.nexo.ui.theme.FormaControl
 import com.grupo3.nexo.ui.theme.BosqueProfundo
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.FormaControl
+import com.grupo3.nexo.ui.theme.FormaHoja
+import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.Menta
 import com.grupo3.nexo.ui.theme.Rojo
+import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
@@ -80,6 +84,13 @@ fun HojaNexo(
             )
         }
     ) {
+        // La hoja es su propia ventana: sin esto, los íconos del sistema salen oscuros sobre la cabecera oscurecida
+        val vista = LocalView.current
+        SideEffect {
+            (vista.parent as? DialogWindowProvider)?.window?.let { ventana ->
+                WindowCompat.getInsetsController(ventana, vista).isAppearanceLightStatusBars = false
+            }
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -118,7 +129,7 @@ fun DialogoConfirmacion(
     AlertDialog(
         onDismissRequest = alCerrar,
         containerColor = Superficie,
-        shape = FormaPanel,
+        shape = FormaOrganica,
         title = { Text(titulo, style = MaterialTheme.typography.headlineSmall, color = TextoPrimario) },
         text = { Text(mensaje, style = MaterialTheme.typography.bodyMedium, color = TextoSecundario) },
         confirmButton = {

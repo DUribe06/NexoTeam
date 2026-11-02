@@ -4,14 +4,14 @@ import com.grupo3.nexo.data.mock.MockData
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.repository.TutorRepository
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Singleton
 class TutorRepositoryImpl @Inject constructor() : TutorRepository {

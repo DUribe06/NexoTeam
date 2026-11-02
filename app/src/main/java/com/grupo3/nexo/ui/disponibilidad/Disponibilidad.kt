@@ -69,7 +69,7 @@ import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.theme.BordeAcento
 import com.grupo3.nexo.ui.theme.BordeMarcado
-import com.grupo3.nexo.ui.theme.Bosque
+import com.grupo3.nexo.ui.theme.BordeRadio
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
@@ -93,6 +93,7 @@ import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoSobreTinte
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
+import com.grupo3.nexo.ui.theme.TinteFilaElegida
 import com.grupo3.nexo.ui.theme.VerdeEstado
 import com.grupo3.nexo.ui.theme.especColor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -292,7 +293,8 @@ private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
         modifier = Modifier
             .areaTactilSinCambiarMedida()
             .height(48.dp)
-            .pulsable(rol = Role.Button, etiqueta = "Editar ${hora.hora}", alClicar = alClicar)
+            // La hora y su estado los anuncia solo la descripción de abajo; la acción dice únicamente "Editar"
+            .pulsable(rol = Role.Button, etiqueta = "Editar", alClicar = alClicar)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -328,14 +330,14 @@ private fun OpcionHora(texto: String, modalidades: Set<Modalidad>, seleccionada:
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .selectable(selected = seleccionada, role = Role.RadioButton, onClick = alClicar)
-            .background(if (seleccionada) TinteBosque.copy(alpha = 0.5f) else Color.Transparent)
+            .background(if (seleccionada) TinteFilaElegida else Color.Transparent)
             .padding(horizontal = EspacioNormal)
     ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(20.dp)
-                .border(if (seleccionada) 2.dp else 1.5.dp, if (seleccionada) BosqueMedio else Bosque.copy(alpha = 0.3f), CircleShape)
+                .border(if (seleccionada) 2.dp else 1.5.dp, if (seleccionada) BosqueMedio else BordeRadio, CircleShape)
         ) {
             if (seleccionada) Box(Modifier.size(9.dp).background(Menta, CircleShape))
         }

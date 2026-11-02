@@ -60,7 +60,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
@@ -99,8 +98,11 @@ import androidx.navigation.NavBackStackEntry
 import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.PLAZO_RESPUESTA_HORAS
+import com.grupo3.nexo.domain.model.diaYMes
+import com.grupo3.nexo.domain.model.mesesCortos
 import com.grupo3.nexo.domain.model.siglasUniversidad
 import com.grupo3.nexo.ui.theme.BordeMarcado
+import com.grupo3.nexo.ui.theme.BordeSeleccion
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.BosqueAcento
@@ -131,6 +133,8 @@ import com.grupo3.nexo.ui.theme.FormaOpcion
 import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.FormaTarjeta
 import com.grupo3.nexo.ui.theme.GrisEstado
+import com.grupo3.nexo.ui.theme.GrisEstadoSuave
+import com.grupo3.nexo.ui.theme.IconoSecundario
 import com.grupo3.nexo.ui.theme.Lienzo
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.Marcador
@@ -142,6 +146,7 @@ import com.grupo3.nexo.ui.theme.MielOscura
 import com.grupo3.nexo.ui.theme.NumeroInsignia
 import com.grupo3.nexo.ui.theme.PuntoDesconectado
 import com.grupo3.nexo.ui.theme.RadioOrganico
+import com.grupo3.nexo.ui.theme.RellenoTenue
 import com.grupo3.nexo.ui.theme.Rojo
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.Superficie
@@ -178,11 +183,12 @@ fun Modifier.superficie(forma: Shape = FormaOrganica): Modifier =
  * Superficie que responde al toque: se hunde levemente (escala 0.98) y muestra la onda
  * de Material recortada a su forma.
  */
+@Composable
 fun Modifier.superficiePulsable(
-    forma: Shape = FormaTarjeta,
+    forma: Shape,
     etiqueta: String? = null,
     alClicar: () -> Unit
-): Modifier = composed {
+): Modifier {
     val interaccion = remember { MutableInteractionSource() }
     val presionado by interaccion.collectIsPressedAsState()
     val reducidas = LocalAnimacionesReducidas.current
@@ -191,7 +197,7 @@ fun Modifier.superficiePulsable(
         resortePresion(),
         label = "escalaTarjeta"
     )
-    this
+    return this
         .graphicsLayer {
             scaleX = escala
             scaleY = escala
@@ -221,17 +227,18 @@ fun Modifier.areaTactilSinCambiarMedida(alto: Dp = 40.dp): Modifier = layout { m
 }
 
 /** Solo escala al presionar; para elementos con fondo propio (avatares, píldoras). */
+@Composable
 fun Modifier.pulsable(
     rol: Role = Role.Button,
     etiqueta: String? = null,
     habilitado: Boolean = true,
     alClicar: () -> Unit
-): Modifier = composed {
+): Modifier {
     val interaccion = remember { MutableInteractionSource() }
     val presionado by interaccion.collectIsPressedAsState()
     val reducidas = LocalAnimacionesReducidas.current
     val escala by animateFloatAsState(if (presionado && !reducidas) EscalaPresionBotonCompacto else 1f, resortePresion(), label = "escala")
-    this
+    return this
         .graphicsLayer {
             scaleX = escala
             scaleY = escala
@@ -282,7 +289,7 @@ fun BotonPrimario(
                 scaleX = escala
                 scaleY = escala
             }
-            .background(if (habilitado) BosqueMedio else Bosque.copy(alpha = 0.07f), FormaControl)
+            .background(if (habilitado) BosqueMedio else RellenoTenue, FormaControl)
             .clip(FormaControl)
             .clickable(
                 interactionSource = interaccion,
@@ -597,7 +604,7 @@ fun Campo(
                 }
                 if (limpiable && valor.isNotEmpty()) {
                     IconButton(onClick = { alCambiar("") }) {
-                        Icon(IconosNexo.Cerrar, contentDescription = "Borrar texto", tint = Bosque.copy(alpha = 0.5f), modifier = Modifier.size(19.dp))
+                        Icon(IconosNexo.Cerrar, contentDescription = "Borrar texto", tint = IconoSecundario, modifier = Modifier.size(19.dp))
                     }
                 }
             }
@@ -622,7 +629,7 @@ fun FiltroOpcion(
     habilitado: Boolean = true
 ) {
     val fondo by animateColorAsState(if (seleccionado) TinteBosque else Superficie, especColor(), label = "fondoOpcion")
-    val borde by animateColorAsState(if (seleccionado) BosqueAcento.copy(alpha = 0.55f) else BordeSutil, especColor(), label = "bordeOpcion")
+    val borde by animateColorAsState(if (seleccionado) BordeSeleccion else BordeSutil, especColor(), label = "bordeOpcion")
     val interaccion = remember { MutableInteractionSource() }
     // La zona de toque sobresale 4 dp arriba y abajo (48 dp) sin que la opción ocupe más sitio ni cambie de tamaño,
     // también con letra grande
@@ -712,7 +719,7 @@ fun InsigniaEstado(estado: EstadoSolicitud, modifier: Modifier = Modifier) {
         EstadoSolicitud.ACEPTADA -> VerdeEstado to Menta
         EstadoSolicitud.RECHAZADA -> Rojo to Rojo
         EstadoSolicitud.FINALIZADA -> TextoSecundario to TextoSecundario
-        EstadoSolicitud.CANCELADA -> GrisEstado to GrisEstado.copy(alpha = 0.6f)
+        EstadoSolicitud.CANCELADA -> GrisEstado to GrisEstadoSuave
     }
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         Box(Modifier.size(7.dp).background(punto, CircleShape))
@@ -837,15 +844,9 @@ fun formatoPrecio(valor: Double): String =
 fun formatoHoras(horas: Double): String =
     if (horas % 1.0 == 0.0) "${horas.toInt()} h" else String.format(localeColombia, "%.1f h", horas)
 
-private val mesesAbreviados = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
-
 /** Fecha corta en español: "24 oct", "30 sept" → "30 sep". Si el texto no es una fecha, se devuelve tal cual. */
-fun formatoFecha(texto: String): String {
-    val partes = texto.trim().split(" ")
-    val dia = partes.getOrNull(0)?.toIntOrNull() ?: return texto
-    val mes = partes.getOrNull(1)?.lowercase()?.trimEnd('.')?.take(3)
-    return if (mes in mesesAbreviados) "$dia $mes" else texto
-}
+fun formatoFecha(texto: String): String =
+    diaYMes(texto)?.let { (dia, mes) -> "$dia ${mesesCortos[mes - 1]}" } ?: texto
 
 /** Plazo de respuesta del dominio, ya escrito para los textos que lo mencionan. */
 val PLAZO_RESPUESTA = formatoHoras(PLAZO_RESPUESTA_HORAS.toDouble())

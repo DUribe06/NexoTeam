@@ -55,6 +55,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -75,6 +76,7 @@ import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Tutor
+import com.grupo3.nexo.domain.model.primerNombre
 import com.grupo3.nexo.domain.usecase.DiaSolicitable
 import com.grupo3.nexo.domain.usecase.EnviarSolicitudUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerResenasUseCase
@@ -115,15 +117,15 @@ import com.grupo3.nexo.ui.components.VeloBarraEstado
 import com.grupo3.nexo.ui.components.aparicion
 import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.enumerar
-import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.components.formatoPrecio
 import com.grupo3.nexo.ui.components.formatoValoracion
 import com.grupo3.nexo.ui.components.icono
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
+import com.grupo3.nexo.ui.theme.BordeRadio
+import com.grupo3.nexo.ui.theme.BordeSeleccion
 import com.grupo3.nexo.ui.theme.BordeSutil
-import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
@@ -138,14 +140,16 @@ import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EspacioPortada
 import com.grupo3.nexo.ui.theme.EspacioSuelto
 import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.FormaMinima
 import com.grupo3.nexo.ui.theme.FormaOpcion
 import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.GrisEstado
+import com.grupo3.nexo.ui.theme.GrisEstadoSuave
 import com.grupo3.nexo.ui.theme.Menta
-import com.grupo3.nexo.ui.theme.Miel
+import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.Rojo
 import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.SuperficieClara
@@ -153,6 +157,7 @@ import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
+import com.grupo3.nexo.ui.theme.TinteFilaElegida
 import com.grupo3.nexo.ui.theme.VerdeEstado
 import com.grupo3.nexo.ui.theme.especColor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -171,6 +176,12 @@ import kotlinx.coroutines.launch
 
 /* ==================== ViewModel ==================== */
 
+/** Confirmaciones que el ViewModel anuncia; el texto lo pone la pantalla. */
+sealed interface AvisoPerfil {
+    data class SolicitudEnviada(val tutor: String) : AvisoPerfil
+    data object ReporteEnviado : AvisoPerfil
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TutorPerfilViewModel @Inject constructor(
@@ -184,7 +195,7 @@ class TutorPerfilViewModel @Inject constructor(
     data class Estado(
         val tutor: Tutor? = null,
         val resenas: List<Resena> = emptyList(),
-        val aviso: String? = null,
+        val aviso: AvisoPerfil? = null,
         /** true hasta que llega la primera respuesta del tutor. */
         val cargando: Boolean = true,
         val noEncontrado: Boolean = false,
@@ -193,7 +204,7 @@ class TutorPerfilViewModel @Inject constructor(
     )
 
     private val tutorId = MutableStateFlow("")
-    private val aviso = MutableStateFlow<String?>(null)
+    private val aviso = MutableStateFlow<AvisoPerfil?>(null)
 
     private val tutor: Flow<Tutor?> = tutorId.flatMapLatest { id ->
         if (id.isEmpty()) emptyFlow() else obtenerTutor(id)
@@ -214,7 +225,7 @@ class TutorPerfilViewModel @Inject constructor(
         val t = estado.value.tutor ?: return
         viewModelScope.launch {
             enviarSolicitud(t, datos.materia, datos.tema, datos.fecha, datos.hora, datos.modalidad, datos.mensaje)
-            aviso.value = "Solicitud enviada. ${t.nombre.substringBefore(' ')} tiene $PLAZO_RESPUESTA para responder."
+            aviso.value = AvisoPerfil.SolicitudEnviada(t.nombre.primerNombre)
         }
     }
 
@@ -222,7 +233,7 @@ class TutorPerfilViewModel @Inject constructor(
         val t = estado.value.tutor ?: return
         viewModelScope.launch {
             reportarTutor(t.id, motivo)
-            aviso.value = "Reporte enviado. Gracias por cuidar la comunidad."
+            aviso.value = AvisoPerfil.ReporteEnviado
         }
     }
 
@@ -252,11 +263,17 @@ fun PantallaTutorPerfil(
     val tutor = estado.tutor
 
     var mostrarSolicitud by rememberSaveable { mutableStateOf(false) }
+    // Alto real de la barra de acciones, para que el aviso nunca quede debajo de ella
+    var altoBarra by remember { mutableIntStateOf(0) }
     var mostrarReporte by rememberSaveable { mutableStateOf(false) }
     val avisos = remember { SnackbarHostState() }
 
     LaunchedEffect(estado.aviso) {
-        val texto = estado.aviso ?: return@LaunchedEffect
+        val texto = when (val aviso = estado.aviso) {
+            is AvisoPerfil.SolicitudEnviada -> "Solicitud enviada. ${aviso.tutor} tiene $PLAZO_RESPUESTA para responder."
+            AvisoPerfil.ReporteEnviado -> "Reporte enviado. Gracias por cuidar la comunidad."
+            null -> return@LaunchedEffect
+        }
         avisos.showSnackbar(texto)
         viewModel.descartarAviso()
     }
@@ -317,7 +334,7 @@ fun PantallaTutorPerfil(
                                 .padding(top = EspacioSuelto)
                                 .aparicion(2, iniciado)
                         ) {
-                            EncabezadoSeccion("Sobre ${tutor.nombre.substringBefore(' ')}")
+                            EncabezadoSeccion("Sobre ${tutor.nombre.primerNombre}")
                             Text(tutor.bio, color = TextoSecundario, style = MaterialTheme.typography.bodyLarge)
                             Spacer(Modifier.height(EspacioSuelto))
                             RotuloGrupo("Enseña")
@@ -373,13 +390,13 @@ fun PantallaTutorPerfil(
                             EstadoVacio(
                                 icono = IconosNexo.Resena,
                                 titulo = "Aún sin reseñas",
-                                mensaje = if (estado.esTutor) "Aún nadie ha calificado a ${tutor.nombre.substringBefore(' ')}."
-                                else "Tras tu sesión podrás calificar a ${tutor.nombre.substringBefore(' ')}.",
+                                mensaje = if (estado.esTutor) "Aún nadie ha calificado a ${tutor.nombre.primerNombre}."
+                                else "Tras tu sesión podrás calificar a ${tutor.nombre.primerNombre}.",
                                 accion = if (tutor.horario.isNotEmpty() && !estado.esTutor) "Solicitar tutoría" else null,
                                 alAccion = { mostrarSolicitud = true }
                             )
                         }
-                        Carga.LISTO -> items(estado.resenas, key = { it.autor + it.fecha }) { resena ->
+                        Carga.LISTO -> items(estado.resenas, key = { it.id }) { resena ->
                             TarjetaResena(
                                 resena = resena,
                                 modifier = Modifier
@@ -393,7 +410,8 @@ fun PantallaTutorPerfil(
                 if (!estado.esTutor) {
                     BarraAcciones(
                         tutor = tutor,
-                        alSolicitar = { mostrarSolicitud = true }
+                        alSolicitar = { mostrarSolicitud = true },
+                        modifier = Modifier.onSizeChanged { altoBarra = it.height }
                     )
                 }
             }
@@ -413,8 +431,11 @@ fun PantallaTutorPerfil(
                 avisos,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = if (estado.esTutor) 0.dp else 92.dp)
+                    // Sobre la barra de acciones según su alto real (crece al apilarse con letra grande)
+                    .then(
+                        if (estado.esTutor) Modifier.navigationBarsPadding()
+                        else Modifier.padding(bottom = with(LocalDensity.current) { altoBarra.toDp() } + EspacioMedio)
+                    )
             )
         }
     }
@@ -457,7 +478,7 @@ private fun Portada(alVolver: () -> Unit, alReportar: (() -> Unit)?) {
                 Spacer(Modifier.weight(1f))
                 if (alReportar != null) BotonIcono(IconosNexo.Bandera, "Reportar tutor", alReportar, sobreOscuro = true)
             }
-            Spacer(Modifier.height(72.dp))
+            Spacer(Modifier.height(EspacioPortada))
         }
         Onda(
             Fondo,
@@ -548,7 +569,7 @@ private fun Identidad(tutor: Tutor, modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(vertical = EspacioMinimo)
         ) {
-            Box(Modifier.size(EspacioFino).background(if (enLinea) Menta else GrisEstado.copy(alpha = 0.6f), CircleShape))
+            Box(Modifier.size(EspacioFino).background(if (enLinea) Menta else GrisEstadoSuave, CircleShape))
             Spacer(Modifier.width(EspacioFino))
             Text(
                 if (enLinea) "En línea" else "Desconectado",
@@ -603,7 +624,7 @@ private fun Cifra(
     val cifra: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (conEstrella) {
-                Icon(IconosNexo.Estrella, contentDescription = null, tint = Miel, modifier = Modifier.size(16.dp))
+                Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(EspacioMinimo))
             }
             Text(valor, color = TextoPrimario, style = MaterialTheme.typography.titleLarge.merge(CifrasTabulares))
@@ -664,7 +685,7 @@ private fun TarjetaResena(resena: Resena, modifier: Modifier = Modifier) {
 
 /** Barra fija inferior: tarifa a la izquierda, mensaje y la acción principal. */
 @Composable
-private fun BarraAcciones(tutor: Tutor, alSolicitar: () -> Unit) {
+private fun BarraAcciones(tutor: Tutor, alSolicitar: () -> Unit, modifier: Modifier = Modifier) {
     // Con letra muy grande el botón no cabe junto al precio: se apila debajo para no cortar el texto
     val apilar = LocalDensity.current.fontScale > 1.3f
     val precio: @Composable () -> Unit = {
@@ -677,7 +698,7 @@ private fun BarraAcciones(tutor: Tutor, alSolicitar: () -> Unit) {
             Text("por hora", color = TextoTercero, style = MaterialTheme.typography.bodySmall)
         }
     }
-    val margen = Modifier
+    val margen = modifier
         .fillMaxWidth()
         .background(Superficie)
         .drawBehind { drawLine(Divisor, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
@@ -784,7 +805,7 @@ private fun HojaSolicitud(
 
         if (dias.isEmpty()) {
             Text(
-                "${tutor.nombre.substringBefore(' ')} no tiene horarios publicados por ahora.",
+                "${tutor.nombre.primerNombre} no tiene horarios publicados por ahora.",
                 color = TextoSecundario,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = EspacioMargen)
@@ -857,7 +878,7 @@ private fun HojaSolicitud(
             modifier = Modifier.fillMaxWidth()
         )
         Text(
-            "${tutor.nombre.substringBefore(' ')} tiene $PLAZO_RESPUESTA para aceptar o rechazar. Si acepta, se habilita el chat.",
+            "${tutor.nombre.primerNombre} tiene $PLAZO_RESPUESTA para aceptar o rechazar. Si acepta, se habilita el chat.",
             color = TextoTercero,
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
@@ -878,7 +899,7 @@ private fun OpcionModalidad(
     modifier: Modifier = Modifier
 ) {
     val fondo by animateColorAsState(if (seleccionada) TinteBosque else Superficie, especColor(), label = "fondoModalidad")
-    val borde by animateColorAsState(if (seleccionada) BosqueAcento.copy(alpha = 0.55f) else BordeSutil, especColor(), label = "bordeModalidad")
+    val borde by animateColorAsState(if (seleccionada) BordeSeleccion else BordeSutil, especColor(), label = "bordeModalidad")
     Row(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
@@ -959,8 +980,6 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
                 Text(m.etiqueta, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.width(EspacioCercano))
             }
-            Spacer(Modifier.weight(1f))
-            Text("Sesiones de ${formatoHoras(1.0)}", color = TextoTercero, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -970,7 +989,7 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
 private fun SelectorDia(dia: String, fecha: String, seleccionado: Boolean, alClicar: () -> Unit) {
     val (numero, mes) = fecha.split(" ").let { it[0] to it.getOrElse(1) { "" } }
     val fondo by animateColorAsState(if (seleccionado) TinteBosque else Superficie, especColor(), label = "fondoDia")
-    val borde by animateColorAsState(if (seleccionado) BosqueAcento.copy(alpha = 0.55f) else BordeSutil, especColor(), label = "bordeDia")
+    val borde by animateColorAsState(if (seleccionado) BordeSeleccion else BordeSutil, especColor(), label = "bordeDia")
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -998,8 +1017,8 @@ private fun HojaReporte(nombre: String, alCerrar: () -> Unit, alEnviar: (String)
     var motivo by rememberSaveable { mutableStateOf<String?>(null) }
 
     HojaNexo(
-        titulo = "Reportar a ${nombre.substringBefore(' ')}",
-        subtitulo = "Cuéntanos qué ocurrió. Un administrador revisará el caso; ${nombre.substringBefore(' ')} no sabrá quién lo reportó.",
+        titulo = "Reportar a ${nombre.primerNombre}",
+        subtitulo = "Cuéntanos qué ocurrió. Un administrador revisará el caso; ${nombre.primerNombre} no sabrá quién lo reportó.",
         alCerrar = alCerrar
     ) {
         Spacer(Modifier.height(EspacioNormal))
@@ -1027,14 +1046,14 @@ private fun HojaReporte(nombre: String, alCerrar: () -> Unit, alEnviar: (String)
 /** Opción de radio del sistema de diseño: anillo bosque con punto menta (DESIGN.md). */
 @Composable
 private fun OpcionRadio(texto: String, seleccionada: Boolean, alClicar: () -> Unit) {
-    val borde by animateColorAsState(if (seleccionada) BosqueMedio else Bosque.copy(alpha = 0.3f), especColor(), label = "radio")
+    val borde by animateColorAsState(if (seleccionada) BosqueMedio else BordeRadio, especColor(), label = "radio")
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .selectable(selected = seleccionada, role = Role.RadioButton, onClick = alClicar)
-            .background(if (seleccionada) TinteBosque.copy(alpha = 0.5f) else Color.Transparent)
+            .background(if (seleccionada) TinteFilaElegida else Color.Transparent)
             .padding(horizontal = EspacioNormal)
     ) {
         Box(

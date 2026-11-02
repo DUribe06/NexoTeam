@@ -3,8 +3,8 @@ package com.grupo3.nexo.ui.theme
 import android.provider.Settings
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.RepeatMode
@@ -88,8 +88,12 @@ fun especPulso(): InfiniteRepeatableSpec<Float> =
 fun cambioContenido(): ContentTransform =
     fadeIn(especFundidoEntrada()) togetherWith fadeOut(especFundidoSalida())
 
+/** Escala de animación del sistema (0 = apagada) a partir de la cual se consideran reducidas. */
+private const val UmbralEscalaReducida = 0.1f
+
 /**
- * Vale true si el usuario puso en 0 la escala de animaciones del sistema.
+ * Vale true si el usuario apagó la escala de animaciones del sistema o la dejó tan baja
+ * (hasta [UmbralEscalaReducida]) que el movimiento ya no se percibe.
  * Lo provee NexoTema.
  */
 val LocalAnimacionesReducidas = staticCompositionLocalOf { false }
@@ -100,7 +104,7 @@ internal fun leerAnimacionesReducidas(): Boolean {
     val resolver = LocalContext.current.contentResolver
     val leer = {
         runCatching {
-            Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+            Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) <= UmbralEscalaReducida
         }.getOrDefault(false)
     }
     var reducidas by remember(resolver) { mutableStateOf(leer()) }

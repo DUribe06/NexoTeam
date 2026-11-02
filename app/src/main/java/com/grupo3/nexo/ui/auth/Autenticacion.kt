@@ -136,6 +136,7 @@ import com.grupo3.nexo.ui.theme.FormaAmplia
 import com.grupo3.nexo.ui.theme.InstrumentSans
 import com.grupo3.nexo.ui.theme.Lienzo
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
+import com.grupo3.nexo.ui.theme.Marcador
 import com.grupo3.nexo.ui.theme.MarcadorCampo
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.Superficie
@@ -613,7 +614,7 @@ private fun CampoPildora(
                 Spacer(Modifier.width(EspacioMedio))
                 Box(Modifier.weight(1f)) {
                     if (valor.isEmpty()) {
-                        Text(marcador, color = Bosque.copy(alpha = 0.50f), style = LocalTextStyle.current.merge(MarcadorCampo))
+                        Text(marcador, color = Marcador, style = LocalTextStyle.current.merge(MarcadorCampo))
                     }
                     campo()
                 }
@@ -742,7 +743,7 @@ private fun SeparadorSocial(modifier: Modifier = Modifier) {
         Box(Modifier.width(52.dp).height(1.dp).background(Bosque.copy(alpha = 0.15f)))
         Text(
             "O CONÉCTATE CON",
-            color = Bosque.copy(alpha = 0.55f),
+            color = Marcador,
             style = LocalTextStyle.current.merge(EtiquetaSeparador),
             modifier = Modifier.padding(horizontal = EspacioMedio)
         )

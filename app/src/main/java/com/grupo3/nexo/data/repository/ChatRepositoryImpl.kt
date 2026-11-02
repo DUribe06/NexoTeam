@@ -4,14 +4,14 @@ import com.grupo3.nexo.data.mock.MockData
 import com.grupo3.nexo.domain.model.Chat
 import com.grupo3.nexo.domain.model.Mensaje
 import com.grupo3.nexo.domain.repository.ChatRepository
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Singleton
 class ChatRepositoryImpl @Inject constructor() : ChatRepository {

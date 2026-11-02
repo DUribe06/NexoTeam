@@ -86,7 +86,11 @@ data class Tutor(
     val modalidades: Set<Modalidad> get() = horario.flatMapTo(mutableSetOf()) { it.modalidades }
 }
 
+/** Primer nombre de un nombre completo ("Laura Gómez" -> "Laura"). */
+val String.primerNombre: String get() = substringBefore(' ')
+
 data class Resena(
+    val id: String,
     val tutorId: String,
     val autor: String,
     val handleAutor: String,
@@ -113,16 +117,25 @@ data class Solicitud(
     val motivoRechazo: String? = null
 )
 
-private val mesesCortos = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+val mesesCortos = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+
+/**
+ * Único lector de las fechas cortas de los datos ("24 oct", "30 sept."): devuelve día y mes (1–12),
+ * o null si el texto no es una fecha.
+ */
+fun diaYMes(fecha: String): Pair<Int, Int>? {
+    val partes = fecha.trim().split(" ")
+    val dia = partes.getOrNull(0)?.toIntOrNull() ?: return null
+    val mes = mesesCortos.indexOf(partes.getOrNull(1)?.lowercase()?.trimEnd('.')?.take(3)) + 1
+    return if (mes > 0) dia to mes else null
+}
 
 /**
  * Clave para ordenar fechas cortas como "24 oct" o "30 sept" y horas "HH:mm" del mismo año académico.
  * Los meses anteriores a julio se cuentan como del año siguiente (el semestre cruza el año).
  */
 fun claveFecha(fecha: String, hora: String = "00:00"): Int {
-    val partes = fecha.trim().split(" ")
-    val dia = partes.getOrNull(0)?.toIntOrNull() ?: 0
-    val mes = mesesCortos.indexOfFirst { partes.getOrNull(1)?.lowercase()?.startsWith(it) == true } + 1
+    val (dia, mes) = diaYMes(fecha) ?: (0 to 0)
     val anio = if (mes in 1..6) 1 else 0
     val minutos = hora.split(":").let { (it.getOrNull(0)?.toIntOrNull() ?: 0) * 60 + (it.getOrNull(1)?.toIntOrNull() ?: 0) }
     return ((anio * 12 + mes) * 32 + dia) * 1440 + minutos
@@ -190,6 +203,15 @@ data class DiaDisponibilidad(
     val dia: String,
     val horas: List<HoraDisponible>
 )
+
+/** Horas que el tutor tiene publicadas en la semana. */
+val List<DiaDisponibilidad>.horasPublicadas: Int
+    get() = sumOf { d -> d.horas.count { it.seleccionada } }
+
+/** Días de la semana que tienen al menos una hora publicada, en orden de calendario. */
+val List<DiaDisponibilidad>.diasPublicados: List<DiaSemana>
+    get() = filter { d -> d.horas.any { it.seleccionada } }
+        .mapNotNull { d -> DiaSemana.entries.firstOrNull { it.nombre == d.dia } }
 
 data class Usuario(
     val id: String,

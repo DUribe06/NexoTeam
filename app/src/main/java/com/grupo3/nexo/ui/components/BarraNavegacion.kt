@@ -61,9 +61,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.R
 import com.grupo3.nexo.ui.navigation.Rutas
-import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
+import com.grupo3.nexo.ui.theme.RellenoTenue
 import com.grupo3.nexo.ui.theme.Salvia
 import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TrazoEslabon
@@ -472,7 +472,7 @@ fun BarraNavegacion(
                     close()
                 }
                 drawIntoCanvas { it.nativeCanvas.drawPath(relleno.asAndroidPath(), pinturaFondo) }
-                drawPath(borde, Bosque.copy(alpha = 0.07f), style = Stroke(width = 1.dp.toPx()))
+                drawPath(borde, RellenoTenue, style = Stroke(width = 1.dp.toPx()))
             }
 
             // La liga: una curva suave que pasa por los puntos de la cuerda. Nace centrada en la cara cortada de cada

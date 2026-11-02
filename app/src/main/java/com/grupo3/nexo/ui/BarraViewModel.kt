@@ -3,13 +3,13 @@ package com.grupo3.nexo.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.model.EstadoSolicitud
+import com.grupo3.nexo.domain.usecase.ObtenerChatsUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerMisSolicitudesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import com.grupo3.nexo.domain.usecase.ObtenerChatsUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerMisSolicitudesUseCase
-import javax.inject.Inject
 
 /**
  * Suministra los contadores de insignias de la barra de navegación

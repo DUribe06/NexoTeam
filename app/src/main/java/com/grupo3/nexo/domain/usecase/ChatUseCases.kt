@@ -2,14 +2,14 @@ package com.grupo3.nexo.domain.usecase
 
 import com.grupo3.nexo.domain.model.Chat
 import com.grupo3.nexo.domain.model.Mensaje
-import com.grupo3.nexo.domain.repository.ChatRepository
-import kotlinx.coroutines.flow.Flow
 import com.grupo3.nexo.domain.model.Rol
-import com.grupo3.nexo.domain.repository.AuthRepository
 import com.grupo3.nexo.domain.model.Solicitud
+import com.grupo3.nexo.domain.repository.AuthRepository
+import com.grupo3.nexo.domain.repository.ChatRepository
+import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import javax.inject.Inject
 
 /** Devuelve la bandeja de conversaciones. */
 class ObtenerChatsUseCase @Inject constructor(

@@ -6,10 +6,10 @@ import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.repository.TutorRepository
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /** Devuelve el catálogo completo de tutores. */
 class ObtenerTutoresUseCase @Inject constructor(

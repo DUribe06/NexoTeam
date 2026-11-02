@@ -3,18 +3,19 @@ package com.grupo3.nexo.data.repository
 import com.grupo3.nexo.data.mock.MockData
 import com.grupo3.nexo.domain.model.EstadoSesion
 import com.grupo3.nexo.domain.model.Resena
-import com.grupo3.nexo.domain.model.Solicitud
 import com.grupo3.nexo.domain.model.Sesion
+import com.grupo3.nexo.domain.model.Solicitud
 import com.grupo3.nexo.domain.repository.AuthRepository
 import com.grupo3.nexo.domain.repository.SesionRepository
 import com.grupo3.nexo.domain.repository.TutorRepository
+import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Singleton
 class SesionRepositoryImpl @Inject constructor(
@@ -62,7 +63,7 @@ class SesionRepositoryImpl @Inject constructor(
         if (!sesion.comoTutor) {
             val autor = authRepository.usuarioActual.value
             tutorRepository.agregarResena(
-                Resena(sesion.contraparteId, autor.nombre, autor.handle, texto.orEmpty(), estrellas, "ahora")
+                Resena(UUID.randomUUID().toString(), sesion.contraparteId, autor.nombre, autor.handle, texto.orEmpty(), estrellas, "ahora")
             )
         }
     }

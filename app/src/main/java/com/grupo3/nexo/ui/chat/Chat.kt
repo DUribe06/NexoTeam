@@ -46,6 +46,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -91,7 +92,6 @@ import com.grupo3.nexo.ui.components.filaAgrupada
 import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
-import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
@@ -100,16 +100,19 @@ import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioCercano
 import com.grupo3.nexo.ui.theme.EspacioCorto
 import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioIcono
 import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EspacioRozante
 import com.grupo3.nexo.ui.theme.EspacioSuelto
 import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.FormaControl
 import com.grupo3.nexo.ui.theme.FormaOpcion
 import com.grupo3.nexo.ui.theme.Menta
-import com.grupo3.nexo.ui.theme.Miel
+import com.grupo3.nexo.ui.theme.MielFuerte
+import com.grupo3.nexo.ui.theme.RellenoTenue
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TextoPrimario
@@ -297,7 +300,7 @@ private fun FilaChat(chat: Chat, alAbrir: () -> Unit, modifier: Modifier = Modif
                     )
                 )
             }
-            Spacer(Modifier.height(3.dp))
+            Spacer(Modifier.height(EspacioRozante))
             if (chat.soloLectura) {
                 Text("Sesión finalizada · solo lectura", color = TextoTercero, style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(1.dp))
@@ -415,11 +418,11 @@ fun PantallaConversacion(
             Avatar(estado.nombre.ifBlank { "Nexo" }, tamano = 42.dp, enLinea = estado.enLinea)
             Spacer(Modifier.width(EspacioMedio))
             Column(Modifier.weight(1f)) {
-                TextoLinea(estado.nombre, MaterialTheme.typography.titleMedium, TextoPrimario)
+                TextoLinea(estado.nombre, MaterialTheme.typography.titleMedium, TextoPrimario, Modifier.semantics { heading() })
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (estado.enLinea) {
                         Box(Modifier.size(7.dp).background(Menta, CircleShape))
-                        Spacer(Modifier.width(5.dp))
+                        Spacer(Modifier.width(EspacioIcono))
                     }
                     Text(
                         if (estado.enLinea) "En línea" else "Desconectado",
@@ -534,7 +537,7 @@ fun PantallaConversacion(
                     .pulsable(habilitado = puedeEnviar) { enviar(texto) }
                     .then(
                         if (puedeEnviar) Modifier.background(BosqueMedio, FormaControl)
-                        else Modifier.background(Bosque.copy(alpha = 0.07f), FormaControl)
+                        else Modifier.background(RellenoTenue, FormaControl)
                     )
                     .semantics { contentDescription = "Enviar mensaje" }
             ) {
@@ -640,7 +643,7 @@ private fun AvisoSoloLectura(nota: Int? = null, motivo: String = "La sesión ter
                 ) {
                     Text("Calificaste", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.width(EspacioMinimo))
-                    Icon(IconosNexo.Estrella, contentDescription = null, tint = Miel, modifier = Modifier.size(14.dp))
+                    Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(14.dp))
                     Text("$nota", color = TextoSecundario, style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares))
                 }
             }
@@ -681,7 +684,7 @@ private fun PieSesionTerminada(sesion: Sesion?, alCalificar: () -> Unit) {
         Spacer(Modifier.width(EspacioMedio))
         BotonSecundario(
             "Calificar", alCalificar,
-            icono = IconosNexo.Estrella, compacto = true, colorIcono = Miel, alto = 48.dp,
+            icono = IconosNexo.Estrella, compacto = true, colorIcono = MielFuerte, alto = 48.dp,
             descripcion = "Calificar a ${sesion.conQuien}, ${sesion.materia}"
         )
     }

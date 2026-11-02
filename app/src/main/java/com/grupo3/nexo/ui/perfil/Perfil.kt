@@ -118,7 +118,7 @@ import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.FormaBoton
 import com.grupo3.nexo.ui.theme.FormaCampoAlto
 import com.grupo3.nexo.ui.theme.FormaOrganica
-import com.grupo3.nexo.ui.theme.Miel
+import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.RojoSuave
 import com.grupo3.nexo.ui.theme.Salvia
 import com.grupo3.nexo.ui.theme.SobreOscuro
@@ -435,7 +435,7 @@ private fun ValorCifra(valor: String, conEstrella: Boolean) {
         )
         if (conEstrella) {
             Spacer(Modifier.width(EspacioMinimo))
-            Icon(IconosNexo.Estrella, contentDescription = null, tint = Miel, modifier = Modifier.size(18.dp))
+            Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -480,7 +480,7 @@ private fun BloqueTutor(
             Carga.VACIO -> EstadoVacio(
                 icono = IconosNexo.Resena,
                 titulo = "Aún sin reseñas",
-                mensaje = "Aparecerán aquí cuando los estudiantes califiquen tus tutorías.",
+                mensaje = "Aparecerán aquí cuando los estudiantes califiquen tus sesiones.",
                 accion = "Ver mi historial",
                 alAccion = alVerTodas
             )
@@ -561,7 +561,7 @@ private fun AvisoPorCalificar(cantidad: Int, alCalificar: () -> Unit, modifier: 
             .clickable(role = Role.Button, onClickLabel = "Calificar sesiones", onClick = alCalificar)
             .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioCercano, bottom = EspacioCercano)
     ) {
-        Icon(IconosNexo.Estrella, contentDescription = null, tint = Miel, modifier = Modifier.size(22.dp))
+        Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
             Text(

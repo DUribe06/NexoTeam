@@ -51,6 +51,7 @@ import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Solicitud
+import com.grupo3.nexo.domain.model.primerNombre
 import com.grupo3.nexo.domain.usecase.AbrirChatDeSolicitudUseCase
 import com.grupo3.nexo.domain.usecase.ActualizarSolicitudUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerMisSolicitudesUseCase
@@ -90,10 +91,12 @@ import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioCercano
 import com.grupo3.nexo.ui.theme.EspacioCorto
 import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioIcono
 import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EspacioPildora
 import com.grupo3.nexo.ui.theme.EtiquetaBoton
 import com.grupo3.nexo.ui.theme.FormaBoton
 import com.grupo3.nexo.ui.theme.FormaOrganica
@@ -244,7 +247,7 @@ fun PantallaSolicitudes(
                                 esTutor = estado.esTutor,
                                 alAceptar = {
                                     viewModel.aceptar(solicitud.id)
-                                    avisar("Tutoría con ${solicitud.nombreEstudiante.substringBefore(' ')} confirmada")
+                                    avisar("Sesión con ${solicitud.nombreEstudiante.primerNombre} confirmada")
                                 },
                                 alRechazar = { porRechazar = solicitud },
                                 alCancelar = { porCancelar = solicitud },
@@ -273,7 +276,7 @@ fun PantallaSolicitudes(
             alConfirmar = { motivo ->
                 viewModel.rechazar(s.id, motivo)
                 porRechazar = null
-                avisar("Solicitud rechazada. Le avisaremos a ${s.nombreEstudiante.substringBefore(' ')}")
+                avisar("Solicitud rechazada. Le avisaremos a ${s.nombreEstudiante.primerNombre}")
             }
         )
     }
@@ -281,14 +284,14 @@ fun PantallaSolicitudes(
     porCancelar?.let { s ->
         val aceptada = s.estado == EstadoSolicitud.ACEPTADA
         DialogoConfirmacion(
-            titulo = if (aceptada) "¿Cancelar la tutoría?" else "¿Cancelar la solicitud?",
+            titulo = if (aceptada) "¿Cancelar la sesión?" else "¿Cancelar la solicitud?",
             mensaje = if (aceptada) "Le avisaremos a ${s.nombreTutor} que no asistirás el ${formatoFecha(s.fecha)} a las ${s.hora}."
             else "${s.nombreTutor} ya no verá esta solicitud.",
-            confirmar = if (aceptada) "Cancelar tutoría" else "Cancelar solicitud",
+            confirmar = if (aceptada) "Cancelar sesión" else "Cancelar solicitud",
             alConfirmar = {
                 viewModel.cancelar(s.id)
                 porCancelar = null
-                avisar(if (aceptada) "Tutoría cancelada" else "Solicitud cancelada")
+                avisar(if (aceptada) "Sesión cancelada" else "Solicitud cancelada")
             },
             alCerrar = { porCancelar = null }
         )
@@ -424,7 +427,7 @@ private fun BotonAbrirChat(alClicar: () -> Unit) {
             modifier = Modifier
                 .heightIn(min = 40.dp)
                 .background(TinteBosque, FormaBoton)
-                .padding(horizontal = 15.dp)
+                .padding(horizontal = EspacioPildora)
         ) {
             Icon(IconosNexo.Chat, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(17.dp))
             Spacer(Modifier.width(EspacioFino))
@@ -450,7 +453,7 @@ private fun AvisoPlazo(texto: String, modifier: Modifier = Modifier, conAire: Bo
 private fun Dato(icono: ImageVector, texto: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(15.dp))
-        Spacer(Modifier.width(5.dp))
+        Spacer(Modifier.width(EspacioIcono))
         val estilo = MaterialTheme.typography.bodyMedium
         Text(texto, color = BosqueProfundo, style = remember(estilo) { estilo.copy(fontWeight = FontWeight.Medium).merge(CifrasTabulares) })
     }
@@ -469,7 +472,7 @@ private fun HojaRechazo(solicitud: Solicitud, alCerrar: () -> Unit, alConfirmar:
     var motivo by rememberSaveable { mutableStateOf("") }
     HojaNexo(
         titulo = "Rechazar solicitud",
-        subtitulo = "${solicitud.nombreEstudiante} · ${solicitud.materia} · ${formatoFecha(solicitud.fecha)}, ${solicitud.hora}. A ${solicitud.nombreEstudiante.substringBefore(' ')} le sugeriremos otros tutores de ${solicitud.materia}.",
+        subtitulo = "${solicitud.nombreEstudiante} · ${solicitud.materia} · ${formatoFecha(solicitud.fecha)}, ${solicitud.hora}. A ${solicitud.nombreEstudiante.primerNombre} le sugeriremos otros tutores de ${solicitud.materia}.",
         alCerrar = alCerrar
     ) {
         RotuloGrupo("Motivo (opcional)", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))

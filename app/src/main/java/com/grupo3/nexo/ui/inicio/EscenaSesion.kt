@@ -2,11 +2,6 @@ package com.grupo3.nexo.ui.inicio
 
 import android.content.pm.ApplicationInfo
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -31,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -65,6 +61,9 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.CalCelda
 import com.grupo3.nexo.ui.theme.CalCuerpo
@@ -789,11 +788,20 @@ fun BarraSesion(haySesiones: Boolean, esTutor: Boolean = false, modifier: Modifi
     val revision = remember(contexto) { contexto.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0 }
     // Con letra grande el texto necesita más líneas y la franja crece; la escena conserva su alto
     val letraGrande = LocalDensity.current.fontScale > 1f
-    val reloj = rememberInfiniteTransition(label = "barraSesion")
-    // Un reloj de 20 minutos: el reinicio llega tan tarde que no se nota
-    val tiempo = reloj.animateFloat(
-        0f, 1200f, infiniteRepeatable(tween(1_200_000, easing = LinearEasing), RepeatMode.Restart), label = "t"
-    )
+    // Un reloj de 20 minutos (en segundos): el reinicio llega tan tarde que no se nota. Solo corre con
+    // animaciones activas y la app a la vista; si se detiene, conserva el último instante
+    val enPantalla = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.STARTED)
+    val corre = movimiento && enPantalla
+    val tiempo = produceState(0f, corre) {
+        if (!corre) return@produceState
+        var anterior = withFrameNanos { it }
+        while (true) {
+            withFrameNanos { ahora ->
+                value = (value + (ahora - anterior) / 1_000_000_000f) % 1200f
+                anterior = ahora
+            }
+        }
+    }
     // El PIN de la nube (de muestra: aún no hay datos reales)
     val medidor = rememberTextMeasurer()
     val estiloPin = MaterialTheme.typography.titleSmall.copy(color = TextoPrimario, letterSpacing = 2.sp)

@@ -1,18 +1,5 @@
 package com.grupo3.nexo.ui.components
 
-import com.grupo3.nexo.ui.theme.EspacioAjustado
-import com.grupo3.nexo.ui.theme.SobreOscuro
-import com.grupo3.nexo.ui.theme.Superficie
-import com.grupo3.nexo.ui.theme.EspacioCercano
-import com.grupo3.nexo.ui.theme.EspacioCorto
-import com.grupo3.nexo.ui.theme.EspacioFino
-import com.grupo3.nexo.ui.theme.EspacioNormal
-import com.grupo3.nexo.ui.theme.EspacioSuelto
-import com.grupo3.nexo.ui.theme.FormaBoton
-import com.grupo3.nexo.ui.theme.FormaCapaInferior
-import com.grupo3.nexo.ui.theme.FormaMinima
-import com.grupo3.nexo.ui.theme.FormaOpcion
-import com.grupo3.nexo.ui.theme.FormaOrganica
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
@@ -46,10 +33,23 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.ui.theme.BordeAcento
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EspacioSuelto
+import com.grupo3.nexo.ui.theme.FormaBoton
+import com.grupo3.nexo.ui.theme.FormaCapaInferior
+import com.grupo3.nexo.ui.theme.FormaMinima
+import com.grupo3.nexo.ui.theme.FormaOpcion
+import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
-import com.grupo3.nexo.ui.theme.especPulso
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.SuperficieClara
 import com.grupo3.nexo.ui.theme.TinteBosque
+import com.grupo3.nexo.ui.theme.especPulso
 
 /*
  * Esqueletos de carga: siluetas con la forma del contenido que viene, mientras llegan los datos.

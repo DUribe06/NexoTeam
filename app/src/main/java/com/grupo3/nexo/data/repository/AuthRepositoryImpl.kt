@@ -4,13 +4,13 @@ import com.grupo3.nexo.data.mock.MockData
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Usuario
 import com.grupo3.nexo.domain.repository.AuthRepository
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import javax.inject.Inject
-import javax.inject.Singleton
 
 @Singleton
 class AuthRepositoryImpl @Inject constructor() : AuthRepository {

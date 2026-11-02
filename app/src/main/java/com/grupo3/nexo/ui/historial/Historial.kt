@@ -94,7 +94,7 @@ import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.FormaOrganica
-import com.grupo3.nexo.ui.theme.Miel
+import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.MielOscura
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
@@ -187,8 +187,8 @@ fun PantallaHistorial(
                     Carga.VACIO -> EstadoVacio(
                         icono = IconosNexo.Historial,
                         titulo = "Aún no hay sesiones",
-                        mensaje = if (estado.esTutor) "Las tutorías que des aparecerán aquí para que califiques a tus estudiantes."
-                                  else "Tus tutorías completadas aparecerán aquí para que puedas calificarlas.",
+                        mensaje = if (estado.esTutor) "Las sesiones que des aparecerán aquí para que califiques a tus estudiantes."
+                                  else "Tus sesiones completadas aparecerán aquí para que puedas calificarlas.",
                         accion = if (estado.esTutor) alAbrirDisponibilidad?.let { "Revisar mi disponibilidad" } else "Buscar tutor",
                         alAccion = if (estado.esTutor) alAbrirDisponibilidad else alBuscar
                     )
@@ -382,7 +382,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
                 ) {
                     Text("Te calificó", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
                     Spacer(Modifier.width(EspacioMinimo))
-                    Icon(IconosNexo.Estrella, contentDescription = null, tint = Miel, modifier = Modifier.size(13.dp))
+                    Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(13.dp))
                     Text("$nota", color = TextoSecundario, style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares))
                 }
             }
@@ -412,7 +412,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
             } else {
                 BotonSecundario(
                     "Calificar", alCalificar,
-                    icono = IconosNexo.Estrella, compacto = true, colorIcono = Miel, alto = 48.dp,
+                    icono = IconosNexo.Estrella, compacto = true, colorIcono = MielFuerte, alto = 48.dp,
                     descripcion = "Calificar a ${sesion.conQuien}, ${sesion.materia}"
                 )
             }
