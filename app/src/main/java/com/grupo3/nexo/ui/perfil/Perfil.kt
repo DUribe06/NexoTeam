@@ -1,5 +1,7 @@
 package com.grupo3.nexo.ui.perfil
 
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
+import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -45,7 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -277,7 +279,7 @@ private fun BotonIr(modifier: Modifier = Modifier) {
             .size(36.dp)
             .background(BosqueMedio, CircleShape)
     ) {
-        Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(IconoCuerpo))
+        Icon(IconosNexo.Flecha, contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(IconoCuerpo))
     }
 }
 
@@ -333,7 +335,7 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(48.dp)
+                .height(AreaTactilMinima)
         )
     }
 }
@@ -349,13 +351,13 @@ private fun Cifras(resumen: ResumenActividad?, esTutor: Boolean, modifier: Modif
         resumen == null -> listOf(Triple("–", "sesiones", false), Triple("–", "de estudio", false), Triple("–", "tutores", false))
         esTutor -> listOf(
             Triple(resumen.promedioRecibido?.let(::formatoValoracion) ?: "–", "calificación", resumen.promedioRecibido != null),
-            Triple("${resumen.sesiones}", if (resumen.sesiones == 1) "sesión dada" else "sesiones dadas", false),
+            Triple("${resumen.sesiones}", plural(resumen.sesiones, "sesión dada", "sesiones dadas"), false),
             Triple(formatoHoras(resumen.horas), "dadas", false)
         )
         else -> listOf(
-            Triple("${resumen.sesiones}", if (resumen.sesiones == 1) "sesión" else "sesiones", false),
+            Triple("${resumen.sesiones}", plural(resumen.sesiones, "sesión", "sesiones"), false),
             Triple(formatoHoras(resumen.horas), "de estudio", false),
-            Triple("${resumen.personas}", if (resumen.personas == 1) "tutor" else "tutores", false)
+            Triple("${resumen.personas}", plural(resumen.personas, "tutor", "tutores"), false)
         )
     }
     // Con letra muy grande las etiquetas se partirían a media palabra: una cifra por fila, sin divisores
@@ -517,7 +519,7 @@ private fun AvisoPorCalificar(cantidad: Int, alCalificar: () -> Unit, modifier: 
         Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
             Text(
-                if (cantidad == 1) "1 sesión por calificar" else "$cantidad sesiones por calificar",
+                plural(cantidad, "1 sesión por calificar", "$cantidad sesiones por calificar"),
                 color = BosqueProfundo,
                 style = MaterialTheme.typography.titleSmall
             )
@@ -536,7 +538,7 @@ private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> 
             .fillMaxWidth()
             .superficie(FormaOrganica)
     ) {
-        FilaMenu(painterResource(R.drawable.ph_historial), if (esTutor) "Tutorías dadas" else "Tus tutorías", alAbrirHistorial)
+        FilaMenu(IconosNexo.Historial, if (esTutor) "Tutorías dadas" else "Tus tutorías", alAbrirHistorial)
     }
     // Cerrar sesión es raro: píldora de borde fino, como "Continuar con Google" del acceso
     val rojo = RojoSuave
@@ -551,7 +553,7 @@ private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> 
             .border(1.dp, BordeRojoSalir, CircleShape)
             .clickable(role = Role.Button, onClick = alSalir)
     ) {
-        Icon(painterResource(R.drawable.ph_salir), contentDescription = null, tint = rojo, modifier = Modifier.size(IconoNormal))
+        Icon(IconosNexo.Salir, contentDescription = null, tint = rojo, modifier = Modifier.size(IconoNormal))
         Spacer(Modifier.width(EspacioCorto))
         Text("Cerrar sesión", color = rojo, style = MaterialTheme.typography.titleSmall)
     }
@@ -568,7 +570,7 @@ private fun TarjetaDisponibilidad(alAbrir: () -> Unit) {
             .clickable(role = Role.Button, onClick = alAbrir)
             .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioCercano, bottom = EspacioCercano)
     ) {
-        Icon(painterResource(R.drawable.ph_calendario), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(IconoMediano))
+        Icon(IconosNexo.Calendario, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(IconoMediano))
         Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
             Text("Mi disponibilidad", color = BosqueProfundo, style = MaterialTheme.typography.titleSmall)
@@ -633,7 +635,7 @@ private fun SelectorModo(actual: Rol, alElegir: (Rol) -> Unit, modifier: Modifie
 }
 
 @Composable
-private fun FilaMenu(icono: Painter, titulo: String, alClicar: () -> Unit) {
+private fun FilaMenu(icono: ImageVector, titulo: String, alClicar: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -650,6 +652,6 @@ private fun FilaMenu(icono: Painter, titulo: String, alClicar: () -> Unit) {
             style = MaterialTheme.typography.titleMedium.merge(EnfasisMedio),
             modifier = Modifier.weight(1f)
         )
-        Icon(painterResource(R.drawable.ph_caret), contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(IconoNormal))
+        Icon(IconosNexo.Caret, contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(IconoNormal))
     }
 }

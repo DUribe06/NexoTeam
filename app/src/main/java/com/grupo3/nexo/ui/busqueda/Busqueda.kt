@@ -1,5 +1,8 @@
 package com.grupo3.nexo.ui.busqueda
 
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
+import com.grupo3.nexo.ui.theme.AltoPildora
+import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -135,7 +138,7 @@ fun PantallaBusqueda(
         CabeceraSeccion("Buscar tutores", alVolver = alVolver) {
             BotonIcono(
                 IconosNexo.Filtros,
-                descripcion = if (estado.filtrosHoja > 0) "Filtros, ${estado.filtrosHoja} ${if (estado.filtrosHoja == 1) "activo" else "activos"}" else "Filtros",
+                descripcion = if (estado.filtrosHoja > 0) "Filtros, ${estado.filtrosHoja} ${plural(estado.filtrosHoja, "activo", "activos")}" else "Filtros",
                 alClicar = { mostrarFiltros = true },
                 sobreOscuro = true,
                 insignia = estado.filtrosHoja
@@ -217,7 +220,7 @@ fun PantallaBusqueda(
 }
 
 private fun resumenResultados(e: BusquedaViewModel.Estado): String = buildString {
-    append(if (e.resultados.size == 1) "1 tutor" else "${e.resultados.size} tutores")
+    append(plural(e.resultados.size, "1 tutor", "${e.resultados.size} tutores"))
     val detalles = listOfNotNull(
         e.modalidad?.etiqueta?.lowercase(),
         e.franja?.etiqueta?.lowercase()?.let { "en la $it" },
@@ -316,14 +319,14 @@ private fun FiltroIcono(texto: String, icono: ImageVector, seleccionado: Boolean
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .areaTactilSinCambiarMedida()
-            .heightIn(min = 48.dp)
+            .heightIn(min = AreaTactilMinima)
             .pulsable(rol = Role.RadioButton, alClicar = alClicar)
             .semantics { selected = seleccionado }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .heightIn(min = 40.dp)
+                .heightIn(min = AltoPildora)
                 .then(
                     if (seleccionado) Modifier.background(TinteBosque, FormaOpcion).border(1.dp, BordeSeleccion, FormaOpcion)
                     else Modifier.superficie(FormaOpcion)

@@ -1,5 +1,8 @@
 package com.grupo3.nexo.ui.chat
 
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
+import com.grupo3.nexo.ui.components.avisoFallo
+import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
@@ -315,7 +318,7 @@ fun PantallaConversacion(
             // Si el mensaje no salió, el texto vuelve a la caja para reintentar (salvo que ya se haya escrito otra cosa)
             if (!exito) {
                 if (texto.isEmpty()) texto = valor
-                alcance.launch { avisos.mostrarError("No se pudo enviar el mensaje. Revisa tu conexión e inténtalo de nuevo.") }
+                alcance.launch { avisos.mostrarError(avisoFallo("enviar el mensaje")) }
             }
         }
         texto = ""
@@ -389,7 +392,7 @@ fun PantallaConversacion(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .areaTactilSinCambiarMedida()
-                                .heightIn(min = 48.dp)
+                                .heightIn(min = AreaTactilMinima)
                                 .pulsable { enviar(sugerencia) }
                         ) {
                         Text(
@@ -490,7 +493,7 @@ fun PantallaConversacion(
                 viewModel.calificar(sesionPorCalificar.id, estrellas, comentario) { exito ->
                     alcance.launch {
                         if (exito) avisos.showSnackbar(if (estado.esTutor) "Gracias, tu calificación quedó guardada" else "Gracias, tu calificación ayuda a otros estudiantes")
-                        else avisos.mostrarError("No se pudo guardar tu calificación. Revisa tu conexión e inténtalo de nuevo.")
+                        else avisos.mostrarError(avisoFallo("guardar tu calificación"))
                     }
                 }
                 calificando = false
@@ -572,7 +575,7 @@ private fun AvisoSoloLectura(nota: Int? = null, motivo: String = "La sesión ter
                     modifier = Modifier
                         .padding(top = EspacioMinimo)
                         .semantics(mergeDescendants = true) {
-                            contentDescription = "Calificaste con $nota ${if (nota == 1) "estrella" else "estrellas"}"
+                            contentDescription = "Calificaste con $nota ${plural(nota, "estrella", "estrellas")}"
                         }
                 ) {
                     Text("Calificaste", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
@@ -618,7 +621,7 @@ private fun PieSesionTerminada(sesion: Sesion?, alCalificar: () -> Unit) {
         Spacer(Modifier.width(EspacioMedio))
         BotonSecundario(
             "Calificar", alCalificar,
-            icono = IconosNexo.Estrella, compacto = true, colorIcono = MielFuerte, alto = 48.dp,
+            icono = IconosNexo.Estrella, compacto = true, colorIcono = MielFuerte, alto = AreaTactilMinima,
             descripcion = "Calificar a ${sesion.conQuien}, ${sesion.materia}"
         )
     }

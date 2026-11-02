@@ -164,7 +164,7 @@ fun AvisoNexo(estado: SnackbarHostState, modifier: Modifier = Modifier) {
                 .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
         ) {
             if (datos.visuals is VisualesError) {
-                Icon(painterResource(R.drawable.ph_aviso), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(IconoNormal))
+                Icon(IconosNexo.Aviso, contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(IconoNormal))
             } else {
                 Icon(IconosNexo.MarcaCirculo, contentDescription = null, tint = Menta, modifier = Modifier.size(IconoNormal))
             }

@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.ui.theme.AltoPildora
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
@@ -140,7 +141,7 @@ fun SesionEsqueleto(modifier: Modifier = Modifier, capas: Int = 2) {
                     LineaHueso(0.45f, alto = 11.dp, color = SobreOscuro)
                     LineaHueso(0.3f, alto = 9.dp, color = SobreOscuro)
                 }
-                Hueso(Modifier.size(width = 112.dp, height = 40.dp), FormaBoton, Superficie)
+                Hueso(Modifier.size(width = 112.dp, height = AltoPildora), FormaBoton, Superficie)
             }
         }
         // Las sesiones siguientes, apiladas detrás como en la tarjeta real: así el esqueleto mide lo mismo

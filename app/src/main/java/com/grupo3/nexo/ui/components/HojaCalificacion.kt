@@ -89,7 +89,7 @@ fun HojaCalificacion(sesion: Sesion, esTutor: Boolean, alCerrar: () -> Unit, alE
                             role = Role.RadioButton,
                             onClick = { estrellas = valor }
                         )
-                        .semantics { contentDescription = "$valor ${if (valor == 1) "estrella" else "estrellas"}" }
+                        .semantics { contentDescription = "$valor ${plural(valor, "estrella", "estrellas")}" }
                 ) {
                     Icon(
                         IconosNexo.Estrella,

@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.auth
 
+import com.grupo3.nexo.ui.components.SUGERENCIA_CONEXION
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.usecase.IniciarSesionGoogleUseCase
@@ -88,6 +89,6 @@ class LoginViewModel @Inject constructor(
     fun consumirNavegacion() = _estado.update { it.copy(autenticado = false) }
 
     private companion object {
-        const val MENSAJE_SIN_CONEXION = "No pudimos conectarnos. Revisa tu conexión e inténtalo de nuevo."
+        const val MENSAJE_SIN_CONEXION = "No pudimos conectarnos. $SUGERENCIA_CONEXION"
     }
 }

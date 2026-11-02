@@ -1,5 +1,7 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
+import com.grupo3.nexo.ui.theme.AltoPildora
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -225,10 +227,10 @@ fun Modifier.superficiePulsable(
  * y el pulsable (de 48 dp) sobresale por igual arriba y abajo, sin desplazar nada.
  * Va antes de `.height(48.dp)` y `.pulsable(...)`.
  */
-fun Modifier.areaTactilSinCambiarMedida(alto: Dp = 40.dp): Modifier = layout { medible, restricciones ->
+fun Modifier.areaTactilSinCambiarMedida(alto: Dp = AltoPildora): Modifier = layout { medible, restricciones ->
     val p = medible.measure(restricciones)
     // Con letra grande el contenido supera los 48 dp: se reporta entero para no cortar el texto
-    val reportado = if (p.height > maxOf(alto, 48.dp).roundToPx()) p.height else alto.roundToPx().coerceAtMost(p.height)
+    val reportado = if (p.height > maxOf(alto, AreaTactilMinima).roundToPx()) p.height else alto.roundToPx().coerceAtMost(p.height)
     // Mismo redondeo que el centrado del contenido (mitad hacia arriba), para no mover nada 1 px
     val sobra = ((p.height - reportado) / 2f).roundToInt()
     layout(p.width, reportado) { p.place(0, -sobra) }
@@ -371,7 +373,7 @@ fun BotonSecundario(
         propagateMinConstraints = true,
         modifier = modifier
             .areaTactilSinCambiarMedida(alto)
-            .heightIn(min = maxOf(alto, 48.dp))
+            .heightIn(min = maxOf(alto, AreaTactilMinima))
             .pulsable(habilitado = habilitado, alClicar = alClicar)
             .semantics { if (descripcion != null) contentDescription = descripcion }
     ) {
@@ -412,7 +414,7 @@ fun BotonTexto(texto: String, alClicar: () -> Unit, modifier: Modifier = Modifie
             .clip(FormaOpcion)
             // [accion] completa lo que TalkBack dice tras "doble toque para…" ("rechazar la solicitud de Ana")
             .clickable(role = Role.Button, onClickLabel = accion, onClick = alClicar)
-            .heightIn(min = 48.dp)
+            .heightIn(min = AreaTactilMinima)
             .padding(horizontal = EspacioMedio, vertical = EspacioCercano)
     )
 }
@@ -435,7 +437,7 @@ fun BotonTonal(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .areaTactilSinCambiarMedida()
-            .heightIn(min = 48.dp)
+            .heightIn(min = AreaTactilMinima)
             .clip(FormaControl)
             .clickable(role = Role.Button, onClickLabel = accion, onClick = alClicar)
     ) {
@@ -443,7 +445,7 @@ fun BotonTonal(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .heightIn(min = 40.dp)
+                .heightIn(min = AltoPildora)
                 .clip(FormaControl)
                 .background(TinteBosque)
                 .padding(horizontal = EspacioCercano, vertical = EspacioAjustado)
@@ -669,7 +671,7 @@ fun FiltroOpcion(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .heightIn(min = 40.dp)
+            .heightIn(min = AltoPildora)
             .clip(FormaOpcion)
             .background(fondo)
             .border(1.dp, borde, FormaOpcion)
@@ -861,7 +863,7 @@ fun EncabezadoSeccion(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 48.dp)
+            .heightIn(min = AreaTactilMinima)
     ) {
         Text(
             titulo,
@@ -930,7 +932,7 @@ fun EstadoVacio(
         )
         if (accion != null && alAccion != null) {
             Spacer(Modifier.height(EspacioMargen))
-            BotonSecundario(accion, alAccion, compacto = true, alto = 48.dp)
+            BotonSecundario(accion, alAccion, compacto = true, alto = AreaTactilMinima)
         }
     }
 }
@@ -963,7 +965,7 @@ fun EstadoError(
                 .background(TinteBosque, FormaTarjeta)
         ) {
             Icon(
-                painterResource(R.drawable.ph_aviso),
+                IconosNexo.Aviso,
                 contentDescription = null,
                 tint = TextoSecundario,
                 modifier = Modifier.size(IconoGrande)
@@ -988,8 +990,8 @@ fun EstadoError(
         if (alReintentar != null) {
             Spacer(Modifier.height(EspacioMargen))
             // El botón compacto mide 44 dp; la caja le da los 48 dp de área táctil sin cambiarlo
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.heightIn(min = 48.dp)) {
-                BotonSecundario("Reintentar", alReintentar, compacto = true, alto = 48.dp)
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.heightIn(min = AreaTactilMinima)) {
+                BotonSecundario("Reintentar", alReintentar, compacto = true, alto = AreaTactilMinima)
             }
         }
     }

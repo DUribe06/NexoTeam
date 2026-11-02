@@ -1,5 +1,8 @@
 package com.grupo3.nexo.ui.historial
 
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
+import com.grupo3.nexo.ui.components.avisoFallo
+import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -182,7 +185,7 @@ fun PantallaHistorial(
                 viewModel.calificar(sesion.id, estrellas, comentario) { exito ->
                     alcance.launch {
                         if (exito) avisos.showSnackbar(if (esTutor) "Gracias, tu calificación quedó guardada" else "Gracias, tu calificación ayuda a otros estudiantes")
-                        else avisos.mostrarError("No se pudo guardar tu calificación. Revisa tu conexión e inténtalo de nuevo.")
+                        else avisos.mostrarError(avisoFallo("guardar tu calificación"))
                     }
                 }
                 porCalificarId = null
@@ -268,7 +271,7 @@ private fun CifraResumen(
             verticalAlignment = Alignment.CenterVertically,
             modifier = modifier
                 .fillMaxWidth()
-                .heightIn(min = 48.dp)
+                .heightIn(min = AreaTactilMinima)
                 .semantics(mergeDescendants = true) { }
         ) {
             textoValor()
@@ -319,7 +322,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
                     modifier = Modifier
                         .padding(top = EspacioMinimo)
                         .semantics(mergeDescendants = true) {
-                            contentDescription = "Te calificó con $nota ${if (nota == 1) "estrella" else "estrellas"}"
+                            contentDescription = "Te calificó con $nota ${plural(nota, "estrella", "estrellas")}"
                         }
                 ) {
                     Text("Te calificó", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
@@ -354,7 +357,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
             } else {
                 BotonSecundario(
                     "Calificar", alCalificar,
-                    icono = IconosNexo.Estrella, compacto = true, colorIcono = MielFuerte, alto = 48.dp,
+                    icono = IconosNexo.Estrella, compacto = true, colorIcono = MielFuerte, alto = AreaTactilMinima,
                     descripcion = "Calificar a ${sesion.conQuien}, ${sesion.materia}"
                 )
             }

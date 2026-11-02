@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.solicitudes
 
+import com.grupo3.nexo.ui.AccionesEnCurso
 import androidx.compose.foundation.layout.size
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -96,8 +97,7 @@ class SolicitudesViewModel @Inject constructor(
     fun rechazar(id: String, motivo: String?, alTerminar: (Boolean) -> Unit) = cambiar(id, EstadoSolicitud.RECHAZADA, motivo, alTerminar)
     fun cancelar(id: String, alTerminar: (Boolean) -> Unit) = cambiar(id, EstadoSolicitud.CANCELADA, null, alTerminar)
 
-    /** El chat existe solo para solicitudes aceptadas (RF8): se crea si aún no existe y se abre. */
-    /** Abre (o crea) el chat de la solicitud; si falla, `alFallar` muestra el aviso. */
+    /** El chat existe solo para solicitudes aceptadas (RF8): se abre (o se crea) y, si falla, `alFallar` muestra el aviso. */
     fun abrirConversacion(solicitud: Solicitud, alListo: (String) -> Unit, alFallar: () -> Unit) {
         viewModelScope.launch {
             var id: String? = null
@@ -105,7 +105,9 @@ class SolicitudesViewModel @Inject constructor(
         }
     }
 
+    private val enCurso = AccionesEnCurso()
+
     private fun cambiar(id: String, nuevo: EstadoSolicitud, motivo: String?, alTerminar: (Boolean) -> Unit) {
-        viewModelScope.launch { alTerminar(intentar { actualizarSolicitud(id, nuevo, motivo) }) }
+        enCurso.lanzar(viewModelScope, "cambiar:$id") { alTerminar(intentar { actualizarSolicitud(id, nuevo, motivo) }) }
     }
 }

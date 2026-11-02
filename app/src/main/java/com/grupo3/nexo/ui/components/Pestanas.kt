@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
@@ -99,7 +100,7 @@ fun Pestanas(
                 modifier = Modifier
                     .onGloballyPositioned { limites[i] = it.positionInParent().x.roundToInt() to it.size.width }
                     .selectable(selected = activa, role = Role.Tab, onClick = { alElegir(i) })
-                    .heightIn(min = 48.dp)
+                    .heightIn(min = AreaTactilMinima)
                     .drawBehind {
                         if (progreso > 0f) {
                             val ancho = (size.width - 24.dp.toPx()) * progreso

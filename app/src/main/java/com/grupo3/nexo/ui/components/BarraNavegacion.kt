@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
@@ -550,7 +551,7 @@ fun BarraNavegacion(
                     }
                     val descripcion = buildString {
                         append(destino.etiqueta)
-                        if (insignia > 0) append(", $insignia ${if (destino.ruta == Rutas.Chat.ruta) "sin leer" else if (insignia == 1) "pendiente" else "pendientes"}")
+                        if (insignia > 0) append(", $insignia ${if (destino.ruta == Rutas.Chat.ruta) "sin leer" else plural(insignia, "pendiente", "pendientes")}")
                     }
                     Box(
                         contentAlignment = Alignment.Center,
@@ -567,7 +568,7 @@ fun BarraNavegacion(
                             .semantics { contentDescription = descripcion }
                     ) {
                         val p = iconos[i]
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(48.dp)) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(AreaTactilMinima)) {
                             Icon(
                                 painterResource(destino.icono),
                                 contentDescription = null,

@@ -1,5 +1,9 @@
 package com.grupo3.nexo.ui.inicio
 
+import com.grupo3.nexo.ui.components.PildoraAbrirChat
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
+import com.grupo3.nexo.ui.theme.AltoPildora
+import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
@@ -122,7 +126,7 @@ import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.superficiePulsable
 import com.grupo3.nexo.ui.components.universidadCorta
-import com.grupo3.nexo.ui.theme.AltoMinimoTarjetaSesion
+import com.grupo3.nexo.ui.theme.AltoBuscador
 import com.grupo3.nexo.ui.theme.AnilloSobreOscuro
 import com.grupo3.nexo.ui.theme.BordeAcento
 import com.grupo3.nexo.ui.theme.BosqueAcento
@@ -386,8 +390,8 @@ private fun Cabecera(
                 MarcaComelon(comelon, Modifier.clearAndSetSemantics { contentDescription = "Nexo" })
                 Spacer(Modifier.weight(1f))
                 BotonIcono(
-                    ImageVector.vectorResource(R.drawable.ph_campana),
-                    descripcion = if (pendientes > 0) "Solicitudes, $pendientes ${if (pendientes == 1) "pendiente" else "pendientes"}" else "Solicitudes",
+                    IconosNexo.Campana,
+                    descripcion = if (pendientes > 0) "Solicitudes, $pendientes ${plural(pendientes, "pendiente", "pendientes")}" else "Solicitudes",
                     alClicar = alVerSolicitudes,
                     sobreOscuro = true,
                     insignia = pendientes
@@ -400,7 +404,7 @@ private fun Cabecera(
                     modifier = Modifier
                         .padding(end = EspacioMinimo)
                         .layout { medible, _ ->
-                            val lado = 48.dp.roundToPx()
+                            val lado = AreaTactilMinima.roundToPx()
                             val reducido = 36.dp.roundToPx()
                             val p = medible.measure(Constraints.fixed(lado, lado))
                             layout(reducido, reducido) { p.place(-(lado - reducido) / 2, -(lado - reducido) / 2) }
@@ -448,7 +452,7 @@ private fun Cabecera(
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(48.dp)
+                .height(AreaTactilMinima)
         )
         // Migas del logo comelón y puntos de bonificación
         CapaMigasComelon(comelon, Modifier.matchParentSize())
@@ -463,12 +467,12 @@ private fun Buscador(alClicar: () -> Unit, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = AltoMinimoTarjetaSesion)
+            .heightIn(min = AltoBuscador)
             .shadow(ElevacionTarjeta, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
             .superficiePulsable(forma, etiqueta = "Buscar tutores", alClicar = alClicar)
             .padding(start = EspacioMargen, end = EspacioBotonLateral)
     ) {
-        Icon(painterResource(R.drawable.ph_lupa), contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(Icono20))
+        Icon(IconosNexo.Lupa, contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(Icono20))
         Spacer(Modifier.width(EspacioMedio))
         Text(
             "Busca un tutor o una materia",
@@ -482,10 +486,10 @@ private fun Buscador(alClicar: () -> Unit, modifier: Modifier = Modifier) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(40.dp)
+                .size(AltoPildora)
                 .background(pincelBosque, CircleShape)
         ) {
-            Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(Icono18))
+            Icon(IconosNexo.Flecha, contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(Icono18))
         }
     }
 }
@@ -573,87 +577,69 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
           ) { primera ->
             val s = primera.sesion
             Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    fechaLarga(s.fecha),
-                    color = BosqueAcento,
-                    style = EtiquetaFecha,
-                    modifier = Modifier.weight(1f)
-                )
-                // Modalidad como texto con ícono, sin pastilla: el único botón blanco es "Abrir chat"
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        fechaLarga(s.fecha),
+                        color = BosqueAcento,
+                        style = EtiquetaFecha,
+                        modifier = Modifier.weight(1f)
+                    )
+                    // Modalidad como texto con ícono, sin pastilla: el único botón blanco es "Abrir chat"
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.heightIn(min = 24.dp)
+                    ) {
+                        Icon(painterResource(s.modalidad.iconoPh), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono14))
+                        Spacer(Modifier.width(EspacioMinimo))
+                        Text(s.modalidad.etiqueta, color = BosqueAcento, style = EtiquetaArea)
+                    }
+                }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.heightIn(min = 24.dp)
+                    modifier = Modifier
+                        .padding(top = EspacioFino, bottom = EspacioMedio)
+                        .height(IntrinsicSize.Min)
                 ) {
-                    Icon(painterResource(s.modalidad.iconoPh), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono14))
-                    Spacer(Modifier.width(EspacioMinimo))
-                    Text(s.modalidad.etiqueta, color = BosqueAcento, style = EtiquetaArea)
-                }
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .padding(top = EspacioFino, bottom = EspacioMedio)
-                    .height(IntrinsicSize.Min)
-            ) {
-                Text(
-                    s.hora,
-                    color = BosqueProfundo,
-                    style = CifraHora.merge(CifrasTabulares)
-                )
-                Spacer(Modifier.width(EspacioCercano))
-                Box(
-                    Modifier
-                        .padding(vertical = EspacioMinimo)
-                        .width(1.dp)
-                        .fillMaxHeight()
-                        .background(FondoAcentoTenue)
-                )
-                Spacer(Modifier.width(EspacioCercano))
-                Column(Modifier.weight(1f)) {
-                    TextoLinea(s.materia, TituloMateria, BosqueProfundo)
-                    TextoLinea(
-                        "${formatoHoras(s.duracionHoras)} · hasta las ${horaFin(s.hora, s.duracionHoras)}",
-                        CuerpoSesion,
-                        TextoSobreTinte
+                    Text(
+                        s.hora,
+                        color = BosqueProfundo,
+                        style = CifraHora.merge(CifrasTabulares)
                     )
-                }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Avatar(s.conQuien, tamano = 28.dp)
-                Spacer(Modifier.width(EspacioAjustado))
-                Column(Modifier.weight(1f)) {
-                    TextoLinea(s.conQuien, CuerpoNombre, BosqueProfundo)
-                    primera.tutor?.let { t ->
+                    Spacer(Modifier.width(EspacioCercano))
+                    Box(
+                        Modifier
+                            .padding(vertical = EspacioMinimo)
+                            .width(1.dp)
+                            .fillMaxHeight()
+                            .background(FondoAcentoTenue)
+                    )
+                    Spacer(Modifier.width(EspacioCercano))
+                    Column(Modifier.weight(1f)) {
+                        TextoLinea(s.materia, TituloMateria, BosqueProfundo)
                         TextoLinea(
-                            "${universidadCorta(t.universidad)} · ${formatoValoracion(t.rating)}",
-                            MaterialTheme.typography.bodySmall.merge(EnfasisMedio),
+                            "${formatoHoras(s.duracionHoras)} · hasta las ${horaFin(s.hora, s.duracionHoras)}",
+                            CuerpoSesion,
                             TextoSobreTinte
                         )
                     }
                 }
-                primera.tutorId?.let { id ->
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .areaTactilSinCambiarMedida()
-                            .heightIn(min = 48.dp)
-                            .pulsable(etiqueta = "Escribir a ${s.conQuien}") { alAbrirChat(id) }
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .heightIn(min = 40.dp)
-                                .background(Superficie, FormaBoton)
-                                .padding(horizontal = EspacioPildora)
-                        ) {
-                            Icon(painterResource(R.drawable.ph_chat), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono17))
-                            Spacer(Modifier.width(EspacioFino))
-                            Text("Abrir chat", color = BosqueProfundo, style = EtiquetaBoton)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Avatar(s.conQuien, tamano = 28.dp)
+                    Spacer(Modifier.width(EspacioAjustado))
+                    Column(Modifier.weight(1f)) {
+                        TextoLinea(s.conQuien, CuerpoNombre, BosqueProfundo)
+                        primera.tutor?.let { t ->
+                            TextoLinea(
+                                "${universidadCorta(t.universidad)} · ${formatoValoracion(t.rating)}",
+                                MaterialTheme.typography.bodySmall.merge(EnfasisMedio),
+                                TextoSobreTinte
+                            )
                         }
                     }
+                    primera.tutorId?.let { id ->
+                        PildoraAbrirChat(s.conQuien, { alAbrirChat(id) }, fondo = Superficie)
+                    }
                 }
-            }
             }
           }
         }
@@ -680,7 +666,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     .padding(horizontal = (8 * (n + 1)).dp)
                     .fillMaxWidth()
                     .areaTactilSinCambiarMedida(altoCapa)
-                    .heightIn(min = 48.dp)
+                    .heightIn(min = AreaTactilMinima)
                     .pulsable(etiqueta = "Pasar al frente la sesión de ${p.sesion.materia}") { inicio = (inicio + 1 + n) % proximas.size }
             ) {
             Row(
@@ -746,7 +732,7 @@ private fun SinSesiones(esTutor: Boolean, alBuscar: () -> Unit, alVerSolicitudes
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(48.dp)
+                .size(AreaTactilMinima)
                 .background(TinteBosque, FormaControl)
         ) {
             Icon(IconosNexo.CalendarioMarcado, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono22))
@@ -836,12 +822,12 @@ private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Mo
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = AltoMinimoTarjetaSesion)
+            .heightIn(min = AltoBuscador)
             .shadow(ElevacionTarjeta, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
             .superficiePulsable(forma, etiqueta = "Ver solicitudes recibidas", alClicar = alRevisar)
             .padding(start = EspacioMargen, end = EspacioBotonLateral)
     ) {
-        Icon(painterResource(R.drawable.ph_campana), contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(Icono20))
+        Icon(IconosNexo.Campana, contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(Icono20))
         Spacer(Modifier.width(EspacioMedio))
         Text(
             when (cantidad) {
@@ -858,10 +844,10 @@ private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Mo
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(40.dp)
+                .size(AltoPildora)
                 .background(pincelBosque, CircleShape)
         ) {
-            Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(Icono18))
+            Icon(IconosNexo.Flecha, contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(Icono18))
         }
     }
 }

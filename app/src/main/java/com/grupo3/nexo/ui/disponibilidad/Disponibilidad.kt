@@ -1,5 +1,9 @@
 package com.grupo3.nexo.ui.disponibilidad
 
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
+import com.grupo3.nexo.ui.theme.AltoPildora
+import com.grupo3.nexo.ui.components.avisoFallo
+import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -147,7 +151,7 @@ fun PantallaDisponibilidad(
                         titulo = "Aún no hay horas para publicar",
                         mensaje = "Crea tu semana y elige cuáles horas ofreces, en virtual, presencial o ambas.",
                         accion = "Agregar horario",
-                        alAccion = { viewModel.empezar(alTerminar("No se pudo crear tu calendario. Revisa tu conexión e inténtalo de nuevo.")) }
+                        alAccion = { viewModel.empezar(alTerminar(avisoFallo("crear tu calendario"))) }
                     )
                 }
                 else if (carga != Carga.LISTO) item(key = "error") { ErrorDeLista(titulo = "No pudimos cargar tu disponibilidad", alReintentar = viewModel::reintentar) }
@@ -163,14 +167,14 @@ fun PantallaDisponibilidad(
                             Text("$total", color = BosqueProfundo, style = MaterialTheme.typography.displaySmall.merge(CifrasTabulares))
                             Spacer(Modifier.width(EspacioCorto))
                             Text(
-                                if (total == 1) "hora publicada" else "horas publicadas",
+                                plural(total, "hora publicada", "horas publicadas"),
                                 color = TextoSobreTinte,
                                 style = MaterialTheme.typography.bodyLarge,
                                 modifier = Modifier.padding(bottom = EspacioMinimo)
                             )
                         }
                         Text(
-                            "en $diasActivos ${if (diasActivos == 1) "día" else "días"} · $virtuales ${if (virtuales == 1) "virtual" else "virtuales"} · $presenciales ${if (presenciales == 1) "presencial" else "presenciales"}",
+                            "en $diasActivos ${plural(diasActivos, "día", "días")} · $virtuales ${plural(virtuales, "virtual", "virtuales")} · $presenciales ${plural(presenciales, "presencial", "presenciales")}",
                             color = TextoSobreTinte,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -239,7 +243,7 @@ fun PantallaDisponibilidad(
                         modalidades = modalidades,
                         seleccionada = (actual?.modalidades ?: emptySet<Modalidad>()) == modalidades,
                         alClicar = {
-                            viewModel.definir(edicion.dia, edicion.hora, modalidades, alTerminar("No se pudo guardar la hora. Revisa tu conexión e inténtalo de nuevo."))
+                            viewModel.definir(edicion.dia, edicion.hora, modalidades, alTerminar(avisoFallo("guardar la hora")))
                             enEdicion = null
                         }
                     )
@@ -278,14 +282,14 @@ private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .areaTactilSinCambiarMedida()
-            .heightIn(min = 48.dp)
+            .heightIn(min = AreaTactilMinima)
             // La hora y su estado los anuncia solo la descripción de abajo; la acción dice únicamente "Editar"
             .pulsable(rol = Role.Button, etiqueta = "Editar", alClicar = alClicar)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .heightIn(min = 40.dp)
+                .heightIn(min = AltoPildora)
                 .then(
                     if (activa) Modifier.background(BosqueMedio, FormaOpcion)
                     else Modifier

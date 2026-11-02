@@ -1,5 +1,10 @@
 package com.grupo3.nexo.ui.solicitudes
 
+import com.grupo3.nexo.ui.components.PildoraAbrirChat
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
+import com.grupo3.nexo.ui.theme.AltoPildora
+import com.grupo3.nexo.ui.components.avisoFallo
+import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -140,8 +145,8 @@ fun PantallaSolicitudes(
                 subtitulo = when {
                     estado.total == 0 -> null
                     estado.pendientes == 0 -> "Todo al día"
-                    estado.esTutor -> if (estado.pendientes == 1) "1 espera tu respuesta" else "${estado.pendientes} esperan tu respuesta"
-                    else -> if (estado.pendientes == 1) "1 esperando respuesta del tutor" else "${estado.pendientes} esperando respuesta del tutor"
+                    estado.esTutor -> plural(estado.pendientes, "1 espera tu respuesta", "${estado.pendientes} esperan tu respuesta")
+                    else -> plural(estado.pendientes, "1 esperando respuesta del tutor", "${estado.pendientes} esperando respuesta del tutor")
                 }
             )
 
@@ -192,12 +197,12 @@ fun PantallaSolicitudes(
                                 alAceptar = {
                                     viewModel.aceptar(solicitud.id) { exito ->
                                         if (exito) avisar("Sesión con ${solicitud.nombreEstudiante.primerNombre} confirmada.")
-                                        else avisarError("No se pudo aceptar la solicitud. Revisa tu conexión e inténtalo de nuevo.")
+                                        else avisarError(avisoFallo("aceptar la solicitud"))
                                     }
                                 },
                                 alRechazar = { porRechazar = solicitud },
                                 alCancelar = { porCancelar = solicitud },
-                                alEscribir = { viewModel.abrirConversacion(solicitud, alAbrirChat) { avisarError("No se pudo abrir el chat. Revisa tu conexión e inténtalo de nuevo.") } },
+                                alEscribir = { viewModel.abrirConversacion(solicitud, alAbrirChat) { avisarError(avisoFallo("abrir el chat")) } },
                                 alVerOtros = { alBuscar(AreaEstudio.deMateria(solicitud.materia)?.name) },
                                 modifier = Modifier.animateItem()
                             )
@@ -222,7 +227,7 @@ fun PantallaSolicitudes(
             alConfirmar = { motivo ->
                 viewModel.rechazar(s.id, motivo) { exito ->
                     if (exito) avisar("Solicitud rechazada. Le avisaremos a ${s.nombreEstudiante.primerNombre}.")
-                    else avisarError("No se pudo rechazar la solicitud. Revisa tu conexión e inténtalo de nuevo.")
+                    else avisarError(avisoFallo("rechazar la solicitud"))
                 }
                 porRechazar = null
             }
@@ -239,7 +244,7 @@ fun PantallaSolicitudes(
             alConfirmar = {
                 viewModel.cancelar(s.id) { exito ->
                     if (exito) avisar(if (aceptada) "Sesión cancelada." else "Solicitud cancelada.")
-                    else avisarError(if (aceptada) "No se pudo cancelar la sesión. Revisa tu conexión e inténtalo de nuevo." else "No se pudo cancelar la solicitud. Revisa tu conexión e inténtalo de nuevo.")
+                    else avisarError(if (aceptada) avisoFallo("cancelar la sesión") else avisoFallo("cancelar la solicitud"))
                 }
                 porCancelar = null
             },
@@ -297,9 +302,9 @@ private fun TarjetaSolicitud(
         Text(solicitud.tema, color = TextoPrimario, style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(EspacioFino))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Dato(ImageVector.vectorResource(R.drawable.ph_calendario), formatoFecha(solicitud.fecha))
+            Dato(IconosNexo.Calendario, formatoFecha(solicitud.fecha))
             Spacer(Modifier.width(EspacioCercano))
-            Dato(ImageVector.vectorResource(R.drawable.ph_reloj), solicitud.hora)
+            Dato(IconosNexo.Reloj, solicitud.hora)
             Spacer(Modifier.width(EspacioCercano))
             Dato(solicitud.modalidad.icono, solicitud.modalidad.etiqueta)
         }
@@ -352,13 +357,13 @@ private fun TarjetaSolicitud(
             }
             AccionesSolicitud.ABRIR_CHAT -> {
                 Spacer(Modifier.height(EspacioMedio))
-                BotonAbrirChat(otraParte, alEscribir)
+                PildoraAbrirChat(otraParte, alEscribir)
                 Spacer(Modifier.height(EspacioMinimo))
             }
             AccionesSolicitud.ABRIR_CHAT_O_CANCELAR -> {
                 Spacer(Modifier.height(EspacioMedio))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    BotonAbrirChat(otraParte, alEscribir)
+                    PildoraAbrirChat(otraParte, alEscribir)
                     Spacer(Modifier.weight(1f))
                     BotonTexto(
                         "Cancelar",
@@ -393,30 +398,6 @@ private fun TarjetaSolicitud(
     }
 }
 
-/** "Abrir chat" como píldora, igual que en las tarjetas del Inicio (PRODUCT.md); se ve de 40 dp y se toca en 48. */
-@Composable
-private fun BotonAbrirChat(conQuien: String, alClicar: () -> Unit) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .areaTactilSinCambiarMedida()
-            .heightIn(min = 48.dp)
-            .pulsable(etiqueta = "abrir chat con $conQuien") { alClicar() }
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .heightIn(min = 40.dp)
-                .background(TinteBosque, FormaBoton)
-                .padding(horizontal = EspacioPildora)
-        ) {
-            Icon(IconosNexo.Chat, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono17))
-            Spacer(Modifier.width(EspacioFino))
-            Text("Abrir chat", color = BosqueProfundo, style = EtiquetaBoton)
-        }
-    }
-}
-
 /** Plazo de respuesta (RF6) en una línea discreta, igual para estudiante y tutor. */
 @Composable
 private fun AvisoPlazo(texto: String, modifier: Modifier = Modifier, conAire: Boolean = true, urgente: Boolean = false) {
@@ -424,7 +405,7 @@ private fun AvisoPlazo(texto: String, modifier: Modifier = Modifier, conAire: Bo
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.padding(top = if (conAire) EspacioMedio else 0.dp)
     ) {
-        Icon(ImageVector.vectorResource(R.drawable.ph_reloj), contentDescription = null, tint = MielOscura, modifier = Modifier.size(Icono15))
+        Icon(IconosNexo.Reloj, contentDescription = null, tint = MielOscura, modifier = Modifier.size(Icono15))
         Spacer(Modifier.width(EspacioFino))
         Text(texto, color = if (urgente) MielOscura else TextoTercero, style = MaterialTheme.typography.bodySmall)
     }

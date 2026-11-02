@@ -43,3 +43,12 @@ fun fechaCorta(texto: String): String = fechaCalendario(texto)?.let {
 
 /** Plazo de respuesta del dominio, ya escrito para los textos que lo mencionan. */
 val PLAZO_RESPUESTA = formatoHoras(PLAZO_RESPUESTA_HORAS.toDouble())
+
+/** Sugerencia que cierra los avisos de fallo de red. */
+const val SUGERENCIA_CONEXION = "Revisa tu conexión e inténtalo de nuevo."
+
+/** Aviso de fallo con su sugerencia: avisoFallo("enviar el reporte") → "No se pudo enviar el reporte. Revisa tu conexión…". */
+fun avisoFallo(accion: String): String = "No se pudo $accion. $SUGERENCIA_CONEXION"
+
+/** Singular si [n] es 1 y plural en cualquier otro caso: plural(2, "estrella", "estrellas"). */
+fun plural(n: Int, uno: String, varios: String): String = if (n == 1) uno else varios

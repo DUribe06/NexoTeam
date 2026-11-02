@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.disponibilidad
 
+import com.grupo3.nexo.ui.AccionesEnCurso
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.model.DiaDisponibilidad
@@ -61,11 +62,13 @@ class DisponibilidadViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ResumenDisponibilidad())
 
     /** Las dos acciones avisan con `alTerminar(true)` si se guardó y `alTerminar(false)` si falló. */
+    private val enCurso = AccionesEnCurso()
+
     fun empezar(alTerminar: (Boolean) -> Unit) {
-        viewModelScope.launch { alTerminar(intentar { crearCalendario() }) }
+        enCurso.lanzar(viewModelScope, "empezar") { alTerminar(intentar { crearCalendario() }) }
     }
 
     fun definir(dia: String, hora: String, modalidades: Set<Modalidad>, alTerminar: (Boolean) -> Unit) {
-        viewModelScope.launch { alTerminar(intentar { definirHora(dia, hora, modalidades) }) }
+        enCurso.lanzar(viewModelScope, "definir:$dia:$hora") { alTerminar(intentar { definirHora(dia, hora, modalidades) }) }
     }
 }

@@ -14,10 +14,11 @@ import com.grupo3.nexo.ui.navigation.Rutas
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -52,7 +53,11 @@ class BusquedaViewModel @Inject constructor(
     private val franja = MutableStateFlow<Franja?>(null)
     private val soloEnLinea = MutableStateFlow(false)
 
-    private val filtro = combine(consulta, area, modalidad, franja, soloEnLinea) { q, a, m, f, l ->
+    // El texto espera a que se deje de escribir; vacío (primera carga o borrar todo) pasa sin demora
+    @OptIn(FlowPreview::class)
+    private val consultaRetrasada = consulta.debounce { if (it.isEmpty()) 0L else RETRASO_CONSULTA_MS }
+
+    private val filtro = combine(consultaRetrasada, area, modalidad, franja, soloEnLinea) { q, a, m, f, l ->
         FiltroTutores(consulta = q, materias = a?.claves.orEmpty(), modalidad = m, franja = f, soloEnLinea = l)
     }
 
@@ -60,15 +65,29 @@ class BusquedaViewModel @Inject constructor(
 
     fun reintentar() = recarga.reintentar()
 
-    // Los filtros se conservan aunque falle la búsqueda: solo los resultados pasan a null (error)
-    private val busqueda = combine(filtro, recarga.intentos) { f, _ -> f }
-        .flatMapLatest { f -> buscarTutores(f).map<List<Tutor>, List<Tutor>?> { it }.catch { emit(null) } }
+    private sealed interface Resultado {
+        data object Cargando : Resultado
+        data object Fallo : Resultado
+        data class Lista(val tutores: List<Tutor>) : Resultado
+    }
+
+    // Los filtros se conservan aunque falle la búsqueda: solo los resultados pasan a error
+    private val busqueda = filtro.flatMapLatest { f ->
+        recarga.proteger(alCargar = { Resultado.Cargando }, alFallar = { Resultado.Fallo }) {
+            buscarTutores(f).map<List<Tutor>, Resultado> { Resultado.Lista(it) }
+        }
+    }
 
     val estado = combine(
         combine(consulta, area, modalidad, franja, soloEnLinea) { q, a, m, f, l -> Estado(q, a, m, f, l) },
         busqueda
-    ) { base, resultados -> base.copy(resultados = resultados.orEmpty(), cargando = false, error = resultados == null) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
+    ) { base, resultado ->
+        when (resultado) {
+            Resultado.Cargando -> base.copy(resultados = emptyList(), cargando = true, error = false)
+            Resultado.Fallo -> base.copy(resultados = emptyList(), cargando = false, error = true)
+            is Resultado.Lista -> base.copy(resultados = resultado.tutores, cargando = false, error = false)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 
     fun cambiarConsulta(valor: String) { consulta.value = valor }
     fun alternarArea(valor: AreaEstudio) { area.update { if (it == valor) null else valor } }
@@ -84,5 +103,9 @@ class BusquedaViewModel @Inject constructor(
         consulta.value = ""
         area.value = null
         limpiarHoja()
+    }
+
+    private companion object {
+        const val RETRASO_CONSULTA_MS = 300L
     }
 }

@@ -1,5 +1,7 @@
 package com.grupo3.nexo.ui.tutor
 
+import com.grupo3.nexo.ui.components.avisoFallo
+import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -191,8 +193,8 @@ fun PantallaTutorPerfil(
         when (aviso) {
             is AvisoPerfil.SolicitudEnviada -> avisos.showSnackbar("Solicitud enviada. ${aviso.tutor} tiene $PLAZO_RESPUESTA para responder.")
             AvisoPerfil.ReporteEnviado -> avisos.showSnackbar("Reporte enviado. Gracias por cuidar la comunidad.")
-            AvisoPerfil.SolicitudFallida -> avisos.mostrarError("No se pudo enviar la solicitud. Revisa tu conexión e inténtalo de nuevo.")
-            AvisoPerfil.ReporteFallido -> avisos.mostrarError("No se pudo enviar el reporte. Revisa tu conexión e inténtalo de nuevo.")
+            AvisoPerfil.SolicitudFallida -> avisos.mostrarError(avisoFallo("enviar la solicitud"))
+            AvisoPerfil.ReporteFallido -> avisos.mostrarError(avisoFallo("enviar el reporte"))
         }
         viewModel.descartarAviso()
     }
@@ -294,7 +296,7 @@ fun PantallaTutorPerfil(
                             Estrellas(Math.round(tutor.rating).toInt(), tamano = 14.dp)
                             Spacer(Modifier.width(EspacioFino))
                             Text(
-                                "${formatoValoracion(tutor.rating)} · ${tutor.totalResenas} ${if (tutor.totalResenas == 1) "reseña" else "reseñas"}",
+                                "${formatoValoracion(tutor.rating)} · ${tutor.totalResenas} ${plural(tutor.totalResenas, "reseña", "reseñas")}",
                                 color = TextoSecundario,
                                 style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares)
                             )

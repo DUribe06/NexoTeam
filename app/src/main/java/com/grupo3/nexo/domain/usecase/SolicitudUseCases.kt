@@ -1,5 +1,6 @@
 package com.grupo3.nexo.domain.usecase
 
+import kotlinx.coroutines.CancellationException
 import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Rol
@@ -54,26 +55,41 @@ class ActualizarSolicitudUseCase @Inject constructor(
      * Aceptar agenda la sesión y deja activo el chat con esa persona; cancelar una aceptada la cancela
      * también y, si no quedan sesiones por venir con ella, el chat pasa a solo lectura (RF6 → RF8, RF10).
      */
-    // Con el backend real esta orquestación (solicitud, sesión y chat) puede pasar al servidor, en una sola llamada
+    // Con el backend real esta orquestación (solicitud, sesión y chat) pasa al servidor, en una sola llamada
     suspend operator fun invoke(id: String, estado: EstadoSolicitud, motivo: String? = null) {
         val anterior = repositorio.obtenerSolicitudes().first().firstOrNull { it.id == id } ?: return
+        // La escritura principal decide el resultado: si falla, la excepción llega a quien llamó
         repositorio.actualizarEstado(id, estado, motivo?.trim())
+        // Las secundarias se intentan sin tumbar el resultado: la solicitud ya cambió de estado
         when (estado) {
             EstadoSolicitud.ACEPTADA -> {
                 val comoTutor = anterior.tutorId == auth.usuarioActual.value.id
-                sesiones.programar(anterior, comoTutor)
-                if (comoTutor) chats.habilitarChat(anterior.estudianteId, anterior.nombreEstudiante, enLinea = false, comoTutor = true)
-                else chats.habilitarChat(anterior.tutorId, anterior.nombreTutor, enLinea = false, comoTutor = false)
+                secundaria { sesiones.programar(anterior, comoTutor) }
+                secundaria {
+                    if (comoTutor) chats.habilitarChat(anterior.estudianteId, anterior.nombreEstudiante, enLinea = false, comoTutor = true)
+                    else chats.habilitarChat(anterior.tutorId, anterior.nombreTutor, enLinea = false, comoTutor = false)
+                }
             }
-            EstadoSolicitud.CANCELADA -> {
+            EstadoSolicitud.CANCELADA -> secundaria {
                 sesiones.cancelarDe(id)
                 val comoTutor = anterior.tutorId == auth.usuarioActual.value.id
                 val contraparte = if (comoTutor) anterior.estudianteId else anterior.tutorId
                 val quedan = sesiones.obtenerSesiones().first().any { it.proxima && it.contraparteId == contraparte && it.comoTutor == comoTutor }
                 if (!quedan) chats.cerrarChat(contraparte)
             }
-            EstadoSolicitud.RECHAZADA -> sesiones.cancelarDe(id)
+            EstadoSolicitud.RECHAZADA -> secundaria { sesiones.cancelarDe(id) }
             else -> Unit
+        }
+    }
+
+    /** Ejecuta un paso secundario ignorando su fallo; la cancelación de la corrutina sí se propaga. */
+    private suspend fun secundaria(paso: suspend () -> Unit) {
+        try {
+            paso()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Sin reintento propio: no debe presentarse como fallo de la acción principal
         }
     }
 }

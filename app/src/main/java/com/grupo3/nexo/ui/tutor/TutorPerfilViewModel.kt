@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.tutor
 
+import com.grupo3.nexo.ui.AccionesEnCurso
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -79,9 +80,11 @@ class TutorPerfilViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 
+    private val enCurso = AccionesEnCurso()
+
     fun solicitar(datos: DatosSolicitud) {
         val t = estado.value.tutor ?: return
-        viewModelScope.launch {
+        enCurso.lanzar(viewModelScope, "solicitar") {
             val exito = intentar { enviarSolicitud(t, datos.materia, datos.tema, datos.fecha, datos.hora, datos.modalidad, datos.mensaje) }
             aviso.value = if (exito) AvisoPerfil.SolicitudEnviada(t.nombre.primerNombre) else AvisoPerfil.SolicitudFallida
         }
@@ -89,7 +92,7 @@ class TutorPerfilViewModel @Inject constructor(
 
     fun reportar(motivo: String) {
         val t = estado.value.tutor ?: return
-        viewModelScope.launch {
+        enCurso.lanzar(viewModelScope, "reportar") {
             aviso.value = if (intentar { reportarTutor(t.id, motivo) }) AvisoPerfil.ReporteEnviado else AvisoPerfil.ReporteFallido
         }
     }

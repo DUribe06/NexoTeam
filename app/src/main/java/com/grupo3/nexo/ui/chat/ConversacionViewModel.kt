@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.chat
 
+import com.grupo3.nexo.ui.AccionesEnCurso
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -88,14 +89,17 @@ class ConversacionViewModel @Inject constructor(
     }
 
     /** Avisa con `alTerminar(true)` si se guardó y `alTerminar(false)` si falló. */
+    private val enCurso = AccionesEnCurso()
+
     fun calificar(sesionId: String, estrellas: Int, comentario: String?, alTerminar: (Boolean) -> Unit) {
-        viewModelScope.launch { alTerminar(intentar { calificarSesion(sesionId, estrellas, comentario) }) }
+        enCurso.lanzar(viewModelScope, "calificar:$sesionId") { alTerminar(intentar { calificarSesion(sesionId, estrellas, comentario) }) }
     }
 
     /** Si el mensaje no sale, `alTerminar(false)` permite devolver el texto a la caja para reintentar. */
     fun enviar(texto: String, alTerminar: (Boolean) -> Unit) {
         val limpio = texto.trim()
         if (limpio.isEmpty() || chatId.value.isEmpty() || estado.value.soloLectura) return
-        viewModelScope.launch { alTerminar(intentar { enviarMensaje(chatId.value, limpio) }) }
+        // Solo se ignora el mismo texto mientras sale; otro mensaje distinto sigue su curso
+        enCurso.lanzar(viewModelScope, "enviar:$limpio") { alTerminar(intentar { enviarMensaje(chatId.value, limpio) }) }
     }
 }

@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.historial
 
+import com.grupo3.nexo.ui.AccionesEnCurso
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.model.Resena
@@ -70,7 +71,9 @@ class HistorialViewModel @Inject constructor(
     }
 
     /** Avisa con `alTerminar(true)` si se guardó y `alTerminar(false)` si falló. */
+    private val enCurso = AccionesEnCurso()
+
     fun calificar(sesionId: String, estrellas: Int, comentario: String?, alTerminar: (Boolean) -> Unit) {
-        viewModelScope.launch { alTerminar(intentar { calificarSesion(sesionId, estrellas, comentario) }) }
+        enCurso.lanzar(viewModelScope, "calificar:$sesionId") { alTerminar(intentar { calificarSesion(sesionId, estrellas, comentario) }) }
     }
 }

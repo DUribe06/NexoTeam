@@ -1,5 +1,11 @@
 package com.grupo3.nexo.ui.auth
 
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
+import com.grupo3.nexo.ui.theme.DesplazamientoFlechaBoton
+import com.grupo3.nexo.ui.theme.ElevacionCampoEnfocado
+import com.grupo3.nexo.ui.theme.ElevacionCampoReposo
+import com.grupo3.nexo.ui.theme.resorteSuave
+import com.grupo3.nexo.ui.theme.resorteSuaveDp
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -535,12 +541,12 @@ private fun CampoPildora(
     var visible by rememberSaveable { mutableStateOf(false) }
 
     val colorBorde by animateColorAsState(
-        if (enfocado) BordeSeleccion else BordeSutil, label = "borde"
+        if (enfocado) BordeSeleccion else BordeSutil, resorteSuave(), label = "borde"
     )
-    val grosorBorde by animateDpAsState(if (enfocado) 1.5.dp else 1.dp, label = "grosor")
-    val elevacion by animateDpAsState(if (enfocado) 10.dp else 3.dp, label = "elevacion")
+    val grosorBorde by animateDpAsState(if (enfocado) 1.5.dp else 1.dp, resorteSuaveDp(), label = "grosor")
+    val elevacion by animateDpAsState(if (enfocado) ElevacionCampoEnfocado else ElevacionCampoReposo, resorteSuaveDp(), label = "elevacion")
     val colorIcono by animateColorAsState(
-        if (enfocado) BosqueAcento else IconoCampoAcceso, label = "icono"
+        if (enfocado) BosqueAcento else IconoCampoAcceso, resorteSuave(), label = "icono"
     )
 
     BasicTextField(
@@ -591,8 +597,8 @@ private fun CampoPildora(
 /** Casilla redonda de aceptación; "condiciones de uso" abre su propia hoja sin marcar la casilla. */
 @Composable
 private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, modifier: Modifier = Modifier) {
-    val relleno by animateColorAsState(if (aceptado) BosqueMedio else Superficie, label = "relleno")
-    val borde by animateColorAsState(if (aceptado) BosqueMedio else BordeRadio, label = "borde")
+    val relleno by animateColorAsState(if (aceptado) BosqueMedio else Superficie, resorteSuave(), label = "relleno")
+    val borde by animateColorAsState(if (aceptado) BosqueMedio else BordeRadio, resorteSuave(), label = "borde")
     val escalaMarca by animateFloatAsState(
         if (aceptado) 1f else 0f, resorteRebote(), label = "marca"
     )
@@ -606,7 +612,7 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
             .clip(CircleShape)
             .toggleable(value = aceptado, role = Role.Checkbox, onValueChange = alCambiar)
             .semantics { contentDescription = "Acepto las condiciones de uso" }
-            .heightIn(min = 48.dp)
+            .heightIn(min = AreaTactilMinima)
             .padding(start = EspacioMedio)
     ) {
         Box(
@@ -644,7 +650,7 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
             .padding(end = EspacioMedio)
             .areaTactilSinCambiarMedida()
             .clickable(onClickLabel = "Leer las condiciones de uso", role = Role.Button) { verCondiciones = true }
-            .heightIn(min = 48.dp)
+            .heightIn(min = AreaTactilMinima)
             .wrapContentHeight()
     )
     }
@@ -675,8 +681,8 @@ private fun HojaCondiciones(alCerrar: () -> Unit) {
 private fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> Unit, modifier: Modifier = Modifier) {
     val interaccion = remember { MutableInteractionSource() }
     val presionado by interaccion.collectIsPressedAsState()
-    val escala by animateFloatAsState(if (presionado) 0.97f else 1f, label = "escala")
-    val desplazamientoFlecha by animateDpAsState(if (presionado) 4.dp else 0.dp, label = "flecha")
+    val escala by animateFloatAsState(if (presionado) 0.97f else 1f, resorteSuave(), label = "escala")
+    val desplazamientoFlecha by animateDpAsState(if (presionado) DesplazamientoFlechaBoton else 0.dp, resorteSuaveDp(), label = "flecha")
 
     Box(
         contentAlignment = Alignment.Center,
@@ -774,7 +780,7 @@ private fun EnlaceCambioModo(esRegistro: Boolean, alClicar: () -> Unit, modifier
             .layout { medible, restricciones ->
                 val p = medible.measure(restricciones)
                 val minimo = 44.dp.roundToPx()
-                layout(p.width, if (p.height <= 48.dp.roundToPx()) minimo else p.height) { p.place(0, 0) }
+                layout(p.width, if (p.height <= AreaTactilMinima.roundToPx()) minimo else p.height) { p.place(0, 0) }
             }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -782,7 +788,7 @@ private fun EnlaceCambioModo(esRegistro: Boolean, alClicar: () -> Unit, modifier
                 role = Role.Button,
                 onClick = alClicar
             )
-            .heightIn(min = 48.dp)
+            .heightIn(min = AreaTactilMinima)
             .padding(horizontal = EspacioCercano, vertical = EspacioMedio)
     )
 }

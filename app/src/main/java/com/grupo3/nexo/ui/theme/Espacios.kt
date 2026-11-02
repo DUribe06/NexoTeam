@@ -39,5 +39,14 @@ val TamanoAvatarLista: Dp = 50.dp
 val EspacioPortada: Dp = 72.dp
 /** Separación entre el botón principal y "o conéctate con" en el acceso. */
 val EspacioSeparadorAcceso: Dp = 26.dp
-/** Alto mínimo de la tarjeta de próxima sesión del Inicio. */
-val AltoMinimoTarjetaSesion: Dp = 54.dp
+/** Alto mínimo del buscador del Inicio y de la fila de acceso a solicitudes. */
+val AltoBuscador: Dp = 54.dp
+/** Área táctil mínima de cualquier control. */
+val AreaTactilMinima: Dp = 48.dp
+/** Alto visible de las píldoras y los botones tonales. */
+val AltoPildora: Dp = 40.dp
+/** Sombra del campo del acceso con el foco puesto y en reposo. */
+val ElevacionCampoEnfocado: Dp = 10.dp
+val ElevacionCampoReposo: Dp = 3.dp
+/** Cuánto se corre la flecha del botón principal del acceso al presionarlo. */
+val DesplazamientoFlechaBoton: Dp = 4.dp

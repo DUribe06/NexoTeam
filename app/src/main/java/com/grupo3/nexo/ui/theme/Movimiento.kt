@@ -9,6 +9,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -22,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 
 /*
@@ -62,6 +64,10 @@ val CurvaEstandar: Easing = FastOutSlowInEasing
 val CurvaAparicion: Easing = EaseOutCubic
 
 /* Resortes */
+/** Resorte por defecto de Compose, explícito para los `animate*AsState` que no llevan otro. */
+fun <T> resorteSuave(): SpringSpec<T> = spring()
+/** Resorte por defecto de `animateDpAsState` (umbral de visibilidad de [Dp]). */
+fun resorteSuaveDp(): SpringSpec<Dp> = spring(visibilityThreshold = Dp.VisibilityThreshold)
 fun <T> resortePresion(): SpringSpec<T> = spring(dampingRatio = 1f, stiffness = 900f)
 fun <T> resorteIndicador(): SpringSpec<T> = spring(dampingRatio = 0.78f, stiffness = 500f)
 fun <T> resorteCascada(): SpringSpec<T> = spring(dampingRatio = 0.68f, stiffness = 320f)
