@@ -19,9 +19,11 @@ import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.EspacioAjustado
-import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioNormal
 import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.TamanoAvatarResena
+import com.grupo3.nexo.ui.theme.TamanoEstrellaCompacta
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
@@ -39,24 +41,26 @@ fun ListaResenas(resenas: List<Resena>, modifier: Modifier = Modifier) {
     }
 }
 
+/** Una reseña en su propia tarjeta, para listas largas como la del Perfil del tutor. */
+@Composable
+fun TarjetaResena(resena: Resena, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth().superficie(FormaOrganica)) { FilaResena(resena) }
+}
+
+/** Contenido de una reseña: autor, antigüedad, estrellas y texto. */
 @Composable
 fun FilaResena(resena: Resena) {
     Column(Modifier.padding(EspacioNormal)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Avatar(resena.autor, tamano = 32.dp)
-            Spacer(Modifier.width(EspacioAjustado))
+            Avatar(resena.autor, tamano = TamanoAvatarResena)
+            Spacer(Modifier.width(EspacioMedio))
             Column(Modifier.weight(1f)) {
                 TextoLinea(resena.autor, MaterialTheme.typography.titleSmall, TextoPrimario)
                 TextoLinea(formatoHace(resena.fecha), MaterialTheme.typography.bodySmall, TextoTercero)
             }
-            Estrellas(resena.estrellas, tamano = 12.dp)
+            Estrellas(resena.estrellas, tamano = TamanoEstrellaCompacta)
         }
-        Text(
-            resena.texto,
-            color = TextoSecundario,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 3,
-            modifier = Modifier.padding(top = EspacioCorto)
-        )
+        Spacer(Modifier.height(EspacioAjustado))
+        Text(resena.texto, color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
     }
 }

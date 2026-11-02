@@ -44,36 +44,37 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
     }
 
     override suspend fun asegurarChat(
-        chatId: String,
+        personaId: String,
         nombre: String,
         enLinea: Boolean,
         comoTutor: Boolean
-    ) {
+    ): String {
         chats.update { actual ->
-            if (actual.any { it.id == chatId }) actual
+            if (actual.any { it.contraparteId == personaId }) actual
             else listOf(
-                Chat(chatId, nombre, "Inicia la conversación", null, 0, enLinea, comoTutor = comoTutor)
+                Chat("c-$personaId", personaId, nombre, "Inicia la conversación", null, 0, enLinea, comoTutor = comoTutor)
             ) + actual
         }
+        return chats.value.first { it.contraparteId == personaId }.id
     }
 
     override suspend fun habilitarChat(
-        chatId: String,
+        personaId: String,
         nombre: String,
         enLinea: Boolean,
         comoTutor: Boolean
     ) {
         chats.update { actual ->
-            if (actual.any { it.id == chatId }) actual.map { if (it.id == chatId) it.copy(soloLectura = false) else it }
+            if (actual.any { it.contraparteId == personaId }) actual.map { if (it.contraparteId == personaId) it.copy(soloLectura = false) else it }
             else listOf(
-                Chat(chatId, nombre, "Inicia la conversación", null, 0, enLinea, comoTutor = comoTutor)
+                Chat("c-$personaId", personaId, nombre, "Inicia la conversación", null, 0, enLinea, comoTutor = comoTutor)
             ) + actual
         }
     }
 
-    override suspend fun cerrarChat(chatId: String) {
+    override suspend fun cerrarChat(personaId: String) {
         chats.update { actual ->
-            actual.map { if (it.id == chatId) it.copy(soloLectura = true) else it }
+            actual.map { if (it.contraparteId == personaId) it.copy(soloLectura = true) else it }
         }
     }
 }

@@ -3,6 +3,7 @@ package com.grupo3.nexo.domain.usecase
 import com.grupo3.nexo.domain.model.Chat
 import com.grupo3.nexo.domain.model.Mensaje
 import com.grupo3.nexo.domain.model.Rol
+import com.grupo3.nexo.domain.model.Sesion
 import com.grupo3.nexo.domain.model.Solicitud
 import com.grupo3.nexo.domain.repository.AuthRepository
 import com.grupo3.nexo.domain.repository.ChatRepository
@@ -10,6 +11,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 /** Devuelve la bandeja de conversaciones. */
 class ObtenerChatsUseCase @Inject constructor(
@@ -20,6 +22,8 @@ class ObtenerChatsUseCase @Inject constructor(
     operator fun invoke(): Flow<List<Chat>> =
         combine(repositorio.obtenerChats(), auth.usuarioActual) { chats, usuario ->
             chats.filter { it.comoTutor == (usuario.rol == Rol.TUTOR) }
+                // Los chats nuevos, aún sin mensajes, arriba; después el último mensaje más reciente primero
+                .sortedWith(compareByDescending<Chat> { it.hora == null }.thenByDescending { it.hora })
         }
 }
 
@@ -27,7 +31,9 @@ class ObtenerChatsUseCase @Inject constructor(
 class ObtenerMensajesUseCase @Inject constructor(
     private val repositorio: ChatRepository
 ) {
-    operator fun invoke(chatId: String): Flow<List<Mensaje>> = repositorio.obtenerMensajes(chatId)
+    /** Del más antiguo al más reciente. */
+    operator fun invoke(chatId: String): Flow<List<Mensaje>> =
+        repositorio.obtenerMensajes(chatId).map { lista -> lista.sortedBy { it.hora } }
 }
 
 /** Envía un mensaje en una conversación. */
@@ -49,11 +55,12 @@ class MarcarChatLeidoUseCase @Inject constructor(
 class AbrirChatUseCase @Inject constructor(
     private val repositorio: ChatRepository
 ) {
-    suspend operator fun invoke(tutor: com.grupo3.nexo.domain.model.Tutor) =
+    /** Devuelve el id del chat con el tutor. */
+    suspend operator fun invoke(tutor: com.grupo3.nexo.domain.model.Tutor): String =
         repositorio.asegurarChat(tutor.id, tutor.nombre, tutor.enLinea, comoTutor = false)
 
     /** Conversación del tutor con un estudiante de una solicitud aceptada. */
-    suspend fun conEstudiante(id: String, nombre: String) =
+    suspend fun conEstudiante(id: String, nombre: String): String =
         repositorio.asegurarChat(id, nombre, enLinea = false, comoTutor = true)
 }
 
@@ -70,10 +77,16 @@ class AbrirChatDeSolicitudUseCase @Inject constructor(
     suspend operator fun invoke(solicitud: Solicitud): String? =
         if (auth.usuarioActual.value.rol == Rol.TUTOR) {
             abrirChat.conEstudiante(solicitud.estudianteId, solicitud.nombreEstudiante)
-            solicitud.estudianteId
         } else {
             val tutor = tutores().first().firstOrNull { it.id == solicitud.tutorId } ?: return null
             abrirChat(tutor)
-            tutor.id
         }
+}
+
+/** Abre el chat con la contraparte de una sesión próxima y devuelve el id de la conversación. */
+class AbrirChatDeSesionUseCase @Inject constructor(
+    private val repositorio: ChatRepository
+) {
+    suspend operator fun invoke(sesion: Sesion): String =
+        repositorio.asegurarChat(sesion.contraparteId, sesion.conQuien, enLinea = false, comoTutor = sesion.comoTutor)
 }

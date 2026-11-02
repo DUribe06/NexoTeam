@@ -142,7 +142,7 @@ data class Solicitud(
     /** Motivo opcional que da el tutor al rechazar (RF6). */
     val motivoRechazo: String? = null,
     /** Momento en que el estudiante la envió; con él se cuenta el plazo de respuesta (RF6). */
-    val enviada: LocalDateTime = LocalDateTime.now()
+    val enviada: LocalDateTime
 )
 
 /** Horas que quedan para que el tutor responda; 0 o menos si el plazo ya venció. */
@@ -207,8 +207,10 @@ data class Sesion(
 }
 
 data class Chat(
-    /** Coincide con el id de la otra parte para navegar directamente a la conversación. */
+    /** Identifica la conversación; la navegación hacia ella va por este id. */
     val id: String,
+    /** Id de la otra persona (tutor o estudiante), para abrir su perfil o reportarla. */
+    val contraparteId: String,
     val nombre: String,
     val ultimoMensaje: String,
     /** Momento del último mensaje; la pantalla lo muestra relativo ("10:24", "Ayer", "Lun", "7 oct"). Null si aún no hay mensajes. */

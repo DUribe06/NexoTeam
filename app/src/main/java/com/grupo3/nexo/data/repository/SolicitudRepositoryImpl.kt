@@ -40,7 +40,6 @@ class SolicitudRepositoryImpl @Inject constructor(
 
     override suspend fun enviar(
         tutorId: String,
-        nombreTutor: String,
         materia: String,
         tema: String,
         fecha: LocalDate,
@@ -54,7 +53,7 @@ class SolicitudRepositoryImpl @Inject constructor(
             actual + Solicitud(
                 id = "s${++contador}",
                 tutorId = tutorId,
-                nombreTutor = nombreTutor,
+                nombreTutor = MockData.tutores.firstOrNull { it.id == tutorId }?.nombre.orEmpty(),
                 estudianteId = usuario.id,
                 nombreEstudiante = usuario.nombre,
                 materia = materia,

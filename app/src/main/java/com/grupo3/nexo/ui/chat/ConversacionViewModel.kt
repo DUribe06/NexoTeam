@@ -69,8 +69,10 @@ class ConversacionViewModel @Inject constructor(
             obtenerSesiones()
         ) { id, mensajes, chats, tutores, sesiones ->
             val chat = chats.firstOrNull { it.id == id }
-            val tutor = tutores.firstOrNull { it.id == id }
-            val sesion = sesionDeConversacion(sesiones, id, chat?.soloLectura ?: false)
+            // Sin chat todavía (primer mensaje a un tutor) el argumento de la ruta es el id del tutor
+            val contraparteId = chat?.contraparteId ?: id
+            val tutor = tutores.firstOrNull { it.id == contraparteId }
+            val sesion = sesionDeConversacion(sesiones, contraparteId, chat?.soloLectura ?: false)
             Estado(
                 cargando = id.isEmpty(),
                 nombre = chat?.nombre ?: tutor?.nombre.orEmpty(),

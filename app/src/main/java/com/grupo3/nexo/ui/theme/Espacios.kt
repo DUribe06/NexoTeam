@@ -35,6 +35,24 @@ val EspacioBotonLateral: Dp = 7.dp
 val EspacioPildora: Dp = 15.dp
 /** Diámetro del avatar en las filas de lista (chats, búsqueda). */
 val TamanoAvatarLista: Dp = 50.dp
+/** Avatar por defecto y su esqueleto de carga. */
+val TamanoAvatarNormal: Dp = 44.dp
+/** Avatar de las filas del historial y de las solicitudes. */
+val TamanoAvatarCompacto: Dp = 40.dp
+/** Avatar de cada reseña. */
+val TamanoAvatarResena: Dp = 38.dp
+/** Estrellas de una valoración en una fila, y su versión apretada en listas densas. */
+val TamanoEstrella: Dp = 14.dp
+val TamanoEstrellaCompacta: Dp = 13.dp
+/** Estrella que se toca al calificar y el área táctil que la rodea. */
+val TamanoEstrellaCalificar: Dp = 44.dp
+val AreaEstrellaCalificar: Dp = 56.dp
+/** Botón cuadrado de enviar en la conversación. */
+val TamanoBotonEnviar: Dp = 52.dp
+/** Marco cuadrado con ícono de las tarjetas de acceso. */
+val TamanoMarcoIcono: Dp = 64.dp
+/** Punto de color junto a un estado ("En línea", estado de solicitud). */
+val TamanoPuntoEstado: Dp = 7.dp
 /** Aire bajo los botones de la portada del perfil, antes de la onda. */
 val EspacioPortada: Dp = 72.dp
 /** Separación entre el botón principal y "o conéctate con" en el acceso. */

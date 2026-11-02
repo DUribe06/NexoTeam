@@ -26,7 +26,7 @@ fun formatoHoras(horas: Double): String =
 
 private val mesesCortos = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
 
-private val formatoReloj = DateTimeFormatter.ofPattern("H:mm", Locale.ROOT)
+private val formatoReloj = DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT)
 
 /** Fecha corta en español: 2026-10-24 → "24 oct". */
 fun formatoFecha(fecha: LocalDate): String = "${fecha.dayOfMonth} ${mesesCortos[fecha.monthValue - 1]}"
@@ -47,7 +47,7 @@ fun fechaLarga(fecha: LocalDate): String =
 fun fechaCorta(fecha: LocalDate): String = "${fecha.nombreDia(TextStyle.SHORT)} ${fecha.dayOfMonth}"
 
 /**
- * Momento de un mensaje en una lista: la hora si es de hoy ("10:24"), "ahora" si es de hace menos de un minuto,
+ * Momento de un mensaje en una lista: la hora si es de hoy ("10:24"), "Ahora" si es de hace menos de un minuto,
  * "Ayer", el día de la semana dentro de la última semana ("Lun") y, más atrás, la fecha ("7 oct").
  */
 fun formatoMomento(momento: LocalDateTime, ahora: LocalDateTime = LocalDateTime.now()): String {
@@ -55,7 +55,7 @@ fun formatoMomento(momento: LocalDateTime, ahora: LocalDateTime = LocalDateTime.
     return when {
         dias == 0L -> {
             val desde = Duration.between(momento, ahora)
-            if (!desde.isNegative && desde < Duration.ofMinutes(1)) "ahora" else momento.format(formatoReloj)
+            if (!desde.isNegative && desde < Duration.ofMinutes(1)) "Ahora" else momento.format(formatoReloj)
         }
         dias == 1L -> "Ayer"
         dias in 2L..6L -> momento.toLocalDate().nombreDia(TextStyle.SHORT)
@@ -63,16 +63,24 @@ fun formatoMomento(momento: LocalDateTime, ahora: LocalDateTime = LocalDateTime.
     }
 }
 
-/** Antigüedad de una publicación: "hace 3 días", "hace 2 sem", "hace 1 mes", "hace 2 meses". */
+/** Separador de día en una conversación: "Hoy", "Ayer" o la fecha larga ("Lunes 26 de octubre"). */
+fun formatoDia(fecha: LocalDate, hoy: LocalDate = LocalDate.now()): String =
+    when (ChronoUnit.DAYS.between(fecha, hoy)) {
+        0L -> "Hoy"
+        1L -> "Ayer"
+        else -> fechaLarga(fecha)
+    }
+
+/** Antigüedad de una publicación: "Hoy", "hace 3 días", "hace 2 sem", "hace 1 mes", "hace 2 meses". */
 fun formatoHace(fecha: LocalDate, hoy: LocalDate = LocalDate.now()): String {
     val dias = ChronoUnit.DAYS.between(fecha, hoy)
     return when {
-        dias <= 0L -> "hoy"
+        dias <= 0L -> "Hoy"
         dias == 1L -> "hace 1 día"
         dias < 7L -> "hace $dias días"
         dias < 30L -> "hace ${dias / 7} sem"
-        dias < 365L -> (dias / 30).let { "hace $it ${if (it == 1L) "mes" else "meses"}" }
-        else -> (dias / 365).let { "hace $it ${if (it == 1L) "año" else "años"}" }
+        dias < 365L -> (dias / 30).toInt().let { "hace $it ${plural(it, "mes", "meses")}" }
+        else -> (dias / 365).toInt().let { "hace $it ${plural(it, "año", "años")}" }
     }
 }
 

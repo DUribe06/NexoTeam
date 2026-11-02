@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.perfil
 
+import com.grupo3.nexo.ui.theme.TamanoAvatarNormal
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.AnimatedContent
@@ -481,7 +482,7 @@ private fun EsqueletoSinMargen(filas: Int) {
                     .border(1.dp, BordeSutil, FormaOrganica)
                     .padding(EspacioNormal)
             ) {
-                Hueso(Modifier.size(44.dp), CircleShape)
+                Hueso(Modifier.size(TamanoAvatarNormal), CircleShape)
                 Spacer(Modifier.width(EspacioMedio))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
                     LineaHueso(0.55f, alto = 14.dp)

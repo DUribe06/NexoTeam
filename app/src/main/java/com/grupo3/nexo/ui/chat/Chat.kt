@@ -1,6 +1,10 @@
 package com.grupo3.nexo.ui.chat
 
+import com.grupo3.nexo.ui.components.formatoDia
+import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.components.formatoMomento
+import com.grupo3.nexo.ui.theme.TamanoBotonEnviar
+import com.grupo3.nexo.ui.theme.TamanoPuntoEstado
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.components.avisoFallo
 import com.grupo3.nexo.ui.components.plural
@@ -58,6 +62,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -124,6 +129,7 @@ import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
+import java.time.LocalDate
 import kotlinx.coroutines.launch
 import com.grupo3.nexo.ui.theme.VerdeEstado
 import com.grupo3.nexo.ui.theme.cambioContenido
@@ -301,12 +307,14 @@ fun PantallaConversacion(
 
     // Al abrir, el chat ya aparece en el último mensaje; solo se anima lo que llega después
     var yaPosicionado by remember { mutableStateOf(false) }
-    LaunchedEffect(estado.mensajes.size) {
+    // La lista lleva un separador por cada día, además de los mensajes
+    val elementos = estado.mensajes.size + estado.mensajes.map { it.hora.toLocalDate() }.distinct().size
+    LaunchedEffect(elementos) {
         if (estado.mensajes.isEmpty()) return@LaunchedEffect
         if (yaPosicionado) {
-            listaEstado.animateScrollToItem(estado.mensajes.lastIndex)
+            listaEstado.animateScrollToItem(elementos - 1)
         } else {
-            listaEstado.scrollToItem(estado.mensajes.lastIndex)
+            listaEstado.scrollToItem(elementos - 1)
             yaPosicionado = true
         }
     }
@@ -347,7 +355,7 @@ fun PantallaConversacion(
                     TextoLinea(estado.nombre, MaterialTheme.typography.titleMedium, TextoPrimario, Modifier.semantics { heading() })
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (estado.enLinea) {
-                            Box(Modifier.size(7.dp).background(Menta, CircleShape))
+                            Box(Modifier.size(TamanoPuntoEstado).background(Menta, CircleShape))
                             Spacer(Modifier.width(EspacioIcono))
                         }
                         Text(
@@ -413,15 +421,21 @@ fun PantallaConversacion(
                     contentPadding = PaddingValues(horizontal = EspacioNormal, vertical = EspacioNormal),
                     modifier = Modifier.weight(1f)
                 ) {
-                    itemsIndexed(estado.mensajes, key = { _, m -> m.id }) { indice, mensaje ->
+                    estado.mensajes.forEachIndexed { indice, mensaje ->
+                        val dia = mensaje.hora.toLocalDate()
                         val anterior = estado.mensajes.getOrNull(indice - 1)
                         val siguiente = estado.mensajes.getOrNull(indice + 1)
-                        Burbuja(
-                            mensaje = mensaje,
-                            iniciaGrupo = anterior?.mio != mensaje.mio,
-                            cierraGrupo = siguiente?.mio != mensaje.mio,
-                            modifier = Modifier.animateItem()
-                        )
+                        val iniciaDia = anterior?.hora?.toLocalDate() != dia
+                        val cierraDia = siguiente?.hora?.toLocalDate() != dia
+                        if (iniciaDia) item(key = "dia$dia") { SeparadorDia(dia, Modifier.animateItem()) }
+                        item(key = mensaje.id) {
+                            Burbuja(
+                                mensaje = mensaje,
+                                iniciaGrupo = iniciaDia || anterior?.mio != mensaje.mio,
+                                cierraGrupo = cierraDia || siguiente?.mio != mensaje.mio,
+                                modifier = Modifier.animateItem()
+                            )
+                        }
                     }
                 }
             }
@@ -459,7 +473,7 @@ fun PantallaConversacion(
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(52.dp)
+                        .size(TamanoBotonEnviar)
                         .graphicsLayer {
                             scaleX = escalaEnviar
                             scaleY = escalaEnviar
@@ -503,6 +517,20 @@ fun PantallaConversacion(
     }
 }
 
+/** Separador discreto entre mensajes de días distintos: "Hoy", "Ayer" o "Lunes 26 de octubre". */
+@Composable
+private fun SeparadorDia(dia: LocalDate, modifier: Modifier = Modifier) {
+    Text(
+        formatoDia(dia),
+        color = TextoTercero,
+        style = MaterialTheme.typography.labelMedium,
+        textAlign = TextAlign.Center,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = EspacioNormal, bottom = EspacioFino)
+    )
+}
+
 /**
  * Burbuja de mensaje. Los mensajes seguidos del mismo autor se agrupan: menos aire entre ellos,
  * esquina "de cola" solo en el último y la hora solo al cierre del grupo.
@@ -541,7 +569,7 @@ private fun Burbuja(mensaje: Mensaje, iniciaGrupo: Boolean, cierraGrupo: Boolean
         }
         if (cierraGrupo) {
             Text(
-                formatoMomento(mensaje.hora),
+                formatoHora(mensaje.hora.toLocalTime()),
                 color = TextoTercero,
                 style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares),
                 modifier = Modifier.padding(horizontal = EspacioFino, vertical = EspacioMinimo)

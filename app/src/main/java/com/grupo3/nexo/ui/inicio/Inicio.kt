@@ -1,6 +1,10 @@
 package com.grupo3.nexo.ui.inicio
 
+import com.grupo3.nexo.ui.components.AvisoNexo
 import com.grupo3.nexo.ui.components.PildoraAbrirChat
+import com.grupo3.nexo.ui.components.avisoFallo
+import com.grupo3.nexo.ui.components.mostrarError
+import kotlinx.coroutines.launch
 import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.AltoPildora
@@ -33,6 +37,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -56,6 +61,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -93,6 +100,7 @@ import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.AreaEstudio
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Rol
+import com.grupo3.nexo.domain.model.Sesion
 import com.grupo3.nexo.domain.model.Usuario
 import com.grupo3.nexo.domain.model.diasPublicados
 import com.grupo3.nexo.domain.model.horaFin
@@ -200,7 +208,6 @@ import com.grupo3.nexo.ui.theme.TituloMateria
 import com.grupo3.nexo.ui.theme.pincelBosque
 import com.grupo3.nexo.ui.theme.resorteCascada
 import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
@@ -233,6 +240,12 @@ fun PantallaInicio(
     viewModel: InicioViewModel = hiltViewModel()
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    val avisos = remember { SnackbarHostState() }
+    val alcance = rememberCoroutineScope()
+    // La conversación se resuelve con la contraparte de la sesión y se navega con el id del chat
+    val abrirChat: (Sesion) -> Unit = { sesion ->
+        viewModel.abrirChat(sesion, alAbrirChat) { alcance.launch { avisos.mostrarError(avisoFallo("abrir el chat")) } }
+    }
     val desplazamiento = rememberScrollState()
     val cabeceraVisible by remember { derivedStateOf { desplazamiento.value < 400 } }
     IconosClarosEnBarraDeEstado(activo = cabeceraVisible)
@@ -284,7 +297,7 @@ fun PantallaInicio(
             // Debajo del control flotante, una tira del mismo molde en ambos modos: materias para buscar
             // (estudiante) o lo que hace falta para preparar la próxima sesión (tutor).
             if (estado.esTutor) Column(Modifier.padding(top = EspacioMedio).aparicion(3, iniciado)) {
-                TiraSesion(estado, alAbrirChat, alVerSolicitudes, alAbrirDisponibilidad)
+                TiraSesion(estado, abrirChat, alVerSolicitudes, alAbrirDisponibilidad)
                 Box(Modifier.fillMaxWidth().padding(top = EspacioMicro).height(1.dp).background(Divisor))
             } else Column(Modifier.padding(top = EspacioMedio).aparicion(3, iniciado)) {
                 LazyRow(
@@ -333,12 +346,13 @@ fun PantallaInicio(
                         Carga.CARGANDO -> SesionEsqueleto()
                         Carga.VACIO -> SinSesiones(esTutor = estado.esTutor, alBuscar = { alBuscar(null) }, alVerSolicitudes = alVerSolicitudes)
                         Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus sesiones", alReintentar = viewModel::reintentar)
-                        Carga.LISTO -> proximasVisibles.takeIf { it.isNotEmpty() }?.let { TarjetaProximas(it, alAbrirChat) }
+                        Carga.LISTO -> proximasVisibles.takeIf { it.isNotEmpty() }?.let { TarjetaProximas(it, abrirChat) }
                     }
                 }
             }
         }
         VeloBarraEstado(visible = !cabeceraVisible)
+        AvisoNexo(avisos, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = EspacioAmplio))
     }
 }
 
@@ -534,7 +548,7 @@ private val Modalidad.iconoPh: Int
  */
 
 @Composable
-private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbrirChat: (String) -> Unit) {
+private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbrirChat: (Sesion) -> Unit) {
     // Tocar una capa de atrás la pasa al frente; las demás se reacomodan en orden (como un mazo de cartas)
     var inicio by remember(proximas) { mutableIntStateOf(0) }
     // Al salir de la pantalla (otra pestaña, otra pantalla o la app en segundo plano) vuelve la más próxima
@@ -555,7 +569,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                 .fillMaxWidth()
                 // Toda la tarjeta se hunde al presionar y abre el chat, igual que su botón
                 .then(
-                    primera.tutorId?.let { id -> Modifier.pulsable(etiqueta = "Escribir a ${s.conQuien}") { alAbrirChat(id) } } ?: Modifier
+                    Modifier.pulsable(etiqueta = "Escribir a ${s.conQuien}") { alAbrirChat(s) }
                 )
                 .background(TinteBosque, formaFrente)
                 .border(1.dp, BordeAcento, formaFrente)
@@ -636,9 +650,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                             )
                         }
                     }
-                    primera.tutorId?.let { id ->
-                        PildoraAbrirChat(s.conQuien, { alAbrirChat(id) }, fondo = Superficie)
-                    }
+                    PildoraAbrirChat(s.conQuien, { alAbrirChat(s) }, fondo = Superficie)
                 }
             }
           }
@@ -751,13 +763,13 @@ private fun SinSesiones(esTutor: Boolean, alBuscar: () -> Unit, alVerSolicitudes
 @Composable
 private fun TiraSesion(
     estado: InicioViewModel.Estado,
-    alAbrirChat: (String) -> Unit,
+    alAbrirChat: (Sesion) -> Unit,
     alVerSolicitudes: () -> Unit,
     alEditarDisponibilidad: () -> Unit
 ) {
     val tira = rememberLazyListState()
     val sesion = estado.proximas.firstOrNull()?.sesion
-    val alAbrir = { sesion?.let { alAbrirChat(it.contraparteId) } ?: Unit }
+    val alAbrir = { sesion?.let { alAbrirChat(it) } ?: Unit }
     val horas = estado.horasPublicadas
     LazyRow(
         state = tira,
@@ -766,7 +778,7 @@ private fun TiraSesion(
         modifier = Modifier.desvanecerBordes(tira)
     ) {
         if (sesion != null) {
-            val falta = faltaPara(sesion.fecha)
+            val falta = faltaPara(estado.diasParaProxima ?: 0L, sesion.fecha)
             item(key = "cuando") {
                 AccesoTira(R.drawable.ph_reloj, falta, "Abrir chat", "Tu próxima sesión: ${falta.lowercase()}, a las ${formatoHora(sesion.hora)}", alAbrir)
             }
@@ -798,8 +810,7 @@ private fun TiraSesion(
 }
 
 /** Cuánto falta para una fecha, en palabras: "Hoy", "Mañana", "En 2 días". */
-private fun faltaPara(fecha: LocalDate): String {
-    val dias = ChronoUnit.DAYS.between(LocalDate.now(), fecha)
+private fun faltaPara(dias: Long, fecha: LocalDate): String {
     return when (dias) {
         0L -> "Hoy"
         1L -> "Mañana"

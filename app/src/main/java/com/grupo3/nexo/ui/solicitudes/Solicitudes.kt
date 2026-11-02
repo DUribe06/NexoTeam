@@ -2,6 +2,7 @@ package com.grupo3.nexo.ui.solicitudes
 
 import com.grupo3.nexo.ui.components.PildoraAbrirChat
 import com.grupo3.nexo.ui.components.formatoHora
+import com.grupo3.nexo.ui.theme.TamanoAvatarCompacto
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.AltoPildora
 import com.grupo3.nexo.ui.components.avisoFallo
@@ -289,7 +290,7 @@ private fun TarjetaSolicitud(
             .padding(start = EspacioNormal, end = EspacioNormal, top = EspacioNormal, bottom = EspacioCorto)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Avatar(otraParte, tamano = 40.dp)
+            Avatar(otraParte, tamano = TamanoAvatarCompacto)
             Spacer(Modifier.width(EspacioMedio))
             Column(Modifier.weight(1f)) {
                 TextoLinea(otraParte, MaterialTheme.typography.titleMedium, if (activa) TextoPrimario else TextoSecundario)

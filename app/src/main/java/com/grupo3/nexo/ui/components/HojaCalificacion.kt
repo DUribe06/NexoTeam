@@ -37,6 +37,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.domain.model.Sesion
 import com.grupo3.nexo.domain.model.primerNombre
+import com.grupo3.nexo.ui.theme.AreaEstrellaCalificar
+import com.grupo3.nexo.ui.theme.TamanoEstrellaCalificar
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioCorto
@@ -83,7 +85,7 @@ fun HojaCalificacion(sesion: Sesion, esTutor: Boolean, alCerrar: () -> Unit, alE
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(AreaEstrellaCalificar)
                         .selectable(
                             selected = valor == estrellas,
                             role = Role.RadioButton,
@@ -96,7 +98,7 @@ fun HojaCalificacion(sesion: Sesion, esTutor: Boolean, alCerrar: () -> Unit, alE
                         contentDescription = null,
                         tint = if (llena) MielFuerte else EstrellaVacia,
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(TamanoEstrellaCalificar)
                             .graphicsLayer {
                                 scaleX = escala
                                 scaleY = escala

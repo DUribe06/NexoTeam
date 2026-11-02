@@ -218,15 +218,15 @@ object MockData {
         Solicitud("s1", "u1", "Diego", "e1", "Valeria Ríos", "Cálculo I", "Límites y continuidad", enDias(2), h("10:00"), VIRTUAL, EstadoSolicitud.PENDIENTE, "Hola, ¿podemos repasar antes del parcial?", enviada = haceHoras(2)),
         Solicitud("s2", "u1", "Diego", "e2", "Jorge Luna", "Programación", "Recursión en Python", enDias(3), h("16:00"), PRESENCIAL, EstadoSolicitud.PENDIENTE, "Necesito ayuda con el taller 3.", enviada = haceHoras(6)),
         Solicitud("s3", "u1", "Diego", "e3", "Camila Torres", "Cálculo I", "Derivadas implícitas", enDias(4), h("08:00"), VIRTUAL, EstadoSolicitud.PENDIENTE, "¿Tienes espacio esta semana?", enviada = haceHoras(22)),
-        Solicitud("s4", "u1", "Diego", "e4", "Andrea Prado", "Programación", "Listas y diccionarios", enDias(2), h("18:00"), VIRTUAL, EstadoSolicitud.ACEPTADA, "Gracias, nos vemos por Meet."),
-        Solicitud("s5", "u1", "Diego", "e5", "Bruno Salas", "Cálculo I", "Integrales", pasada(18, 10), h("11:00"), PRESENCIAL, EstadoSolicitud.RECHAZADA, "¿Podemos vernos en la biblioteca?", motivoRechazo = "Ese horario ya estaba reservado."),
-        Solicitud("s6", "u1", "Diego", "e6", "Renzo Cruz", "Programación", "Funciones", pasada(14, 10), h("15:00"), VIRTUAL, EstadoSolicitud.FINALIZADA, "Sesión completada. ¡Gracias!"),
+        Solicitud("s4", "u1", "Diego", "e4", "Andrea Prado", "Programación", "Listas y diccionarios", enDias(2), h("18:00"), VIRTUAL, EstadoSolicitud.ACEPTADA, "Gracias, nos vemos por Meet.", enviada = haceHoras(120)),
+        Solicitud("s5", "u1", "Diego", "e5", "Bruno Salas", "Cálculo I", "Integrales", pasada(18, 10), h("11:00"), PRESENCIAL, EstadoSolicitud.RECHAZADA, "¿Podemos vernos en la biblioteca?", motivoRechazo = "Ese horario ya estaba reservado.", enviada = haceHoras(480)),
+        Solicitud("s6", "u1", "Diego", "e6", "Renzo Cruz", "Programación", "Funciones", pasada(14, 10), h("15:00"), VIRTUAL, EstadoSolicitud.FINALIZADA, "Sesión completada. ¡Gracias!", enviada = haceHoras(384)),
         // Enviadas por Diego en modo estudiante.
         Solicitud("s7", "t2", "Carlos Mendoza", "u1", "Diego", "Python", "Funciones y listas", enDias(6), h("18:00"), VIRTUAL, EstadoSolicitud.PENDIENTE, "Hola Carlos, quiero repasar para el quiz.", enviada = haceHoras(21)),
-        Solicitud("s8", "t3", "Lucía Fernández", "u1", "Diego", "Física I", "Cinemática", enDias(3), h("15:00"), PRESENCIAL, EstadoSolicitud.ACEPTADA, "Confirmada, nos vemos en la biblioteca."),
-        Solicitud("s9", "t4", "María López", "u1", "Diego", "Inglés", "Speaking para entrevista", pasada(12, 10), h("09:00"), VIRTUAL, EstadoSolicitud.RECHAZADA, "¿Podemos practicar una entrevista?", motivoRechazo = "Esa semana estoy de viaje, ¿la siguiente?"),
-        Solicitud("s10", "t1", "Ana Torres", "u1", "Diego", "Cálculo I", "Límites y continuidad", enDias(1), h("10:00"), VIRTUAL, EstadoSolicitud.ACEPTADA, "¿Podemos repasar los problemas de la guía 4?"),
-        Solicitud("s11", "t7", "Diego Ramírez", "u1", "Diego", "SQL", "Modelo entidad–relación", enDias(5), h("16:00"), VIRTUAL, EstadoSolicitud.ACEPTADA, "Quiero revisar el modelo del proyecto."),
+        Solicitud("s8", "t3", "Lucía Fernández", "u1", "Diego", "Física I", "Cinemática", enDias(3), h("15:00"), PRESENCIAL, EstadoSolicitud.ACEPTADA, "Confirmada, nos vemos en la biblioteca.", enviada = haceHoras(96)),
+        Solicitud("s9", "t4", "María López", "u1", "Diego", "Inglés", "Speaking para entrevista", pasada(12, 10), h("09:00"), VIRTUAL, EstadoSolicitud.RECHAZADA, "¿Podemos practicar una entrevista?", motivoRechazo = "Esa semana estoy de viaje, ¿la siguiente?", enviada = haceHoras(336)),
+        Solicitud("s10", "t1", "Ana Torres", "u1", "Diego", "Cálculo I", "Límites y continuidad", enDias(1), h("10:00"), VIRTUAL, EstadoSolicitud.ACEPTADA, "¿Podemos repasar los problemas de la guía 4?", enviada = haceHoras(72)),
+        Solicitud("s11", "t7", "Diego Ramírez", "u1", "Diego", "SQL", "Modelo entidad–relación", enDias(5), h("16:00"), VIRTUAL, EstadoSolicitud.ACEPTADA, "Quiero revisar el modelo del proyecto.", enviada = haceHoras(48)),
         // Sin respuesta dentro del plazo: expiradas.
         Solicitud("s12", "u1", "Diego", "e7", "Sara Gómez", "Programación", "Arreglos y ciclos", enDias(1), h("09:00"), VIRTUAL, EstadoSolicitud.EXPIRADA, "Hola, ¿tienes espacio para repasar ciclos?", enviada = haceHoras(30)),
         Solicitud("s13", "t5", "Pablo Sánchez", "u1", "Diego", "Diseño UI/UX", "Prototipo en Figma", enDias(2), h("14:00"), VIRTUAL, EstadoSolicitud.EXPIRADA, "Quisiera una revisión de mi prototipo.", enviada = haceHoras(28))
@@ -234,16 +234,16 @@ object MockData {
 
     /** Solo hay chat con solicitudes aceptadas o sesiones ya terminadas (RF8). */
     val chats = listOf(
-        Chat("t1", "Ana Torres", "Perfecto, nos vemos el ${diaEn(1)} a las 10 👍", hoyA("10:24"), 2, true),
-        Chat("t3", "Lucía Fernández", "Recuerda traer los problemas del parcial", ayer, 1, true),
-        Chat("t7", "Diego Ramírez", "¿Te parece si revisamos el modelo ER?", ultimoLunes, 0, true),
-        Chat("t5", "Pablo Sánchez", "Mi portafolio va avanzando 🎉", pasada(7, 10).atTime(18, 0), 0, true, soloLectura = true),
+        Chat("t1", "t1", "Ana Torres", "Perfecto, nos vemos el ${diaEn(1)} a las 10 👍", hoyA("10:24"), 2, true),
+        Chat("t3", "t3", "Lucía Fernández", "Recuerda traer los problemas del parcial", ayer, 1, true),
+        Chat("t7", "t7", "Diego Ramírez", "¿Te parece si revisamos el modelo ER?", ultimoLunes, 0, true),
+        Chat("t5", "t5", "Pablo Sánchez", "Mi portafolio va avanzando 🎉", pasada(7, 10).atTime(18, 0), 0, true, soloLectura = true),
         // Conversaciones con estudiantes, en modo tutor
-        Chat("e4", "Andrea Prado", "Gracias, nos vemos por Meet.", hoyA("09:12"), 1, true, comoTutor = true),
-        Chat("e6", "Renzo Cruz", "¡Gracias por la sesión!", pasada(14, 10).atTime(18, 0), 0, false, soloLectura = true, comoTutor = true),
+        Chat("e4", "e4", "Andrea Prado", "Gracias, nos vemos por Meet.", hoyA("09:12"), 1, true, comoTutor = true),
+        Chat("e6", "e6", "Renzo Cruz", "¡Gracias por la sesión!", pasada(14, 10).atTime(18, 0), 0, false, soloLectura = true, comoTutor = true),
         // Sesiones terminadas sin calificar: desde aquí se puede calificar a la otra parte (RF9)
-        Chat("e2", "Jorge Luna", "Ya entendí la recursión, gracias.", pasada(25, 9).atTime(18, 0), 0, false, soloLectura = true, comoTutor = true),
-        Chat("t4", "María López", "Gracias por la clase, ¡nos vemos!", pasada(30, 9).atTime(18, 0), 0, false, soloLectura = true)
+        Chat("e2", "e2", "Jorge Luna", "Ya entendí la recursión, gracias.", pasada(25, 9).atTime(18, 0), 0, false, soloLectura = true, comoTutor = true),
+        Chat("t4", "t4", "María López", "Gracias por la clase, ¡nos vemos!", pasada(30, 9).atTime(18, 0), 0, false, soloLectura = true)
     )
 
     val mensajes = listOf(

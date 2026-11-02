@@ -1,6 +1,8 @@
 package com.grupo3.nexo.ui.historial
 
 import com.grupo3.nexo.ui.components.formatoHora
+import com.grupo3.nexo.ui.theme.TamanoAvatarCompacto
+import com.grupo3.nexo.ui.theme.TamanoEstrellaCompacta
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.components.avisoFallo
 import com.grupo3.nexo.ui.components.plural
@@ -305,7 +307,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
         // Solo el avatar se atenúa en sesiones sin completar: el texto conserva su contraste
         Avatar(
             sesion.conQuien,
-            tamano = 40.dp,
+            tamano = TamanoAvatarCompacto,
             modifier = Modifier.graphicsLayer { alpha = if (sesion.completada) 1f else 0.6f }
         )
         Spacer(Modifier.width(EspacioMedio))
@@ -354,7 +356,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
             label = "calificacion"
         ) { nota ->
             if (nota != null) {
-                Estrellas(nota, tamano = 13.dp)
+                Estrellas(nota, tamano = TamanoEstrellaCompacta)
             } else {
                 BotonSecundario(
                     "Calificar", alCalificar,

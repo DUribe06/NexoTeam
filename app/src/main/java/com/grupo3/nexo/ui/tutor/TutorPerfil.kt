@@ -1,7 +1,7 @@
 package com.grupo3.nexo.ui.tutor
 
 import com.grupo3.nexo.ui.components.avisoFallo
-import com.grupo3.nexo.ui.components.formatoHace
+import com.grupo3.nexo.ui.components.TarjetaResena
 import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.animateColorAsState
@@ -123,6 +123,7 @@ import com.grupo3.nexo.ui.components.icono
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
+import com.grupo3.nexo.ui.theme.TamanoEstrella
 import com.grupo3.nexo.ui.theme.BordeSeleccion
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.BosqueAcento
@@ -297,7 +298,7 @@ fun PantallaTutorPerfil(
                                     .weight(1f)
                                     .semantics { heading() }
                             )
-                            Estrellas(Math.round(tutor.rating).toInt(), tamano = 14.dp)
+                            Estrellas(Math.round(tutor.rating).toInt(), tamano = TamanoEstrella)
                             Spacer(Modifier.width(EspacioFino))
                             Text(
                                 "${formatoValoracion(tutor.rating)} · ${tutor.totalResenas} ${plural(tutor.totalResenas, "reseña", "reseñas")}",
@@ -584,28 +585,6 @@ private fun Cifra(
 @Composable
 private fun Materias(materias: List<String>) {
     Text(enumerar(materias), color = TextoPrimario, style = MaterialTheme.typography.bodyLarge)
-}
-
-@Composable
-private fun TarjetaResena(resena: Resena, modifier: Modifier = Modifier) {
-    Column(
-        modifier
-            .fillMaxWidth()
-            .superficie(FormaOrganica)
-            .padding(EspacioNormal)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Avatar(resena.autor, tamano = 38.dp)
-            Spacer(Modifier.width(EspacioMedio))
-            Column(Modifier.weight(1f)) {
-                TextoLinea(resena.autor, MaterialTheme.typography.titleSmall, TextoPrimario)
-                TextoLinea(formatoHace(resena.fecha), MaterialTheme.typography.bodySmall, TextoTercero)
-            }
-            Estrellas(resena.estrellas, tamano = 13.dp)
-        }
-        Spacer(Modifier.height(EspacioAjustado))
-        Text(resena.texto, color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
-    }
 }
 
 /** Barra fija inferior: tarifa a la izquierda, mensaje y la acción principal. */

@@ -41,8 +41,12 @@ class ObtenerMisSolicitudesUseCase @Inject constructor(
         combine(repositorio.obtenerSolicitudes(), auth.usuarioActual) { todas, usuario ->
             val esTutor = usuario.rol == Rol.TUTOR
             todas.filter { if (esTutor) it.tutorId == usuario.id else it.estudianteId == usuario.id }
-                .reversed()
-                .sortedBy { orden.indexOf(it.estado) }
+                // Pendientes: primero la que vence antes (la enviada hace más tiempo); el resto, la más reciente arriba
+                .sortedWith(
+                    compareBy<Solicitud> { orden.indexOf(it.estado) }
+                        .thenBy { if (it.estado == EstadoSolicitud.PENDIENTE) it.enviada else null }
+                        .thenByDescending { it.enviada }
+                )
         }
 }
 
@@ -110,6 +114,6 @@ class EnviarSolicitudUseCase @Inject constructor(
         mensaje: String
     ) {
         require(tema.isNotBlank()) { "Indica el tema a reforzar" }
-        repositorio.enviar(tutor.id, tutor.nombre, materia, tema.trim(), fecha, hora, modalidad, mensaje.trim())
+        repositorio.enviar(tutor.id, materia, tema.trim(), fecha, hora, modalidad, mensaje.trim())
     }
 }

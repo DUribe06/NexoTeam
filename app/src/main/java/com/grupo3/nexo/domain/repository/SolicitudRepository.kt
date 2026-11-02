@@ -17,10 +17,9 @@ interface SolicitudRepository {
     fun obtenerSolicitudes(): Flow<List<Solicitud>>
     /** `motivo` solo aplica al rechazar (RF6). */
     suspend fun actualizarEstado(id: String, estado: EstadoSolicitud, motivo: String? = null)
-    /** `fecha` y `hora` son el día y la hora elegidos; el momento de envío lo fija quien guarda la solicitud (plazo de 24 h, RF6). */
+    /** El nombre del tutor lo resuelve quien guarda la solicitud. `fecha` y `hora` son el día y la hora elegidos; el momento de envío lo fija quien guarda la solicitud (plazo de 24 h, RF6). */
     suspend fun enviar(
         tutorId: String,
-        nombreTutor: String,
         materia: String,
         tema: String,
         fecha: LocalDate,

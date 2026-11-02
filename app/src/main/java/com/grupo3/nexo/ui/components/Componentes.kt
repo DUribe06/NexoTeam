@@ -1,5 +1,9 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.ui.theme.TamanoAvatarNormal
+import com.grupo3.nexo.ui.theme.TamanoEstrella
+import com.grupo3.nexo.ui.theme.TamanoMarcoIcono
+import com.grupo3.nexo.ui.theme.TamanoPuntoEstado
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.AltoPildora
 import android.app.Activity
@@ -740,7 +744,7 @@ fun InsigniaEstado(estado: EstadoSolicitud, modifier: Modifier = Modifier) {
         EstadoSolicitud.CANCELADA, EstadoSolicitud.EXPIRADA -> GrisEstado to GrisEstadoSuave
     }
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
-        Box(Modifier.size(7.dp).background(punto, CircleShape))
+        Box(Modifier.size(TamanoPuntoEstado).background(punto, CircleShape))
         Spacer(Modifier.width(EspacioFino))
         Text(estado.etiqueta, color = texto, style = MaterialTheme.typography.labelMedium.merge(EnfasisFuerte))
     }
@@ -765,7 +769,7 @@ fun iniciales(nombre: String): String = nombre.split(" ")
 @Composable
 fun Avatar(
     nombre: String,
-    tamano: Dp = 44.dp,
+    tamano: Dp = TamanoAvatarNormal,
     modifier: Modifier = Modifier,
     enLinea: Boolean? = null,
     anillo: Color? = null,
@@ -809,7 +813,7 @@ fun Avatar(
 
 /** Fila de 5 estrellas (llenas según `cantidad`). */
 @Composable
-fun Estrellas(cantidad: Int, tamano: Dp = 14.dp, modifier: Modifier = Modifier) {
+fun Estrellas(cantidad: Int, tamano: Dp = TamanoEstrella, modifier: Modifier = Modifier) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(EspacioMicro),
         modifier = modifier.semantics { contentDescription = "$cantidad de 5 estrellas" }
@@ -909,7 +913,7 @@ fun EstadoVacio(
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(64.dp)
+                .size(TamanoMarcoIcono)
                 .background(TinteBosque, FormaTarjeta)
         ) {
             Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(IconoGrande))
@@ -961,7 +965,7 @@ fun EstadoError(
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(64.dp)
+                .size(TamanoMarcoIcono)
                 .background(TinteBosque, FormaTarjeta)
         ) {
             Icon(

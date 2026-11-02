@@ -15,10 +15,13 @@ interface ChatRepository {
     fun obtenerMensajes(chatId: String): Flow<List<Mensaje>>
     suspend fun enviarMensaje(chatId: String, texto: String)
     suspend fun marcarLeido(chatId: String)
-    /** Crea la conversación si todavía no existe (primer mensaje a un tutor). */
-    suspend fun asegurarChat(chatId: String, nombre: String, enLinea: Boolean, comoTutor: Boolean)
-    /** Deja la conversación activa: la crea si falta y reabre una que estaba en solo lectura (sesión nueva aceptada). */
-    suspend fun habilitarChat(chatId: String, nombre: String, enLinea: Boolean, comoTutor: Boolean)
-    /** Pasa la conversación a solo lectura cuando ya no quedan sesiones por venir con esa persona. */
-    suspend fun cerrarChat(chatId: String)
+    /**
+     * Devuelve el id del chat con esa persona y lo crea si todavía no existe (primer mensaje a un tutor).
+     * Con la API, el servidor devuelve el id del chat.
+     */
+    suspend fun asegurarChat(personaId: String, nombre: String, enLinea: Boolean, comoTutor: Boolean): String
+    /** Deja activo el chat con esa persona: lo crea si falta y reabre uno en solo lectura (sesión nueva aceptada). */
+    suspend fun habilitarChat(personaId: String, nombre: String, enLinea: Boolean, comoTutor: Boolean)
+    /** Pasa el chat con esa persona a solo lectura cuando ya no quedan sesiones por venir con ella. */
+    suspend fun cerrarChat(personaId: String)
 }

@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.grupo3.nexo.ui.theme.TamanoAvatarNormal
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.EspacioCorto
 import com.grupo3.nexo.ui.theme.EspacioMargen
@@ -94,7 +95,7 @@ fun EsqueletoLista(modifier: Modifier = Modifier, filas: Int = 5) {
                     .border(1.dp, BordeSutil, FormaOrganica)
                     .padding(EspacioNormal)
             ) {
-                Hueso(Modifier.size(44.dp), CircleShape)
+                Hueso(Modifier.size(TamanoAvatarNormal), CircleShape)
                 Spacer(Modifier.width(EspacioMedio))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
                     LineaHueso(0.55f, alto = 14.dp)
