@@ -63,7 +63,7 @@ class SesionRepositoryImpl @Inject constructor(
         if (!sesion.comoTutor) {
             val autor = authRepository.usuarioActual.value
             tutorRepository.agregarResena(
-                Resena(UUID.randomUUID().toString(), sesion.contraparteId, autor.nombre, autor.handle, texto.orEmpty(), estrellas, "ahora")
+                Resena(UUID.randomUUID().toString(), sesion.contraparteId, autor.nombre, autor.handle, texto.orEmpty(), estrellas, java.time.LocalDate.now())
             )
         }
     }

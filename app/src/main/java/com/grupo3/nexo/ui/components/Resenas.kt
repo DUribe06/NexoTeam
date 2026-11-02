@@ -47,7 +47,7 @@ fun FilaResena(resena: Resena) {
             Spacer(Modifier.width(EspacioAjustado))
             Column(Modifier.weight(1f)) {
                 TextoLinea(resena.autor, MaterialTheme.typography.titleSmall, TextoPrimario)
-                TextoLinea(resena.fecha, MaterialTheme.typography.bodySmall, TextoTercero)
+                TextoLinea(formatoHace(resena.fecha), MaterialTheme.typography.bodySmall, TextoTercero)
             }
             Estrellas(resena.estrellas, tamano = 12.dp)
         }

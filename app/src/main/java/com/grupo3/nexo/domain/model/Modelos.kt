@@ -3,13 +3,16 @@ package com.grupo3.nexo.domain.model
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
+import java.time.LocalTime
 import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
  * Modelos de dominio de Nexo.
  * Puros: sin dependencias de Android ni de framework.
+ *
+ * Fechas en tipos de java.time; una API REST las enviará en ISO-8601 (`2026-11-02`, `10:00`,
+ * `2026-11-02T10:00:00`) y el formato para pantalla vive en ui/components/Formatos.kt.
  */
 
 /** Horas que tiene el tutor para responder una solicitud antes de que expire (RF5, RF6). */
@@ -47,7 +50,7 @@ enum class Modalidad(val etiqueta: String) {
     PRESENCIAL("Presencial")
 }
 
-/** Franjas del día para filtrar por horario (HU-05). Horas en formato "HH:mm". */
+/** Franjas del día para filtrar por horario (HU-05).  */
 enum class Franja(val etiqueta: String, val desde: Int, val hasta: Int) {
     MANANA("Mañana", 6, 11),
     TARDE("Tarde", 12, 17),
@@ -56,7 +59,7 @@ enum class Franja(val etiqueta: String, val desde: Int, val hasta: Int) {
     /** Rango legible de la franja: "06:00–12:00". */
     val rango: String get() = String.format(Locale.ROOT, "%02d:00–%02d:00", desde, hasta + 1)
 
-    fun incluye(hora: String): Boolean = hora.substringBefore(':').toIntOrNull()?.let { it in desde..hasta } ?: false
+    fun incluye(hora: LocalTime): Boolean = hora.hour in desde..hasta
 }
 
 /** Días de la semana; `numero` coincide con java.time.DayOfWeek (1 = lunes). */
@@ -77,7 +80,7 @@ enum class DiaSemana(val numero: Int, val nombre: String, val abreviatura: Strin
 /** Franja publicada por un tutor: día, hora de inicio (1 h) y modalidades que ofrece en ella (RF7). */
 data class FranjaTutor(
     val dia: DiaSemana,
-    val hora: String,
+    val hora: LocalTime,
     val modalidades: Set<Modalidad>
 )
 
@@ -115,7 +118,8 @@ data class Resena(
     val handleAutor: String,
     val texto: String,
     val estrellas: Int,
-    val fecha: String
+    /** Día en que se publicó; la pantalla lo muestra relativo ("hace 2 sem"). */
+    val fecha: LocalDate
 )
 
 /** Qué puede hacer cada parte con una solicitud según su estado. */
@@ -130,8 +134,8 @@ data class Solicitud(
     val materia: String,
     /** Tema a reforzar (RF5). */
     val tema: String,
-    val fecha: String,
-    val hora: String,
+    val fecha: LocalDate,
+    val hora: LocalTime,
     val modalidad: Modalidad,
     val estado: EstadoSolicitud,
     val mensaje: String,
@@ -164,46 +168,14 @@ fun Solicitud.acciones(esTutor: Boolean): AccionesSolicitud = when {
     else -> AccionesSolicitud.NINGUNA
 }
 
-val mesesCortos = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+/** Hora en que termina una sesión: 15:00 y 1,5 h → 16:30 (pasada la medianoche vuelve a empezar el día). */
+fun horaFin(hora: LocalTime, horas: Double): LocalTime = hora.plusMinutes((horas * 60).roundToInt().toLong())
 
-/**
- * Único lector de las fechas cortas de los datos ("24 oct", "30 sept."): devuelve día y mes (1–12),
- * o null si el texto no es una fecha.
- */
-fun diaYMes(fecha: String): Pair<Int, Int>? {
-    val partes = fecha.trim().split(" ")
-    val dia = partes.getOrNull(0)?.toIntOrNull() ?: return null
-    val mes = mesesCortos.indexOf(partes.getOrNull(1)?.lowercase()?.trimEnd('.')?.take(3)) + 1
-    return if (mes > 0) dia to mes else null
-}
+/** Día y hora de la sesión como un solo momento. */
+val Sesion.inicio: LocalDateTime get() = fecha.atTime(hora)
 
-/** Fecha corta llevada al calendario: los datos no traen año, así que se toma el más cercano a hoy. */
-fun fechaCalendario(texto: String, hoy: LocalDate = LocalDate.now()): LocalDate? {
-    val (dia, mes) = diaYMes(texto) ?: return null
-    val fecha = runCatching { LocalDate.of(hoy.year, mes, dia) }.getOrNull() ?: return null
-    return if (fecha.isBefore(hoy.minusMonths(6))) fecha.plusYears(1) else fecha
-}
-
-/** Días que faltan desde `hoy` hasta una fecha corta ("24 oct"); null si el texto no es una fecha. Negativo si ya pasó. */
-fun diasHasta(fecha: String, hoy: LocalDate = LocalDate.now()): Long? =
-    fechaCalendario(fecha, hoy)?.let { ChronoUnit.DAYS.between(hoy, it) }
-
-/**
- * Clave para ordenar fechas cortas como "24 oct" o "30 sept" y horas "HH:mm".
- */
-fun claveFecha(fecha: String, hora: String = "00:00"): Int {
-    val dia = fechaCalendario(fecha)?.toEpochDay()?.toInt() ?: 0
-    val minutos = hora.split(":").let { (it.getOrNull(0)?.toIntOrNull() ?: 0) * 60 + (it.getOrNull(1)?.toIntOrNull() ?: 0) }
-    return dia * 1440 + minutos
-}
-
-/** Hora en que termina una sesión: "15:00" y 1,5 h → "16:30". Si la hora no se entiende, se devuelve tal cual. */
-fun horaFin(hora: String, horas: Double): String {
-    val partes = hora.split(":").mapNotNull { it.toIntOrNull() }
-    if (partes.size != 2) return hora
-    val total = partes[0] * 60 + partes[1] + (horas * 60).roundToInt()
-    return String.format(Locale("es", "CO"), "%02d:%02d", (total / 60) % 24, total % 60)
-}
+/** Orden cronológico de las sesiones, de la más antigua a la más reciente. */
+val PorInicio: Comparator<Sesion> = compareBy { it.inicio }
 
 data class Sesion(
     val id: String,
@@ -211,8 +183,8 @@ data class Sesion(
     val contraparteId: String,
     val conQuien: String,
     val materia: String,
-    val fecha: String,
-    val hora: String,
+    val fecha: LocalDate,
+    val hora: LocalTime,
     val duracionHoras: Double,
     val modalidad: Modalidad,
     val estado: EstadoSesion,
@@ -239,7 +211,8 @@ data class Chat(
     val id: String,
     val nombre: String,
     val ultimoMensaje: String,
-    val hora: String,
+    /** Momento del último mensaje; la pantalla lo muestra relativo ("10:24", "Ayer", "Lun", "7 oct"). Null si aún no hay mensajes. */
+    val hora: LocalDateTime?,
     val noLeidos: Int,
     val enLinea: Boolean,
     /** La sesión ya terminó: el historial se conserva pero no admite mensajes nuevos (RF8). */
@@ -252,13 +225,13 @@ data class Mensaje(
     val id: String,
     val chatId: String,
     val texto: String,
-    val hora: String,
+    val hora: LocalDateTime,
     /** true si lo envía el usuario actual. */
     val mio: Boolean
 )
 
 /** Horas que ofrece el calendario semanal del tutor. */
-val HORAS_CALENDARIO = listOf("08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00")
+val HORAS_CALENDARIO = listOf(8, 10, 12, 14, 16, 18, 20).map { LocalTime.of(it, 0) }
 
 /** Semana completa sin ninguna hora publicada: punto de partida para quien aún no tiene calendario. */
 fun calendarioVacio(): List<DiaDisponibilidad> =
@@ -266,7 +239,7 @@ fun calendarioVacio(): List<DiaDisponibilidad> =
 
 /** Hora de la disponibilidad del tutor en sesión. Sin modalidades = no disponible. */
 data class HoraDisponible(
-    val hora: String,
+    val hora: LocalTime,
     val modalidades: Set<Modalidad> = emptySet()
 ) {
     val seleccionada: Boolean get() = modalidades.isNotEmpty()

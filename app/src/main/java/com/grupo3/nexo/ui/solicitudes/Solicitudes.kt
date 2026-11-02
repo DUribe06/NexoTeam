@@ -1,6 +1,7 @@
 package com.grupo3.nexo.ui.solicitudes
 
 import com.grupo3.nexo.ui.components.PildoraAbrirChat
+import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.AltoPildora
 import com.grupo3.nexo.ui.components.avisoFallo
@@ -238,7 +239,7 @@ fun PantallaSolicitudes(
         val aceptada = s.estado == EstadoSolicitud.ACEPTADA
         DialogoConfirmacion(
             titulo = if (aceptada) "¿Cancelar la sesión?" else "¿Cancelar la solicitud?",
-            mensaje = if (aceptada) "Le avisaremos a ${s.nombreTutor} que no asistirás el ${formatoFecha(s.fecha)} a las ${s.hora}."
+            mensaje = if (aceptada) "Le avisaremos a ${s.nombreTutor} que no asistirás el ${formatoFecha(s.fecha)} a las ${formatoHora(s.hora)}."
             else "${s.nombreTutor} ya no verá esta solicitud.",
             confirmar = if (aceptada) "Cancelar sesión" else "Cancelar solicitud",
             alConfirmar = {
@@ -304,7 +305,7 @@ private fun TarjetaSolicitud(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Dato(IconosNexo.Calendario, formatoFecha(solicitud.fecha))
             Spacer(Modifier.width(EspacioCercano))
-            Dato(IconosNexo.Reloj, solicitud.hora)
+            Dato(IconosNexo.Reloj, formatoHora(solicitud.hora))
             Spacer(Modifier.width(EspacioCercano))
             Dato(solicitud.modalidad.icono, solicitud.modalidad.etiqueta)
         }
@@ -434,7 +435,7 @@ private fun HojaRechazo(solicitud: Solicitud, alCerrar: () -> Unit, alConfirmar:
     var motivo by rememberSaveable { mutableStateOf("") }
     HojaNexo(
         titulo = "Rechazar solicitud",
-        subtitulo = "${solicitud.nombreEstudiante} · ${solicitud.materia} · ${formatoFecha(solicitud.fecha)}, ${solicitud.hora}. A ${solicitud.nombreEstudiante.primerNombre} le sugeriremos otros tutores de ${solicitud.materia}.",
+        subtitulo = "${solicitud.nombreEstudiante} · ${solicitud.materia} · ${formatoFecha(solicitud.fecha)}, ${formatoHora(solicitud.hora)}. A ${solicitud.nombreEstudiante.primerNombre} le sugeriremos otros tutores de ${solicitud.materia}.",
         alCerrar = alCerrar
     ) {
         RotuloGrupo("Motivo (opcional)", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))

@@ -1,6 +1,8 @@
 package com.grupo3.nexo.ui.tutor
 
 import com.grupo3.nexo.ui.components.avisoFallo
+import com.grupo3.nexo.ui.components.formatoHace
+import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -162,6 +164,8 @@ import com.grupo3.nexo.ui.theme.TinteBosque
 import com.grupo3.nexo.ui.theme.VerdeEstado
 import com.grupo3.nexo.ui.theme.enfasisSeleccion
 import com.grupo3.nexo.ui.theme.especColor
+import java.time.LocalDate
+import java.time.LocalTime
 
 
 /* ==================== Pantalla ==================== */
@@ -595,7 +599,7 @@ private fun TarjetaResena(resena: Resena, modifier: Modifier = Modifier) {
             Spacer(Modifier.width(EspacioMedio))
             Column(Modifier.weight(1f)) {
                 TextoLinea(resena.autor, MaterialTheme.typography.titleSmall, TextoPrimario)
-                TextoLinea(resena.fecha, MaterialTheme.typography.bodySmall, TextoTercero)
+                TextoLinea(formatoHace(resena.fecha), MaterialTheme.typography.bodySmall, TextoTercero)
             }
             Estrellas(resena.estrellas, tamano = 13.dp)
         }
@@ -658,8 +662,8 @@ private fun BarraAcciones(tutor: Tutor, alSolicitar: () -> Unit, modifier: Modif
 data class DatosSolicitud(
     val materia: String,
     val tema: String,
-    val fecha: String,
-    val hora: String,
+    val fecha: LocalDate,
+    val hora: LocalTime,
     val modalidad: Modalidad,
     val mensaje: String
 )
@@ -678,7 +682,7 @@ private fun HojaSolicitud(
     var materia by rememberSaveable { mutableStateOf(tutor.materias.firstOrNull().orEmpty()) }
     var tema by rememberSaveable { mutableStateOf("") }
     var indiceDia by rememberSaveable { mutableIntStateOf(0) }
-    var hora by rememberSaveable { mutableStateOf<String?>(null) }
+    var hora by rememberSaveable { mutableStateOf<LocalTime?>(null) }
     var modalidad by rememberSaveable { mutableStateOf<Modalidad?>(null) }
     var mensaje by rememberSaveable { mutableStateOf("") }
     var intentoEnviar by rememberSaveable { mutableStateOf(false) }
@@ -755,7 +759,7 @@ private fun HojaSolicitud(
                 modifier = Modifier.selectableGroup()
             ) {
                 dia?.franjas?.forEach { f ->
-                    FiltroOpcion(f.hora, f.hora == horaElegida, { hora = f.hora }, conMarca = false)
+                    FiltroOpcion(formatoHora(f.hora), f.hora == horaElegida, { hora = f.hora }, conMarca = false)
                 }
             }
 
@@ -791,7 +795,7 @@ private fun HojaSolicitud(
             alClicar = {
                 intentoEnviar = true
                 if (!temaFalta && dia != null && horaElegida != null && modalidadElegida != null) {
-                    alEnviar(DatosSolicitud(materia, tema.trim(), dia.etiqueta, horaElegida, modalidadElegida, mensaje.trim()))
+                    alEnviar(DatosSolicitud(materia, tema.trim(), dia.fecha, horaElegida, modalidadElegida, mensaje.trim()))
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -878,7 +882,7 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
                                 .background(SuperficieClara, FormaMinima)
                                 .padding(start = EspacioCorto, end = EspacioFino, top = EspacioMinimo, bottom = EspacioMinimo)
                         ) {
-                            Text(f.hora, color = TextoPrimario, style = MaterialTheme.typography.labelMedium.merge(CifrasTabulares))
+                            Text(formatoHora(f.hora), color = TextoPrimario, style = MaterialTheme.typography.labelMedium.merge(CifrasTabulares))
                             Spacer(Modifier.width(EspacioFino))
                             IconosModalidad(f.modalidades, tamano = 13.dp)
                         }

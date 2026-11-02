@@ -4,6 +4,7 @@ import com.grupo3.nexo.data.mock.MockData
 import com.grupo3.nexo.domain.model.Chat
 import com.grupo3.nexo.domain.model.Mensaje
 import com.grupo3.nexo.domain.repository.ChatRepository
+import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.delay
@@ -27,7 +28,7 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
 
     override suspend fun enviarMensaje(chatId: String, texto: String) {
         delay(300)
-        val hora = "ahora"
+        val hora = LocalDateTime.now()
         mensajes.update { actual ->
             actual + Mensaje("m${++contador}", chatId, texto, hora, mio = true)
         }
@@ -51,7 +52,7 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
         chats.update { actual ->
             if (actual.any { it.id == chatId }) actual
             else listOf(
-                Chat(chatId, nombre, "Inicia la conversación", "", 0, enLinea, comoTutor = comoTutor)
+                Chat(chatId, nombre, "Inicia la conversación", null, 0, enLinea, comoTutor = comoTutor)
             ) + actual
         }
     }
@@ -65,7 +66,7 @@ class ChatRepositoryImpl @Inject constructor() : ChatRepository {
         chats.update { actual ->
             if (actual.any { it.id == chatId }) actual.map { if (it.id == chatId) it.copy(soloLectura = false) else it }
             else listOf(
-                Chat(chatId, nombre, "Inicia la conversación", "", 0, enLinea, comoTutor = comoTutor)
+                Chat(chatId, nombre, "Inicia la conversación", null, 0, enLinea, comoTutor = comoTutor)
             ) + actual
         }
     }

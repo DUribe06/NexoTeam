@@ -6,6 +6,7 @@ import com.grupo3.nexo.domain.model.HoraDisponible
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.calendarioVacio
 import com.grupo3.nexo.domain.repository.DisponibilidadRepository
+import java.time.LocalTime
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -24,7 +25,7 @@ class DisponibilidadRepositoryImpl @Inject constructor() : DisponibilidadReposit
         dias.update { actual -> actual.ifEmpty { calendarioVacio() } }
     }
 
-    override suspend fun definirHora(dia: String, hora: String, modalidades: Set<Modalidad>) {
+    override suspend fun definirHora(dia: String, hora: LocalTime, modalidades: Set<Modalidad>) {
         dias.update { actual ->
             actual.map { d ->
                 if (d.dia == dia) d.copy(

@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.historial
 
+import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.components.avisoFallo
 import com.grupo3.nexo.ui.components.plural
@@ -312,7 +313,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
             TextoLinea(sesion.materia, MaterialTheme.typography.titleMedium, TextoPrimario)
             TextoLinea(sesion.conQuien, MaterialTheme.typography.bodyMedium, TextoSecundario)
             Text(
-                "${formatoFecha(sesion.fecha)} · ${sesion.hora} · ${formatoHoras(sesion.duracionHoras)} · ${sesion.modalidad.etiqueta}",
+                "${formatoFecha(sesion.fecha)} · ${formatoHora(sesion.hora)} · ${formatoHoras(sesion.duracionHoras)} · ${sesion.modalidad.etiqueta}",
                 color = TextoTercero,
                 style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares)
             )

@@ -5,7 +5,7 @@ import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.ResumenActividad
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Sesion
-import com.grupo3.nexo.domain.model.claveFecha
+import com.grupo3.nexo.domain.model.PorInicio
 import com.grupo3.nexo.domain.repository.AuthRepository
 import com.grupo3.nexo.domain.repository.SesionRepository
 import com.grupo3.nexo.domain.repository.TutorRepository
@@ -33,7 +33,7 @@ class ObtenerProximasSesionesUseCase @Inject constructor(
     private val delModo: ObtenerSesionesDelModoUseCase
 ) {
     operator fun invoke(): Flow<List<Sesion>> = delModo().map { lista ->
-        lista.filter { it.proxima }.sortedBy { claveFecha(it.fecha, it.hora) }
+        lista.filter { it.proxima }.sortedWith(PorInicio)
     }
 }
 
@@ -44,11 +44,11 @@ class ObtenerProximasSesionesUseCase @Inject constructor(
 class ObtenerSesionDeConversacionUseCase @Inject constructor() {
     operator fun invoke(sesiones: List<Sesion>, contraparteId: String, soloLectura: Boolean): Sesion? {
         val delChat = sesiones.filter { it.contraparteId == contraparteId }
-        fun masReciente(lista: List<Sesion>) = lista.maxByOrNull { claveFecha(it.fecha, it.hora) }
+        fun masReciente(lista: List<Sesion>) = lista.maxWithOrNull(PorInicio)
         return if (soloLectura) {
             masReciente(delChat.filterNot { it.proxima })
         } else {
-            delChat.filter { it.proxima }.minByOrNull { claveFecha(it.fecha, it.hora) } ?: masReciente(delChat)
+            delChat.filter { it.proxima }.minWithOrNull(PorInicio) ?: masReciente(delChat)
         }
     }
 }
@@ -58,7 +58,7 @@ class ObtenerHistorialUseCase @Inject constructor(
     private val delModo: ObtenerSesionesDelModoUseCase
 ) {
     operator fun invoke(): Flow<List<Sesion>> = delModo().map { lista ->
-        lista.filterNot { it.proxima }.sortedByDescending { claveFecha(it.fecha, it.hora) }
+        lista.filterNot { it.proxima }.sortedWith(PorInicio.reversed())
     }
 }
 

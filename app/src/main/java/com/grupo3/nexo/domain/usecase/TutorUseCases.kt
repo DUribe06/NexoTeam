@@ -7,6 +7,7 @@ import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.repository.TutorRepository
 import java.time.LocalDate
+import java.time.LocalTime
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -99,7 +100,7 @@ fun diasSolicitables(horario: List<FranjaTutor>, hoy: LocalDate = LocalDate.now(
     }
 
 /** La franja pedida si existe ese día; si no, la primera disponible. */
-fun franjaValida(dia: DiaSolicitable?, hora: String?): FranjaTutor? =
+fun franjaValida(dia: DiaSolicitable?, hora: LocalTime?): FranjaTutor? =
     dia?.franjas?.firstOrNull { it.hora == hora } ?: dia?.franjas?.firstOrNull()
 
 /** La modalidad pedida si la franja la ofrece; si no, la primera que ofrezca. */

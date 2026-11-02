@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.chat
 
+import com.grupo3.nexo.ui.components.formatoMomento
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.components.avisoFallo
 import com.grupo3.nexo.ui.components.plural
@@ -219,7 +220,7 @@ private fun FilaChat(chat: Chat, alAbrir: () -> Unit, modifier: Modifier = Modif
                 )
                 Spacer(Modifier.width(EspacioCorto))
                 Text(
-                    formatoFecha(chat.hora),
+                    chat.hora?.let { formatoMomento(it) }.orEmpty(),
                     color = if (sinLeer) VerdeEstado else TextoTercero,
                     style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares).copy(
                         fontWeight = if (sinLeer) FontWeight.SemiBold else FontWeight.Normal
@@ -540,7 +541,7 @@ private fun Burbuja(mensaje: Mensaje, iniciaGrupo: Boolean, cierraGrupo: Boolean
         }
         if (cierraGrupo) {
             Text(
-                formatoFecha(mensaje.hora),
+                formatoMomento(mensaje.hora),
                 color = TextoTercero,
                 style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares),
                 modifier = Modifier.padding(horizontal = EspacioFino, vertical = EspacioMinimo)

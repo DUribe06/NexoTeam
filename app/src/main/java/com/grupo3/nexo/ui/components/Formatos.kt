@@ -1,11 +1,14 @@
 package com.grupo3.nexo.ui.components
 
 import com.grupo3.nexo.domain.model.PLAZO_RESPUESTA_HORAS
-import com.grupo3.nexo.domain.model.diaYMes
-import com.grupo3.nexo.domain.model.fechaCalendario
-import com.grupo3.nexo.domain.model.mesesCortos
 import com.grupo3.nexo.domain.model.siglasUniversidad
+import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 /** Decimales con coma, como se escriben en Colombia: 4,9 y 1,5 h. */
@@ -21,25 +24,57 @@ fun formatoPrecio(valor: Double): String =
 fun formatoHoras(horas: Double): String =
     if (horas % 1.0 == 0.0) "${horas.toInt()} h" else String.format(localeColombia, "%.1f h", horas)
 
-/** Fecha corta en español: "24 oct", "30 sept" → "30 sep". Si el texto no es una fecha, se devuelve tal cual. */
-fun formatoFecha(texto: String): String =
-    diaYMes(texto)?.let { (dia, mes) -> "$dia ${mesesCortos[mes - 1]}" } ?: texto
+private val mesesCortos = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
 
-/** Fecha de un día del calendario con el mismo mes corto: LocalDate 30-sep → "30 sep". */
+private val formatoReloj = DateTimeFormatter.ofPattern("H:mm", Locale.ROOT)
+
+/** Fecha corta en español: 2026-10-24 → "24 oct". */
 fun formatoFecha(fecha: LocalDate): String = "${fecha.dayOfMonth} ${mesesCortos[fecha.monthValue - 1]}"
+
+/** Hora de reloj de 24 h con dos dígitos: 10:00 → "10:00", 08:30 → "08:30". */
+fun formatoHora(hora: LocalTime): String = String.format(Locale.ROOT, "%02d:%02d", hora.hour, hora.minute)
 
 private fun String.mayusculaInicial() = replaceFirstChar { it.titlecase(localeColombia) }
 
-/** Fecha larga con el día de la semana: "24 oct" → "Sábado 24 de octubre". Si el texto no es una fecha, se devuelve tal cual. */
-fun fechaLarga(texto: String): String = fechaCalendario(texto)?.let {
-    "${it.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, localeColombia).mayusculaInicial()} ${it.dayOfMonth} de " +
-        it.month.getDisplayName(java.time.format.TextStyle.FULL, localeColombia)
-} ?: texto
+private fun LocalDate.nombreDia(estilo: TextStyle): String =
+    dayOfWeek.getDisplayName(estilo, localeColombia).trimEnd('.').mayusculaInicial()
 
-/** Día de la semana y número: "26 oct" → "Lun 26". Si el texto no es una fecha, se devuelve tal cual. */
-fun fechaCorta(texto: String): String = fechaCalendario(texto)?.let {
-    "${it.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, localeColombia).trimEnd('.').mayusculaInicial()} ${it.dayOfMonth}"
-} ?: texto
+/** Fecha larga con el día de la semana: 2026-10-24 → "Sábado 24 de octubre". */
+fun fechaLarga(fecha: LocalDate): String =
+    "${fecha.nombreDia(TextStyle.FULL)} ${fecha.dayOfMonth} de ${fecha.month.getDisplayName(TextStyle.FULL, localeColombia)}"
+
+/** Día de la semana y número: 2026-10-26 → "Lun 26". */
+fun fechaCorta(fecha: LocalDate): String = "${fecha.nombreDia(TextStyle.SHORT)} ${fecha.dayOfMonth}"
+
+/**
+ * Momento de un mensaje en una lista: la hora si es de hoy ("10:24"), "ahora" si es de hace menos de un minuto,
+ * "Ayer", el día de la semana dentro de la última semana ("Lun") y, más atrás, la fecha ("7 oct").
+ */
+fun formatoMomento(momento: LocalDateTime, ahora: LocalDateTime = LocalDateTime.now()): String {
+    val dias = ChronoUnit.DAYS.between(momento.toLocalDate(), ahora.toLocalDate())
+    return when {
+        dias == 0L -> {
+            val desde = Duration.between(momento, ahora)
+            if (!desde.isNegative && desde < Duration.ofMinutes(1)) "ahora" else momento.format(formatoReloj)
+        }
+        dias == 1L -> "Ayer"
+        dias in 2L..6L -> momento.toLocalDate().nombreDia(TextStyle.SHORT)
+        else -> formatoFecha(momento.toLocalDate())
+    }
+}
+
+/** Antigüedad de una publicación: "hace 3 días", "hace 2 sem", "hace 1 mes", "hace 2 meses". */
+fun formatoHace(fecha: LocalDate, hoy: LocalDate = LocalDate.now()): String {
+    val dias = ChronoUnit.DAYS.between(fecha, hoy)
+    return when {
+        dias <= 0L -> "hoy"
+        dias == 1L -> "hace 1 día"
+        dias < 7L -> "hace $dias días"
+        dias < 30L -> "hace ${dias / 7} sem"
+        dias < 365L -> (dias / 30).let { "hace $it ${if (it == 1L) "mes" else "meses"}" }
+        else -> (dias / 365).let { "hace $it ${if (it == 1L) "año" else "años"}" }
+    }
+}
 
 /** Plazo de respuesta del dominio, ya escrito para los textos que lo mencionan. */
 val PLAZO_RESPUESTA = formatoHoras(PLAZO_RESPUESTA_HORAS.toDouble())

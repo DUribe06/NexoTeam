@@ -1,5 +1,7 @@
 package com.grupo3.nexo.domain.usecase
 
+import java.time.LocalDate
+import java.time.LocalTime
 import kotlinx.coroutines.CancellationException
 import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.Modalidad
@@ -102,8 +104,8 @@ class EnviarSolicitudUseCase @Inject constructor(
         tutor: Tutor,
         materia: String,
         tema: String,
-        fecha: String,
-        hora: String,
+        fecha: LocalDate,
+        hora: LocalTime,
         modalidad: Modalidad,
         mensaje: String
     ) {

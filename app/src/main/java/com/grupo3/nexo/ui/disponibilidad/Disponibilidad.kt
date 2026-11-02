@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.disponibilidad
 
+import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.AltoPildora
 import com.grupo3.nexo.ui.components.avisoFallo
@@ -83,6 +84,7 @@ import com.grupo3.nexo.ui.theme.EspacioExtenso
 import com.grupo3.nexo.ui.theme.EspacioFino
 import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
+import java.time.LocalTime
 import kotlinx.coroutines.launch
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
@@ -106,7 +108,7 @@ import com.grupo3.nexo.ui.theme.especColor
 /* ==================== Pantalla ==================== */
 
 /** Hora que se está editando (día + hora), guardable en el estado de la pantalla. */
-private data class HoraEnEdicion(val dia: String, val hora: String) : java.io.Serializable
+private data class HoraEnEdicion(val dia: String, val hora: LocalTime) : java.io.Serializable
 
 /** Las cuatro opciones de una hora, en el orden en que se muestran. */
 private val opcionesHora: List<Pair<String, Set<Modalidad>>> = listOf(
@@ -225,7 +227,7 @@ fun PantallaDisponibilidad(
     enEdicion?.let { edicion ->
         val actual = dias.firstOrNull { it.dia == edicion.dia }?.horas?.firstOrNull { it.hora == edicion.hora }
         HojaNexo(
-            titulo = "${edicion.dia} · ${edicion.hora}",
+            titulo = "${edicion.dia} · ${formatoHora(edicion.hora)}",
             subtitulo = "¿Cómo ofreces esta hora?",
             alCerrar = { enEdicion = null }
         ) {
@@ -297,11 +299,11 @@ private fun ChipHora(hora: HoraDisponible, alClicar: () -> Unit) {
                         .border(1.dp, BordeMarcado, FormaOpcion)
                 )
                 .semantics(mergeDescendants = true) {
-                    contentDescription = "${hora.hora}, ${if (activa) hora.modalidades.descripcion() else "no disponible"}"
+                    contentDescription = "${formatoHora(hora.hora)}, ${if (activa) hora.modalidades.descripcion() else "no disponible"}"
                 }
                 .padding(start = EspacioCercano, end = if (activa) EspacioAjustado else EspacioCercano)
         ) {
-            Text(hora.hora, color = colorTexto, style = MaterialTheme.typography.titleSmall.merge(CifrasTabulares))
+            Text(formatoHora(hora.hora), color = colorTexto, style = MaterialTheme.typography.titleSmall.merge(CifrasTabulares))
             if (activa) {
                 Spacer(Modifier.width(EspacioFino))
                 Modalidad.entries.filter { it in hora.modalidades }.forEach {

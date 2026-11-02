@@ -11,6 +11,7 @@ import com.grupo3.nexo.domain.usecase.ObtenerDisponibilidadUseCase
 import com.grupo3.nexo.ui.Recarga
 import com.grupo3.nexo.ui.intentar
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalTime
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
@@ -68,7 +69,7 @@ class DisponibilidadViewModel @Inject constructor(
         enCurso.lanzar(viewModelScope, "empezar") { alTerminar(intentar { crearCalendario() }) }
     }
 
-    fun definir(dia: String, hora: String, modalidades: Set<Modalidad>, alTerminar: (Boolean) -> Unit) {
+    fun definir(dia: String, hora: LocalTime, modalidades: Set<Modalidad>, alTerminar: (Boolean) -> Unit) {
         enCurso.lanzar(viewModelScope, "definir:$dia:$hora") { alTerminar(intentar { definirHora(dia, hora, modalidades) }) }
     }
 }

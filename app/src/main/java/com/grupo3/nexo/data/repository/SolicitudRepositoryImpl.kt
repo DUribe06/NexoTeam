@@ -7,7 +7,9 @@ import com.grupo3.nexo.domain.model.Solicitud
 import com.grupo3.nexo.domain.model.conPlazoAplicado
 import com.grupo3.nexo.domain.repository.AuthRepository
 import com.grupo3.nexo.domain.repository.SolicitudRepository
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.delay
@@ -41,8 +43,8 @@ class SolicitudRepositoryImpl @Inject constructor(
         nombreTutor: String,
         materia: String,
         tema: String,
-        fecha: String,
-        hora: String,
+        fecha: LocalDate,
+        hora: LocalTime,
         modalidad: Modalidad,
         mensaje: String
     ) {

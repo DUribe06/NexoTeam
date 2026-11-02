@@ -1,6 +1,7 @@
 package com.grupo3.nexo.ui.inicio
 
 import com.grupo3.nexo.ui.components.PildoraAbrirChat
+import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.AltoPildora
 import com.grupo3.nexo.ui.components.plural
@@ -93,9 +94,7 @@ import com.grupo3.nexo.domain.model.AreaEstudio
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Usuario
-import com.grupo3.nexo.domain.model.diasHasta
 import com.grupo3.nexo.domain.model.diasPublicados
-import com.grupo3.nexo.domain.model.fechaCalendario
 import com.grupo3.nexo.domain.model.horaFin
 import com.grupo3.nexo.domain.model.horasPublicadas
 import com.grupo3.nexo.domain.model.primerNombre
@@ -201,6 +200,7 @@ import com.grupo3.nexo.ui.theme.TituloMateria
 import com.grupo3.nexo.ui.theme.pincelBosque
 import com.grupo3.nexo.ui.theme.resorteCascada
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
@@ -601,7 +601,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                         .height(IntrinsicSize.Min)
                 ) {
                     Text(
-                        s.hora,
+                        formatoHora(s.hora),
                         color = BosqueProfundo,
                         style = CifraHora.merge(CifrasTabulares)
                     )
@@ -617,7 +617,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     Column(Modifier.weight(1f)) {
                         TextoLinea(s.materia, TituloMateria, BosqueProfundo)
                         TextoLinea(
-                            "${formatoHoras(s.duracionHoras)} · hasta las ${horaFin(s.hora, s.duracionHoras)}",
+                            "${formatoHoras(s.duracionHoras)} · hasta las ${formatoHora(horaFin(s.hora, s.duracionHoras))}",
                             CuerpoSesion,
                             TextoSobreTinte
                         )
@@ -693,7 +693,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                 ) { q ->
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    "${fechaCorta(q.sesion.fecha)} · ${q.sesion.hora}",
+                    "${fechaCorta(q.sesion.fecha)} · ${formatoHora(q.sesion.hora)}",
                     color = BosqueProfundo,
                     style = MaterialTheme.typography.titleSmall.merge(CifrasTabulares)
                 )
@@ -716,9 +716,6 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
         }
     }
 }
-
-/* Fechas de las sesiones: los datos vienen como "24 oct"; se muestran como "Sábado 24 de octubre" y "Lun 26". */
-private fun fechaDe(texto: String): LocalDate? = fechaCalendario(texto)
 
 @Composable
 private fun SinSesiones(esTutor: Boolean, alBuscar: () -> Unit, alVerSolicitudes: () -> Unit) {
@@ -771,7 +768,7 @@ private fun TiraSesion(
         if (sesion != null) {
             val falta = faltaPara(sesion.fecha)
             item(key = "cuando") {
-                AccesoTira(R.drawable.ph_reloj, falta, "Abrir chat", "Tu próxima sesión: ${falta.lowercase()}, a las ${sesion.hora}", alAbrir)
+                AccesoTira(R.drawable.ph_reloj, falta, "Abrir chat", "Tu próxima sesión: ${falta.lowercase()}, a las ${formatoHora(sesion.hora)}", alAbrir)
             }
             estado.temaProximo?.let { tema ->
                 item(key = "tema") {
@@ -801,8 +798,8 @@ private fun TiraSesion(
 }
 
 /** Cuánto falta para una fecha, en palabras: "Hoy", "Mañana", "En 2 días". */
-private fun faltaPara(fecha: String): String {
-    val dias = diasHasta(fecha) ?: return fecha
+private fun faltaPara(fecha: LocalDate): String {
+    val dias = ChronoUnit.DAYS.between(LocalDate.now(), fecha)
     return when (dias) {
         0L -> "Hoy"
         1L -> "Mañana"

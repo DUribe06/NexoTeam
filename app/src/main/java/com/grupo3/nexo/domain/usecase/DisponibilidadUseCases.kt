@@ -3,6 +3,7 @@ package com.grupo3.nexo.domain.usecase
 import com.grupo3.nexo.domain.model.DiaDisponibilidad
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.repository.DisponibilidadRepository
+import java.time.LocalTime
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 
@@ -17,7 +18,7 @@ class ObtenerDisponibilidadUseCase @Inject constructor(
 class DefinirHoraUseCase @Inject constructor(
     private val repositorio: DisponibilidadRepository
 ) {
-    suspend operator fun invoke(dia: String, hora: String, modalidades: Set<Modalidad>) =
+    suspend operator fun invoke(dia: String, hora: LocalTime, modalidades: Set<Modalidad>) =
         repositorio.definirHora(dia, hora, modalidades)
 }
 
