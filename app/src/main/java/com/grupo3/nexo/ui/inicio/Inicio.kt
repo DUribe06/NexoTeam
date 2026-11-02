@@ -1,6 +1,138 @@
 package com.grupo3.nexo.ui.inicio
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import com.grupo3.nexo.R
+import com.grupo3.nexo.domain.model.AreaEstudio
+import com.grupo3.nexo.domain.model.DiaSemana
+import com.grupo3.nexo.domain.model.EstadoSolicitud
+import com.grupo3.nexo.domain.model.Modalidad
+import com.grupo3.nexo.domain.model.Rol
+import com.grupo3.nexo.domain.model.Sesion
+import com.grupo3.nexo.domain.model.Tutor
+import com.grupo3.nexo.domain.model.Usuario
+import com.grupo3.nexo.domain.usecase.ObtenerDisponibilidadUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerMisSolicitudesUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerProximasSesionesUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerTutoresUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
+import com.grupo3.nexo.ui.components.Avatar
+import com.grupo3.nexo.ui.components.BotonIcono
+import com.grupo3.nexo.ui.components.BotonSecundario
+import com.grupo3.nexo.ui.components.CabeceraBosque
+import com.grupo3.nexo.ui.components.Carga
+import com.grupo3.nexo.ui.components.CifrasTabulares
+import com.grupo3.nexo.ui.components.EncabezadoSeccion
+import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
+import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.components.Onda
+import com.grupo3.nexo.ui.components.SesionEsqueleto
+import com.grupo3.nexo.ui.components.TextoLinea
+import com.grupo3.nexo.ui.components.VeloBarraEstado
+import com.grupo3.nexo.ui.components.aparicion
+import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
+import com.grupo3.nexo.ui.components.cargaDe
+import com.grupo3.nexo.ui.components.formatoHoras
+import com.grupo3.nexo.ui.components.formatoValoracion
+import com.grupo3.nexo.ui.components.pulsable
+import com.grupo3.nexo.ui.components.rememberPrimeraVez
+import com.grupo3.nexo.ui.components.solaparHaciaArriba
+import com.grupo3.nexo.ui.components.superficie
+import com.grupo3.nexo.ui.components.superficiePulsable
+import com.grupo3.nexo.ui.components.universidadCorta
+import com.grupo3.nexo.ui.theme.Bosque
+import com.grupo3.nexo.ui.theme.BosqueAcento
+import com.grupo3.nexo.ui.theme.BosqueProfundo
+import com.grupo3.nexo.ui.theme.CifraHora
+import com.grupo3.nexo.ui.theme.CuerpoNombre
+import com.grupo3.nexo.ui.theme.CuerpoSesion
 import com.grupo3.nexo.ui.theme.CurvaEnfatizada
+import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.DuracionLarga
 import com.grupo3.nexo.ui.theme.DuracionNormal
 import com.grupo3.nexo.ui.theme.EspacioAjustado
@@ -14,198 +146,37 @@ import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMicro
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EtiquetaArea
+import com.grupo3.nexo.ui.theme.EtiquetaBoton
+import com.grupo3.nexo.ui.theme.EtiquetaFecha
+import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.FormaBoton
 import com.grupo3.nexo.ui.theme.FormaCampoAlto
 import com.grupo3.nexo.ui.theme.FormaCapaInferior
 import com.grupo3.nexo.ui.theme.FormaControl
 import com.grupo3.nexo.ui.theme.FormaOrganica
-import com.grupo3.nexo.ui.theme.FormaTarjeta
-import com.grupo3.nexo.ui.theme.resorteCascada
-import com.grupo3.nexo.ui.components.SesionEsqueleto
-import com.grupo3.nexo.ui.components.Carga
-import com.grupo3.nexo.ui.components.ErrorDeLista
-import com.grupo3.nexo.ui.components.cargaDe
-import androidx.compose.animation.Crossfade
-import com.grupo3.nexo.ui.theme.BosqueMedio
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.compose.LifecycleEventEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.Lifecycle
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.scaleOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.SizeTransform
-import androidx.lifecycle.viewModelScope
-import com.grupo3.nexo.domain.model.EstadoSolicitud
-import com.grupo3.nexo.domain.model.Rol
-import com.grupo3.nexo.domain.model.Sesion
-import com.grupo3.nexo.domain.model.Tutor
-import com.grupo3.nexo.domain.model.Usuario
-import com.grupo3.nexo.domain.usecase.ObtenerProximasSesionesUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerMisSolicitudesUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerDisponibilidadUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerTutoresUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
-import com.grupo3.nexo.ui.busqueda.AreaEstudio
-import com.grupo3.nexo.ui.busqueda.FilaTutor
-import com.grupo3.nexo.ui.components.Avatar
-import com.grupo3.nexo.ui.components.BotonIcono
-import com.grupo3.nexo.ui.components.BotonPrimario
-import com.grupo3.nexo.ui.components.BotonSecundario
-import com.grupo3.nexo.ui.components.CabeceraBosque
-import com.grupo3.nexo.ui.components.CifrasTabulares
-import com.grupo3.nexo.ui.components.EncabezadoSeccion
-import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
-import com.grupo3.nexo.ui.components.InsigniaNexo
-import com.grupo3.nexo.ui.components.RotuloGrupo
-import com.grupo3.nexo.ui.components.TextoLinea
-import com.grupo3.nexo.ui.components.VeloBarraEstado
-import com.grupo3.nexo.ui.components.Valoracion
-import com.grupo3.nexo.ui.components.aparicion
-import com.grupo3.nexo.ui.components.formatoHoras
-import com.grupo3.nexo.ui.components.formatoPrecio
-import com.grupo3.nexo.ui.components.icono
-import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
-import com.grupo3.nexo.ui.components.pulsable
-import com.grupo3.nexo.ui.components.rememberPrimeraVez
-import com.grupo3.nexo.ui.components.solaparHaciaArriba
-import com.grupo3.nexo.ui.components.superficie
-import com.grupo3.nexo.ui.components.superficiePulsable
-import com.grupo3.nexo.ui.theme.Bosque
-import com.grupo3.nexo.ui.theme.BosqueAcento
-import com.grupo3.nexo.ui.theme.BosqueProfundo
-import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.Marcador
-import com.grupo3.nexo.ui.theme.Menta
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
-import com.grupo3.nexo.ui.theme.TextoTercero
+import com.grupo3.nexo.ui.theme.TextoSobreTinte
 import com.grupo3.nexo.ui.theme.TinteBosque
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextAlign
-import com.grupo3.nexo.ui.components.BotonTexto
-import com.grupo3.nexo.ui.components.filaAgrupada
+import com.grupo3.nexo.ui.theme.TituloMateria
+import com.grupo3.nexo.ui.theme.pincelBosque
+import com.grupo3.nexo.ui.theme.resorteCascada
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import java.util.Locale
+import javax.inject.Inject
+import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import javax.inject.Inject
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
-import com.grupo3.nexo.R
-import com.grupo3.nexo.domain.model.Modalidad
-import com.grupo3.nexo.ui.components.Onda
-import com.grupo3.nexo.ui.components.formatoValoracion
-import com.grupo3.nexo.ui.components.universidadCorta
-import com.grupo3.nexo.ui.theme.Fondo
-import com.grupo3.nexo.ui.components.formatoHoras
-import com.grupo3.nexo.ui.theme.InstrumentSans
-import com.grupo3.nexo.ui.theme.SuperficieClara
-import com.grupo3.nexo.ui.theme.Superficie
-import com.grupo3.nexo.ui.theme.SobreOscuro
-import com.grupo3.nexo.ui.theme.TextoSobreTinte
-import com.grupo3.nexo.ui.theme.pincelBosque
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.animation.core.animateFloatAsState
-import kotlinx.coroutines.delay
-import java.time.LocalDate
-import java.util.Locale
-import kotlin.math.roundToInt
-import com.grupo3.nexo.ui.theme.EtiquetaArea
-import com.grupo3.nexo.ui.theme.EtiquetaFecha
-import com.grupo3.nexo.ui.theme.EtiquetaDisponibilidad
-import com.grupo3.nexo.ui.theme.CuerpoSesion
-import com.grupo3.nexo.ui.theme.TituloMateria
-import com.grupo3.nexo.ui.theme.CuerpoNombre
-import com.grupo3.nexo.ui.theme.EtiquetaBoton
-import com.grupo3.nexo.ui.theme.CifraHora
-import com.grupo3.nexo.ui.components.IconosNexo
 
 /* ==================== ViewModel ==================== */
 
@@ -229,7 +200,9 @@ class InicioViewModel @Inject constructor(
         val pendientes: Int = 0,
         /** Modo tutor: horas publicadas por semana y días con al menos una (RF7). */
         val horasPublicadas: Int = 0,
-        val diasPublicados: List<String> = emptyList()
+        val diasPublicados: List<DiaSemana> = emptyList(),
+        /** Modo tutor: tema que pidió el estudiante para la próxima sesión (RF5). */
+        val temaProximo: String? = null
     ) {
         val esTutor get() = usuario?.rol == Rol.TUTOR
     }
@@ -245,13 +218,14 @@ class InicioViewModel @Inject constructor(
     ) { tutores, proximas, usuario, solicitudes, dias ->
         Estado(
             horasPublicadas = dias.sumOf { d -> d.horas.count { it.seleccionada } },
-            diasPublicados = dias.filter { d -> d.horas.any { it.seleccionada } }.map { it.dia.take(3) },
+            diasPublicados = dias.filter { d -> d.horas.any { it.seleccionada } }.mapNotNull { d -> DiaSemana.entries.firstOrNull { it.nombre == d.dia } },
             cargando = proximas == null,
             usuario = usuario,
             proximas = proximas.orEmpty().map { sesion ->
                 SesionProxima(sesion, sesion.contraparteId, tutores.find { !sesion.comoTutor && it.id == sesion.contraparteId })
             },
             pendientes = solicitudes.count { it.estado == EstadoSolicitud.PENDIENTE },
+            temaProximo = proximas?.firstOrNull()?.solicitudId?.let { id -> solicitudes.find { it.id == id }?.tema },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 }
@@ -333,9 +307,9 @@ fun PantallaInicio(
             // Tira de materias sin contenedores: ícono y nombre, se desliza de lado (solo para buscar)
             val tira = rememberLazyListState()
             // Debajo del control flotante, una tira del mismo molde en ambos modos: materias para buscar
-            // (estudiante) o los días de la semana con horario publicado (tutor).
+            // (estudiante) o lo que hace falta para preparar la próxima sesión (tutor).
             if (estado.esTutor) Column(Modifier.padding(top = EspacioMedio).aparicion(3, iniciado)) {
-                TiraDisponibilidad(estado.horasPublicadas, estado.diasPublicados, alAbrirDisponibilidad)
+                TiraSesion(estado, alAbrirChat, alVerSolicitudes, alAbrirDisponibilidad)
                 Box(Modifier.fillMaxWidth().padding(top = EspacioMicro).height(1.dp).background(Divisor))
             } else Column(Modifier.padding(top = EspacioMedio).aparicion(3, iniciado)) {
                 LazyRow(
@@ -365,7 +339,7 @@ fun PantallaInicio(
             ) {
                 EncabezadoSeccion(
                     titulo = if (estado.cargando || estado.proximas.size > 1) "Tus próximas sesiones" else "Tu próxima sesión",
-                    accion = if (estado.proximas.isNotEmpty()) "Ver todas" else null,
+                    accion = if (estado.proximas.isNotEmpty()) "Ver solicitudes" else null,
                     alAccion = alVerSolicitudes
                 )
                 Spacer(Modifier.height(EspacioMicro))
@@ -441,7 +415,7 @@ private fun Cabecera(
                 Spacer(Modifier.weight(1f))
                 BotonIcono(
                     ImageVector.vectorResource(R.drawable.ph_campana),
-                    descripcion = if (pendientes > 0) "Solicitudes, $pendientes pendientes" else "Solicitudes",
+                    descripcion = if (pendientes > 0) "Solicitudes, $pendientes ${if (pendientes == 1) "pendiente" else "pendientes"}" else "Solicitudes",
                     alClicar = alVerSolicitudes,
                     sobreOscuro = true,
                     insignia = pendientes
@@ -546,21 +520,29 @@ private fun Buscador(alClicar: () -> Unit, modifier: Modifier = Modifier) {
 /** Acceso por área: ícono y nombre, sin contenedor. */
 @Composable
 private fun AccesoArea(area: AreaEstudio, alClicar: () -> Unit) {
+    AccesoTira(area.iconoPh, area.etiqueta, "Buscar en ${area.etiqueta}", alClicar = alClicar)
+}
+
+/** Un elemento de la tira bajo el control flotante: ícono arriba, nombre abajo, sin contenedores. */
+@Composable
+private fun AccesoTira(icono: Int, etiqueta: String, accion: String, descripcion: String? = null, alClicar: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .widthIn(min = 62.dp)
+            .widthIn(min = 62.dp, max = 168.dp)
             .clip(FormaControl)
-            .clickable(onClickLabel = "Buscar en ${area.etiqueta}", role = Role.Button, onClick = alClicar)
+            .clickable(onClickLabel = accion, role = Role.Button, onClick = alClicar)
+            .then(if (descripcion != null) Modifier.clearAndSetSemantics { contentDescription = descripcion } else Modifier)
             .padding(horizontal = EspacioCorto, vertical = EspacioCorto)
     ) {
-        Icon(painterResource(area.iconoPh), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(26.dp))
+        Icon(painterResource(icono), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(26.dp))
         Spacer(Modifier.height(5.dp))
         Text(
-            area.etiqueta,
+            etiqueta,
             color = BosqueProfundo,
             style = EtiquetaArea,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center
         )
     }
@@ -584,7 +566,9 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
     val primera = orden.first()
     val s = primera.sesion
     val formaFrente = FormaOrganica
-    Column(Modifier.fillMaxWidth()) {
+    // Las capas se montan 12 dp bajo la tarjeta con espaciado negativo (no recortando su alto): así cada
+    // una conserva su área de toque completa y, donde se solapan, gana la de arriba (zIndex).
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy((-12).dp)) {
         // Sin sombra (la única sombra de la pantalla es la del buscador): el borde fino la recorta del fondo
         Column(
             Modifier
@@ -714,7 +698,6 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .solaparHaciaArriba(12.dp)
                     .zIndex(2f - n)
                     .padding(horizontal = (8 * (n + 1)).dp)
                     .fillMaxWidth()
@@ -793,7 +776,7 @@ private fun horaFin(hora: String, horas: Double): String {
     val partes = hora.split(":").mapNotNull { it.toIntOrNull() }
     if (partes.size != 2) return hora
     val total = partes[0] * 60 + partes[1] + (horas * 60).roundToInt()
-    return String.format(Locale.US, "%02d:%02d", (total / 60) % 24, total % 60)
+    return String.format(espanol, "%02d:%02d", (total / 60) % 24, total % 60)
 }
 
 @Composable
@@ -824,65 +807,66 @@ private fun SinSesiones(esTutor: Boolean, alBuscar: () -> Unit, alVerSolicitudes
 }
 
 /**
- * Modo tutor, en el lugar de la tira de materias: la misma forma (ícono arriba, nombre abajo, sin
- * contenedores) con los siete días. Los que tienen horario publicado se marcan; tocar la tira edita
- * la disponibilidad. Sin horas publicadas invita a publicarlas: sin ellas no aparece en las búsquedas.
+ * Modo tutor, en el lugar de la tira de materias y con su misma forma: lo que hace falta para preparar
+ * la próxima sesión y, al final, el acceso a la disponibilidad. Lo de la sesión abre su conversación.
  */
 @Composable
-private fun TiraDisponibilidad(horas: Int, dias: List<String>, alEditar: () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClickLabel = "Editar disponibilidad", role = Role.Button, onClick = alEditar)
+private fun TiraSesion(
+    estado: InicioViewModel.Estado,
+    alAbrirChat: (String) -> Unit,
+    alVerSolicitudes: () -> Unit,
+    alEditarDisponibilidad: () -> Unit
+) {
+    val tira = rememberLazyListState()
+    val sesion = estado.proximas.firstOrNull()?.sesion
+    val alAbrir = { sesion?.let { alAbrirChat(it.contraparteId) } ?: Unit }
+    val horas = estado.horasPublicadas
+    LazyRow(
+        state = tira,
+        horizontalArrangement = Arrangement.spacedBy(EspacioMicro),
+        contentPadding = PaddingValues(horizontal = EspacioCercano),
+        modifier = Modifier.desvanecerBordes(tira)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = EspacioHolgado).heightIn(min = 32.dp)
-        ) {
-            Text(
-                if (horas == 0) "Publica tus horarios para aparecer en las búsquedas"
-                else "Tu disponibilidad · ${formatoHoras(horas.toDouble())} a la semana",
-                color = TextoSecundario,
-                style = EtiquetaDisponibilidad,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                if (horas == 0) "Publicar" else "Editar",
-                color = BosqueAcento,
-                style = EtiquetaFecha
-            )
-        }
-        Row(Modifier.fillMaxWidth().padding(horizontal = EspacioCercano)) {
-            listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom").forEach { d ->
-                val activo = d in dias
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = EspacioMinimo, vertical = EspacioCorto)
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(26.dp)
-                            .background(if (activo) TinteBosque else Color.Transparent, CircleShape)
-                            .border(1.dp, if (activo) BosqueAcento.copy(alpha = 0.30f) else Divisor, CircleShape)
-                    ) {
-                        if (activo) Box(Modifier.size(8.dp).background(BosqueAcento, CircleShape))
-                    }
-                    Spacer(Modifier.height(5.dp))
-                    Text(
-                        d,
-                        color = if (activo) BosqueProfundo else TextoTercero,
-                        style = EtiquetaArea.copy(fontWeight = if (activo) FontWeight.SemiBold else FontWeight.Medium),
-                        maxLines = 1,
-                        textAlign = TextAlign.Center
-                    )
+        if (sesion != null) {
+            val falta = faltaPara(sesion.fecha)
+            item(key = "cuando") {
+                AccesoTira(R.drawable.ph_reloj, falta, "Abrir chat", "Tu próxima sesión: ${falta.lowercase()}, a las ${sesion.hora}", alAbrir)
+            }
+            estado.temaProximo?.let { tema ->
+                item(key = "tema") {
+                    AccesoTira(R.drawable.ph_graduacion, tema, "Abrir chat", "Tema de la sesión: $tema", alAbrir)
                 }
             }
+            item(key = "modalidad") {
+                val nombre = sesion.modalidad.etiqueta
+                AccesoTira(sesion.modalidad.iconoPh, nombre, "Abrir chat", "Sesión ${nombre.lowercase()}", alAbrir)
+            }
+        } else if (!estado.cargando) {
+            item(key = "sin") {
+                AccesoTira(R.drawable.ph_calendario, "Sin sesiones", "Ver solicitudes", "Sin sesiones agendadas", alVerSolicitudes)
+            }
         }
+        item(key = "disponibilidad") {
+            AccesoTira(
+                R.drawable.ph_calendario_check,
+                if (horas == 0) "Publicar horarios" else "Disponibilidad",
+                "Editar disponibilidad",
+                if (horas == 0) "Sin horarios publicados. No apareces en las búsquedas"
+                else "Tu disponibilidad, ${formatoHoras(horas.toDouble())} a la semana. Con horario: ${estado.diasPublicados.joinToString(", ") { it.nombre }}",
+                alEditarDisponibilidad
+            )
+        }
+    }
+}
+
+/** Cuánto falta para una fecha, en palabras: "Hoy", "Mañana", "En 2 días". */
+private fun faltaPara(fecha: String): String {
+    val dia = fechaDe(fecha) ?: return fecha
+    return when (val dias = ChronoUnit.DAYS.between(LocalDate.now(), dia)) {
+        0L -> "Hoy"
+        1L -> "Mañana"
+        in 2L..Long.MAX_VALUE -> "En $dias días"
+        else -> fechaCorta(fecha)
     }
 }
 

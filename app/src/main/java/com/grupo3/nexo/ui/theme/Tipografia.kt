@@ -92,12 +92,14 @@ fun inicialesAvatar(tamano: Dp) = TextStyle(
 // Inicio
 val EtiquetaArea = estilo(11.5, 16, FontWeight.SemiBold)
 val EtiquetaFecha = estilo(12.5, 16, FontWeight.SemiBold)
-val EtiquetaDisponibilidad = estilo(12.5, 16, FontWeight.Medium)
 val CuerpoSesion = estilo(12.5, 17, FontWeight.Medium)
 val TituloMateria = estilo(16, 21, FontWeight.SemiBold, -0.15)
 val CuerpoNombre = estilo(13, 21, FontWeight.Medium)
 val EtiquetaBoton = estilo(13, 16, FontWeight.SemiBold)
 val CifraHora = estilo(42, 46, FontWeight.SemiBold, -1.6)
+
+/** Cifras de resumen (Perfil, Historial): headlineSmall con cifras de ancho fijo. */
+val TextoCifraResumen = estilo(22, 28, FontWeight.SemiBold, -0.5).merge(TextStyle(fontFeatureSettings = "tnum"))
 
 // Logo animado
 val TituloLogo = estilo(19, 24, FontWeight.SemiBold, -0.4)
