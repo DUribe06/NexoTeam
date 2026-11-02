@@ -13,7 +13,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
-/** La migración V2 debe impedir en la base lo que las reglas de RF1, RF2 y D2 prohíben. */
+/** Las migraciones deben impedir en la base lo que las reglas de RF1, RF2 y D2 y el módulo Usuario prohíben. */
 @SpringBootTest
 @Transactional
 class EsquemaUsuariosTest {
@@ -23,19 +23,23 @@ class EsquemaUsuariosTest {
     @Autowired
     JdbcTemplate jdbc;
 
-    private UUID usuario(String correo, String rol, String estadoTutor, String terminos) {
+    private UUID usuario(String correo, String rol, boolean perfilTutor, String terminos) {
         UUID id = UUID.randomUUID();
         jdbc.update("""
-            INSERT INTO usuarios (id, nombre, correo, contrasena_hash, rol, estado_cuenta,
-                                  estado_verificacion_tutor, terminos_version, terminos_aceptados_en)
-            VALUES (?, 'Prueba', ?, 'hash', ?, 'PENDIENTE_VERIFICACION_CORREO', ?, ?,
+            INSERT INTO usuarios (id, nombre, correo, contrasena_hash, handle, rol, estado_cuenta,
+                                  perfil_tutor_activo, terminos_version, terminos_aceptados_en)
+            VALUES (?, 'Prueba', ?, 'hash', ?, ?, 'PENDIENTE_VERIFICACION_CORREO', ?, ?,
                     CASE WHEN ? IS NULL THEN NULL ELSE CURRENT_TIMESTAMP END)
-            """, id, correo, rol, estadoTutor, terminos, terminos);
+            """, id, correo, "@" + id.toString().substring(0, 18), rol, perfilTutor, terminos, terminos);
         return id;
     }
 
     private UUID estudiante(String correo) {
-        return usuario(correo, "ESTUDIANTE", null, TERMINOS);
+        return usuario(correo, "ESTUDIANTE", false, TERMINOS);
+    }
+
+    private UUID tutor(String correo) {
+        return usuario(correo, "TUTOR", true, TERMINOS);
     }
 
     @Test
@@ -61,23 +65,42 @@ class EsquemaUsuariosTest {
 
     @Test
     void rechazaRolesYEstadosInventados() {
-        assertThrows(DataIntegrityViolationException.class, () -> usuario("a@ejemplo.com", "SUPERUSUARIO", null, TERMINOS));
+        assertThrows(DataIntegrityViolationException.class, () -> usuario("a@ejemplo.com", "SUPERUSUARIO", false, TERMINOS));
         UUID id = estudiante("b@ejemplo.com");
         assertThrows(DataIntegrityViolationException.class,
             () -> jdbc.update("UPDATE usuarios SET estado_cuenta = 'INVENTADO' WHERE id = ?", id));
     }
 
     @Test
-    void unTutorSiempreTieneEstadoDeVerificacionYLosDemasNunca() {
-        assertDoesNotThrow(() -> usuario("t@ejemplo.com", "TUTOR", "PENDIENTE", TERMINOS));
-        assertThrows(DataIntegrityViolationException.class, () -> usuario("t2@ejemplo.com", "TUTOR", null, TERMINOS));
-        assertThrows(DataIntegrityViolationException.class, () -> usuario("e@ejemplo.com", "ESTUDIANTE", "VERIFICADO", TERMINOS));
+    void enModoTutorSiempreHayPerfilYQuienVuelveAEstudianteLoConserva() {
+        assertDoesNotThrow(() -> tutor("t@ejemplo.com"));
+        assertThrows(DataIntegrityViolationException.class, () -> usuario("t2@ejemplo.com", "TUTOR", false, TERMINOS));
+        assertDoesNotThrow(() -> usuario("e@ejemplo.com", "ESTUDIANTE", true, TERMINOS));
+    }
+
+    @Test
+    void elHandleEsUnicoYObligatorio() {
+        UUID id = estudiante("h1@ejemplo.com");
+        UUID otro = estudiante("h2@ejemplo.com");
+        jdbc.update("UPDATE usuarios SET handle = '@repetido' WHERE id = ?", id);
+        assertThrows(DataIntegrityViolationException.class,
+            () -> jdbc.update("UPDATE usuarios SET handle = '@repetido' WHERE id = ?", otro));
+        assertThrows(DataIntegrityViolationException.class,
+            () -> jdbc.update("UPDATE usuarios SET handle = NULL WHERE id = ?", otro));
+    }
+
+    @Test
+    void laTarifaNoPuedeSerNegativa() {
+        UUID id = tutor("p@ejemplo.com");
+        assertDoesNotThrow(() -> jdbc.update("UPDATE usuarios SET precio_hora = 0 WHERE id = ?", id));
+        assertThrows(DataIntegrityViolationException.class,
+            () -> jdbc.update("UPDATE usuarios SET precio_hora = -1 WHERE id = ?", id));
     }
 
     @Test
     void exigeElConsentimientoSalvoParaElAdministrador() {
-        assertThrows(DataIntegrityViolationException.class, () -> usuario("sin@ejemplo.com", "ESTUDIANTE", null, null));
-        assertDoesNotThrow(() -> usuario("admin@ejemplo.com", "ADMIN", null, null));
+        assertThrows(DataIntegrityViolationException.class, () -> usuario("sin@ejemplo.com", "ESTUDIANTE", false, null));
+        assertDoesNotThrow(() -> usuario("admin@ejemplo.com", "ADMIN", false, null));
     }
 
     @Test
@@ -89,7 +112,7 @@ class EsquemaUsuariosTest {
 
     @Test
     void guardaMateriasYModalidadesDelTutorSinRepetirlas() {
-        UUID id = usuario("tutor@ejemplo.com", "TUTOR", "PENDIENTE", TERMINOS);
+        UUID id = tutor("tutor@ejemplo.com");
         jdbc.update("INSERT INTO tutor_materias (usuario_id, materia) VALUES (?, 'Cálculo I')", id);
         jdbc.update("INSERT INTO tutor_modalidades (usuario_id, modalidad) VALUES (?, 'VIRTUAL')", id);
         assertThrows(DataIntegrityViolationException.class,
@@ -111,7 +134,7 @@ class EsquemaUsuariosTest {
 
     @Test
     void alBorrarUnUsuarioSeBorranSusCodigosYDatosDeTutor() {
-        UUID id = usuario("e2@ejemplo.com", "TUTOR", "PENDIENTE", TERMINOS);
+        UUID id = tutor("e2@ejemplo.com");
         jdbc.update("INSERT INTO tutor_materias (usuario_id, materia) VALUES (?, 'Física I')", id);
         jdbc.update("INSERT INTO codigos_verificacion (id, usuario_id, proposito, codigo_hash, vence_en) "
             + "VALUES (?, ?, 'VERIFICAR_CORREO', 'hash', CURRENT_TIMESTAMP)", UUID.randomUUID(), id);

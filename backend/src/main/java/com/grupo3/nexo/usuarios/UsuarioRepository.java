@@ -9,5 +9,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
     boolean existsByCorreo(String correo);
 
+    boolean existsByHandle(String handle);
+
+    boolean existsByIdAndRol(UUID id, Rol rol);
+
     Optional<Usuario> findByCorreo(String correo);
 }

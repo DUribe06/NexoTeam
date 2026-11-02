@@ -1,19 +1,38 @@
 openapi: 3.0.3
 info:
   title: API de Nexo
-  version: 0.1.0
+  version: 0.3.0
   description: |
     Contrato entre la app Android y el backend (Spring Boot + PostgreSQL).
     Este archivo es la fuente de verdad: primero se acuerda aquí y luego se implementa.
 
-    Alcance de esta versión: cuentas (Fase 1) — RF1 registro, RF2 inicio de sesión y RF16 recuperación
-    de contraseña, con la verificación del correo por código de 6 dígitos (decisión D2).
+    Alcance de esta versión:
+    - Cuentas (Fase 1): RF1 registro, RF2 inicio de sesión y RF16 recuperación de contraseña, con la
+      verificación del correo por código de 6 dígitos (decisión D2).
+    - Tutorías (Fase 2): perfil propio y modo de uso, búsqueda de tutores (RF3), perfil del tutor y reseñas (RF4),
+      solicitudes y su respuesta (RF5, RF6), disponibilidad (RF7), chat (RF8), calificación mutua (RF9),
+      sesiones e historial (RF10) y reportes (RF11). Cubre cada método de `domain/repository/` de la app; los
+      que no tienen endpoint propio lo explican en la operación que los reemplaza. La excepción es
+      `AuthRepository.iniciarSesionGoogle`, un flujo simplificado del prototipo que aún no tiene contrato.
 
     Convenciones:
     - JSON en UTF-8; nombres de campos en español y camelCase.
     - Errores con el esquema `Error` y un `codigo` estable que la app usa para decidir qué mostrar.
     - Autenticación con JWT en `Authorization: Bearer <tokenAcceso>`.
     - Los correos se normalizan a minúsculas y sin espacios en el servidor.
+    - Ids: UUID en texto.
+    - Un campo opcional sin valor se omite del JSON; no se envía `null`.
+    - Días con `format: date` (`2026-11-02`); horas del día como `HH:mm` (`14:00`), en hora de Colombia;
+      momentos con `format: date-time` e indicando la zona (`2026-11-02T14:00:00-05:00`).
+    - Toda cuenta nace en modo Estudiante y puede usar los dos modos, Estudiante y Tutor, cambiándolo en el Perfil
+      sin ninguna verificación (decisión del 18-10-2026). El tutor no se verifica.
+      Las listas que dependen del modo reciben `modo`; si se omite, se usa el modo actual de la cuenta.
+    - Lo que depende del reloj lo decide el servidor, nunca el teléfono: el plazo de 24 h y el estado `EXPIRADA`
+      de una solicitud, el estado de cada sesión y el paso de un chat a solo lectura.
+    - Las acciones que encadenan cambios (aceptar una solicitud crea la sesión y habilita el chat) ocurren en una
+      sola transacción: o se aplican todos los cambios o ninguno.
+    - Listas: las del propio usuario (solicitudes, sesiones, chats) van completas; el catálogo de tutores y las
+      reseñas, por páginas (`pagina`, `tamano`); los mensajes, por cursor (`antes`, `desde`).
 servers:
   - url: http://10.0.2.2:8080
     description: Desarrollo (visto desde el emulador de Android)
@@ -21,6 +40,18 @@ tags:
   - name: Salud
   - name: Autenticación
     description: Registro, verificación del correo, sesión y recuperación de contraseña
+  - name: Usuario
+    description: Perfil propio, modo de uso (Estudiante / Tutor), perfil público de tutor y resumen de actividad
+  - name: Tutores
+    description: Búsqueda con filtros (RF3), perfil del tutor y reseñas (RF4) y reportes (RF11)
+  - name: Disponibilidad
+    description: Calendario semanal del tutor (RF7) y horas que se le pueden pedir (RF5)
+  - name: Solicitudes
+    description: Envío de solicitudes de tutoría (RF5) y su respuesta por el tutor, con plazo de 24 h (RF6)
+  - name: Sesiones
+    description: Sesiones que nacen de una solicitud aceptada, historial (RF10) y calificación mutua (RF9)
+  - name: Chats
+    description: Conversaciones entre estudiante y tutor, habilitadas por una solicitud aceptada (RF8)
 
 paths:
   /api/salud:
@@ -43,7 +74,8 @@ paths:
       description: |
         Crea la cuenta en estado `PENDIENTE_VERIFICACION_CORREO` y envía al correo un código de 6 dígitos.
         Se rechaza el correo si su dominio no recibe correo (sin registro MX) o es desechable.
-        Los tutores quedan además `PENDIENTE` de verificación académica por el administrador (RF12).
+        Toda cuenta nace en modo `ESTUDIANTE`; el perfil de tutor se crea después, al cambiar de modo.
+        El servidor genera el `handle` a partir del nombre.
       security: []
       requestBody:
         required: true
@@ -61,7 +93,9 @@ paths:
         "400":
           $ref: "#/components/responses/DatosInvalidos"
         "409":
-          description: Ya existe una cuenta con ese correo (`CORREO_DUPLICADO`)
+          description: |
+            Ya existe una cuenta con ese correo (`CORREO_DUPLICADO`), o dos registros simultáneos chocaron por otro
+            dato único (`CONFLICTO`) y basta con reintentar
           content:
             application/json:
               schema:
@@ -260,6 +294,939 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  # ==================== Usuario ====================
+
+  /api/usuarios/yo:
+    get:
+      tags: [Usuario]
+      summary: Devuelve el perfil de la cuenta en sesión
+      description: |
+        Datos del encabezado del Perfil y del saludo del Inicio, con el modo en uso.
+        Reemplaza a `AuthRepository.usuarioActual` de la app: se pide al iniciar sesión y tras cada cambio.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Perfil propio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilPropio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
+  /api/usuarios/yo/modo:
+    put:
+      tags: [Usuario]
+      summary: Cambia el modo de uso entre Estudiante y Tutor
+      description: |
+        Cualquier cuenta puede usar los dos modos, sin verificación (decisión del 18-10-2026). La primera vez que
+        pasa a `TUTOR` se crea su perfil de tutor vacío (sin bio, materias, tarifa ni horario), que no aparece en la
+        búsqueda hasta tener al menos una materia y una hora publicada; al volver a `ESTUDIANTE` lo conserva.
+        El modo guardado es el que usan por defecto las listas que reciben `modo`. El token de acceso no cambia: no
+        lleva el modo, que siempre se lee de la base.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCambiarModo"
+      responses:
+        "200":
+          description: Modo cambiado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilPropio"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: Una cuenta de administrador no usa modos (`ADMIN_SIN_MODOS`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/usuarios/yo/perfil-tutor:
+    patch:
+      tags: [Usuario]
+      summary: Edita el perfil público de tutor (bio, materias, tarifa, universidad y carrera)
+      description: |
+        Solo cambia los campos enviados; hay que enviar al menos uno. Un texto vacío borra ese dato. `materias`
+        reemplaza la lista completa y conserva su orden; las materias se comparan sin distinguir mayúsculas y se
+        descartan las repetidas. Quitar una materia no afecta a las solicitudes ya enviadas sobre ella. Se puede
+        editar también en modo `ESTUDIANTE` si la cuenta ya tiene perfil de tutor.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudEditarPerfilTutor"
+      responses:
+        "200":
+          description: Perfil de tutor actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilPropio"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/NoEsTutor"
+
+  /api/usuarios/yo/resumen:
+    get:
+      tags: [Usuario]
+      summary: Cifras de actividad del usuario en un modo
+      description: |
+        Las cifras del Perfil y del Historial: como estudiante, de las sesiones tomadas; como tutor, de las dadas.
+        Solo cuentan las sesiones `COMPLETADA`, salvo `porCalificar` (completadas que el usuario aún no califica).
+        Mientras no exista el módulo de sesiones, todas las cifras son cero.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Modo"
+      responses:
+        "200":
+          description: Resumen de actividad
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResumenActividad"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
+  # ==================== Tutores ====================
+
+  /api/tutores:
+    get:
+      tags: [Tutores]
+      summary: Busca tutores con filtros (RF3)
+      description: |
+        Todos los filtros son opcionales y se combinan con Y. `modalidad` y `franja` se evalúan sobre la misma
+        hora del horario: "virtual en la noche" exige una hora nocturna que se ofrezca en virtual, no una virtual
+        y otra nocturna. Solo aparecen tutores con al menos una materia y una hora publicada; nunca la propia
+        cuenta. Por defecto, ordenados por calificación (UC3, paso 4).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          description: Texto libre; busca en el nombre, las materias y la universidad, sin distinguir mayúsculas ni tildes
+          schema:
+            type: string
+            maxLength: 100
+          example: cálculo
+        - name: materia
+          in: query
+          description: Palabras clave de materia; basta con que una materia del tutor contenga alguna. Se puede repetir.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              maxLength: 80
+          example: [Cálculo, Álgebra]
+        - name: area
+          in: query
+          description: Área de estudio; el servidor la traduce a sus palabras clave y las suma a `materia`
+          schema:
+            $ref: "#/components/schemas/AreaEstudio"
+        - name: modalidad
+          in: query
+          schema:
+            $ref: "#/components/schemas/Modalidad"
+        - name: franja
+          in: query
+          schema:
+            $ref: "#/components/schemas/Franja"
+        - name: enLinea
+          in: query
+          description: Si es `true`, solo tutores conectados en este momento
+          schema:
+            type: boolean
+            default: false
+        - name: orden
+          in: query
+          schema:
+            $ref: "#/components/schemas/OrdenTutores"
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/Tamano"
+      responses:
+        "200":
+          description: Página de tutores que cumplen los filtros
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaTutores"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
+  /api/tutores/{tutorId}:
+    get:
+      tags: [Tutores]
+      summary: Devuelve el perfil de un tutor (RF4)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TutorId"
+      responses:
+        "200":
+          description: Perfil del tutor, con su horario semanal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tutor"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/TutorNoEncontrado"
+
+  /api/tutores/{tutorId}/resenas:
+    get:
+      tags: [Tutores]
+      summary: Reseñas de un tutor, la más reciente primero (RF4)
+      description: |
+        Con el id propio devuelve las reseñas recibidas como tutor (Perfil e Historial en modo Tutor).
+        Las reseñas no se crean aquí: nacen al calificar una sesión (`POST /api/sesiones/{sesionId}/calificacion`),
+        que reemplaza a `TutorRepository.agregarResena` de la app.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TutorId"
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/Tamano"
+      responses:
+        "200":
+          description: Página de reseñas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaResenas"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/TutorNoEncontrado"
+
+  /api/tutores/{tutorId}/reportes:
+    post:
+      tags: [Tutores]
+      summary: Reporta a un tutor (RF11)
+      description: |
+        El reporte queda abierto para que lo revise el administrador (RF12); el tutor no sabe quién lo reportó.
+        Solo se admite un reporte abierto por persona y tutor.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TutorId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudReporte"
+      responses:
+        "201":
+          description: Reporte recibido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reporte"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/TutorNoEncontrado"
+        "409":
+          description: Ya hay un reporte tuyo abierto sobre este tutor (`REPORTE_DUPLICADO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: No puedes reportarte a ti mismo (`REPORTE_A_SI_MISMO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ==================== Disponibilidad ====================
+
+  /api/disponibilidad/yo:
+    get:
+      tags: [Disponibilidad]
+      summary: Devuelve el calendario semanal del tutor en sesión (RF7)
+      description: Si el tutor aún no tiene calendario, responde `creado` en `false` y `dias` vacío ("Agregar horario").
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Calendario semanal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SemanaDisponibilidad"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/NoEsTutor"
+    post:
+      tags: [Disponibilidad]
+      summary: Crea el calendario semanal vacío (RF7)
+      description: |
+        Crea los 7 días con las horas del calendario (08:00, 10:00, 12:00, 14:00, 16:00, 18:00 y 20:00), todas sin
+        publicar. Es idempotente: si el calendario ya existe lo devuelve sin cambios.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: El calendario ya existía
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SemanaDisponibilidad"
+        "201":
+          description: Calendario creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SemanaDisponibilidad"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/NoEsTutor"
+
+  /api/disponibilidad/yo/horas:
+    put:
+      tags: [Disponibilidad]
+      summary: Define en qué modalidades se ofrece una hora (RF7)
+      description: |
+        Cada hora dura 1 h. Con `modalidades` vacío la hora deja de estar publicada. Despublicar una hora no
+        cancela las sesiones ya programadas en ella; las solicitudes pendientes para esa hora se pueden seguir
+        respondiendo.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudDefinirHora"
+      responses:
+        "200":
+          description: Calendario con la hora actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SemanaDisponibilidad"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/NoEsTutor"
+        "409":
+          description: El tutor aún no tiene calendario; hay que crearlo primero (`CALENDARIO_NO_CREADO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: La hora no es una de las del calendario (`HORA_NO_VALIDA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/tutores/{tutorId}/disponibilidad:
+    get:
+      tags: [Disponibilidad]
+      summary: Días y horas que se le pueden pedir a un tutor (RF5)
+      description: |
+        Para la hoja Solicitar: los próximos 14 días desde mañana con al menos una hora libre, cada una con sus
+        modalidades. Se descartan las horas en que el tutor ya tiene una sesión programada. Solo incluye los días
+        con horas libres, en orden de calendario.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TutorId"
+      responses:
+        "200":
+          description: Días solicitables
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiaSolicitable"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/TutorNoEncontrado"
+
+  # ==================== Solicitudes ====================
+
+  /api/solicitudes:
+    post:
+      tags: [Solicitudes]
+      summary: Envía una solicitud de tutoría (RF5 / UC5)
+      description: |
+        La envía la cuenta en sesión como estudiante. El servidor pone el nombre del tutor, el momento de envío
+        (`enviada`) y el plazo de respuesta (`venceEn`). La fecha va desde mañana hasta 14 días adelante y la hora
+        debe estar publicada por el tutor ese día de la semana, libre y con la modalidad pedida.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudNueva"
+      responses:
+        "201":
+          description: Solicitud enviada, en estado `PENDIENTE`
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Solicitud"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/TutorNoEncontrado"
+        "409":
+          description: Ya tienes una solicitud pendiente o aceptada con este tutor para ese día y hora (`SOLICITUD_DUPLICADA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: |
+            La solicitud no se puede atender: fecha fuera de los próximos 14 días (`FECHA_NO_VALIDA`), hora no
+            publicada u ocupada (`HORA_NO_DISPONIBLE`), modalidad que el tutor no ofrece a esa hora
+            (`MODALIDAD_NO_DISPONIBLE`), materia que el tutor no enseña (`MATERIA_NO_OFRECIDA`) o solicitud a
+            uno mismo (`SOLICITUD_A_SI_MISMO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      tags: [Solicitudes]
+      summary: Lista las solicitudes del usuario en un modo (RF5, RF6)
+      description: |
+        Como estudiante, las que envió; como tutor, las que recibió. Las pendientes cuyo plazo venció llegan ya como
+        `EXPIRADA`. Orden: primero las pendientes (la que vence antes arriba) y después el resto, la más reciente
+        primero; la app puede reordenar.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Modo"
+        - name: estado
+          in: query
+          description: Solo las solicitudes en estos estados. Se puede repetir; sin él, todas.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/EstadoSolicitud"
+      responses:
+        "200":
+          description: Solicitudes del modo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Solicitud"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
+  /api/solicitudes/{solicitudId}:
+    get:
+      tags: [Solicitudes]
+      summary: Devuelve una solicitud
+      description: Solo la ven su estudiante y su tutor; para cualquier otra cuenta no existe.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SolicitudId"
+      responses:
+        "200":
+          description: Solicitud
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Solicitud"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/SolicitudNoEncontrada"
+
+  /api/solicitudes/{solicitudId}/aceptar:
+    post:
+      tags: [Solicitudes]
+      summary: El tutor acepta una solicitud (RF6 → RF8, RF10)
+      description: |
+        En una sola transacción: la solicitud pasa a `ACEPTADA`, se programa la sesión (`PROGRAMADA`) y queda
+        activo el chat con el estudiante (se crea si no existía o se reabre si estaba en solo lectura).
+        Reemplaza a `SesionRepository.programar` y `ChatRepository.habilitarChat` de la app.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SolicitudId"
+      responses:
+        "200":
+          description: Solicitud aceptada, con la sesión y el chat que nacieron de ella
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultadoAceptarSolicitud"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: Solo el tutor de la solicitud puede aceptarla (`NO_ES_TUTOR`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/SolicitudNoEncontrada"
+        "409":
+          description: |
+            La solicitud ya no espera respuesta (`SOLICITUD_NO_PENDIENTE`), venció el plazo (`SOLICITUD_EXPIRADA`)
+            o el tutor ya tiene otra sesión a esa hora (`HORA_NO_DISPONIBLE`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/solicitudes/{solicitudId}/rechazar:
+    post:
+      tags: [Solicitudes]
+      summary: El tutor rechaza una solicitud, con motivo opcional (RF6)
+      description: |
+        La solicitud pasa a `RECHAZADA` y el estudiante ve el motivo. Si hubiera una sesión asociada, se cancela y,
+        si no quedan sesiones por venir con esa persona, el chat pasa a solo lectura.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SolicitudId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudRechazar"
+      responses:
+        "200":
+          description: Solicitud rechazada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Solicitud"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: Solo el tutor de la solicitud puede rechazarla (`NO_ES_TUTOR`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/SolicitudNoEncontrada"
+        "409":
+          description: La solicitud ya no espera respuesta (`SOLICITUD_NO_PENDIENTE`) o venció el plazo (`SOLICITUD_EXPIRADA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/solicitudes/{solicitudId}/cancelar:
+    post:
+      tags: [Solicitudes]
+      summary: El estudiante cancela su solicitud
+      description: |
+        Se puede cancelar una solicitud `PENDIENTE` o una `ACEPTADA` cuya sesión aún no empieza. En una sola
+        transacción: la solicitud pasa a `CANCELADA`, su sesión (si existe) a `CANCELADA` y, si no quedan sesiones
+        por venir con ese tutor, el chat pasa a solo lectura. Reemplaza a `SesionRepository.cancelarDe` y
+        `ChatRepository.cerrarChat` de la app.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SolicitudId"
+      responses:
+        "200":
+          description: Solicitud cancelada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Solicitud"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: Solo el estudiante que la envió puede cancelarla (`NO_ES_ESTUDIANTE`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/SolicitudNoEncontrada"
+        "409":
+          description: La solicitud ya está cerrada o su sesión ya empezó (`SOLICITUD_NO_CANCELABLE`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ==================== Sesiones ====================
+
+  /api/sesiones:
+    get:
+      tags: [Sesiones]
+      summary: Lista las sesiones del usuario en un modo (RF10)
+      description: |
+        Como estudiante, las tomadas; como tutor, las dadas. La más reciente primero. El servidor pasa una sesión
+        `PROGRAMADA` a `COMPLETADA` cuando termina su hora; `NO_ASISTIO` lo registra el administrador ante un
+        reporte de inasistencia.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Modo"
+        - name: estado
+          in: query
+          description: Solo las sesiones en estos estados. Se puede repetir; sin él, todas.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/EstadoSesion"
+      responses:
+        "200":
+          description: Sesiones del modo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SesionTutoria"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
+  /api/sesiones/proximas:
+    get:
+      tags: [Sesiones]
+      summary: Próximas sesiones del modo, la más cercana primero
+      description: Las sesiones `PROGRAMADA`; la primera es la "próxima sesión" del Inicio.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Modo"
+      responses:
+        "200":
+          description: Sesiones programadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SesionTutoria"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
+  /api/sesiones/historial:
+    get:
+      tags: [Sesiones]
+      summary: Historial del modo, la más reciente primero (RF10)
+      description: Las sesiones que ya ocurrieron o se cancelaron (todas salvo `PROGRAMADA`).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Modo"
+        - name: materia
+          in: query
+          description: Solo las sesiones de esta materia (coincidencia exacta, sin distinguir mayúsculas)
+          schema:
+            type: string
+            maxLength: 80
+      responses:
+        "200":
+          description: Historial
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SesionTutoria"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
+  /api/sesiones/{sesionId}:
+    get:
+      tags: [Sesiones]
+      summary: Devuelve una sesión
+      description: Vista desde la cuenta en sesión (contraparte, calificación dada y recibida); solo para sus dos participantes.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SesionId"
+      responses:
+        "200":
+          description: Sesión
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionTutoria"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/SesionNoEncontrada"
+
+  /api/sesiones/{sesionId}/calificacion:
+    post:
+      tags: [Sesiones]
+      summary: Califica a la otra parte de una sesión completada (RF9)
+      description: |
+        Mutua: el estudiante califica al tutor y el tutor al estudiante, cada uno una sola vez y sin editarla
+        después. Si califica el estudiante, en la misma transacción se publica la reseña en el perfil del tutor y se
+        recalculan su `calificacionPromedio` y `totalResenas`. Reemplaza a `TutorRepository.agregarResena`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SesionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCalificar"
+      responses:
+        "201":
+          description: Calificación registrada; devuelve la sesión con `calificacion` y `comentario`
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionTutoria"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/SesionNoEncontrada"
+        "409":
+          description: La sesión no está completada (`SESION_NO_COMPLETADA`) o ya la calificaste (`SESION_YA_CALIFICADA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ==================== Chats ====================
+
+  /api/chats:
+    get:
+      tags: [Chats]
+      summary: Bandeja de conversaciones del modo (RF8)
+      description: |
+        Como estudiante, los chats con tutores; como tutor, con estudiantes. Primero los nuevos sin mensajes y
+        después el último mensaje más reciente primero. Un chat existe solo si hubo una solicitud aceptada entre
+        las dos personas; no hay endpoint para crearlo.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Modo"
+      responses:
+        "200":
+          description: Conversaciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Chat"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
+  /api/chats/con/{personaId}:
+    get:
+      tags: [Chats]
+      summary: Devuelve el chat con una persona
+      description: |
+        Para abrir la conversación desde una solicitud aceptada, una sesión o el perfil de un tutor. Reemplaza a
+        `ChatRepository.asegurarChat`: el servidor no crea chats aquí, solo los encuentra (los crea al aceptar).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: personaId
+          in: path
+          required: true
+          description: Id de la otra persona (tutor o estudiante)
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Modo"
+      responses:
+        "200":
+          description: Chat con esa persona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chat"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          description: No hay chat con esa persona en ese modo; nace al aceptar una solicitud (`CHAT_NO_HABILITADO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/chats/{chatId}:
+    get:
+      tags: [Chats]
+      summary: Devuelve una conversación
+      description: Para la cabecera de la Conversación y para saber si sigue admitiendo mensajes (`soloLectura`).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ChatId"
+      responses:
+        "200":
+          description: Chat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chat"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/ChatNoEncontrado"
+
+  /api/chats/{chatId}/mensajes:
+    get:
+      tags: [Chats]
+      summary: Mensajes de una conversación, por cursor (RF8)
+      description: |
+        Siempre del más antiguo al más reciente.
+        - Sin cursor: los últimos `limite` mensajes (al abrir la conversación).
+        - `antes`: los `limite` mensajes anteriores a ese mensaje (al subir en la conversación).
+        - `desde`: los mensajes posteriores a ese mensaje, hasta `limite` (sondeo periódico de la app: se pasa el
+          id del último mensaje recibido y llega solo lo nuevo, normalmente una lista vacía).
+        `antes` y `desde` no se pueden usar a la vez. El historial se conserva aunque el chat esté en solo lectura.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ChatId"
+        - name: antes
+          in: query
+          description: Id de mensaje; devuelve los anteriores a él
+          schema:
+            type: string
+            format: uuid
+        - name: desde
+          in: query
+          description: Id de mensaje; devuelve los posteriores a él
+          schema:
+            type: string
+            format: uuid
+        - name: limite
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        "200":
+          description: Mensajes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaMensajes"
+        "400":
+          description: "`antes` y `desde` a la vez, o un cursor que no es de este chat (`DATOS_INVALIDOS`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/ChatNoEncontrado"
+    post:
+      tags: [Chats]
+      summary: Envía un mensaje (RF8)
+      description: |
+        Solo mientras el chat está activo (`soloLectura` en `false`). Si la app reintenta con el mismo `idCliente`
+        tras un fallo de red, el servidor no lo duplica y devuelve el mensaje ya guardado.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ChatId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudMensaje"
+      responses:
+        "201":
+          description: Mensaje enviado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Mensaje"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/ChatNoEncontrado"
+        "409":
+          description: La sesión terminó y el chat solo conserva el historial (`CHAT_SOLO_LECTURA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/DemasiadasSolicitudes"
+
+  /api/chats/{chatId}/leido:
+    post:
+      tags: [Chats]
+      summary: Marca la conversación como leída
+      description: Deja en 0 los no leídos del usuario en ese chat; se llama al abrirlo. Funciona también en solo lectura.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ChatId"
+      responses:
+        "204":
+          description: Conversación marcada como leída
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/ChatNoEncontrado"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -290,6 +1257,89 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    NoEsTutor:
+      description: La cuenta no tiene perfil de tutor; se crea al cambiar al modo Tutor (`NO_ES_TUTOR`)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TutorNoEncontrado:
+      description: No existe un tutor con ese id (`TUTOR_NO_ENCONTRADO`)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    SolicitudNoEncontrada:
+      description: La solicitud no existe o la cuenta no participa en ella (`SOLICITUD_NO_ENCONTRADA`)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    SesionNoEncontrada:
+      description: La sesión no existe o la cuenta no participa en ella (`SESION_NO_ENCONTRADA`)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ChatNoEncontrado:
+      description: El chat no existe o la cuenta no participa en él (`CHAT_NO_ENCONTRADO`)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  parameters:
+    Modo:
+      name: modo
+      in: query
+      description: Modo con el que se consulta; si se omite, se usa el modo actual de la cuenta
+      schema:
+        $ref: "#/components/schemas/Rol"
+    Pagina:
+      name: pagina
+      in: query
+      description: Número de página, empezando en 0
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Tamano:
+      name: tamano
+      in: query
+      description: Elementos por página
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 20
+    TutorId:
+      name: tutorId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SolicitudId:
+      name: solicitudId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    SesionId:
+      name: sesionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ChatId:
+      name: chatId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
 
   schemas:
     Salud:
@@ -305,6 +1355,7 @@ components:
 
     Rol:
       type: string
+      description: Modo de uso de la cuenta. El administrador (RF12) se crea por SQL, no usa la app y queda fuera de este contrato.
       enum: [ESTUDIANTE, TUTOR]
 
     Modalidad:
@@ -319,30 +1370,9 @@ components:
         `SUSPENDIDA`: bloqueada por el administrador (RF12).
       enum: [PENDIENTE_VERIFICACION_CORREO, ACTIVA, SUSPENDIDA]
 
-    EstadoVerificacionTutor:
-      type: string
-      description: Verificación académica del tutor por el administrador (RF12). Solo aplica a tutores.
-      enum: [PENDIENTE, VERIFICADO, RECHAZADO]
-
-    DatosTutor:
-      type: object
-      required: [materias, modalidades]
-      properties:
-        materias:
-          type: array
-          minItems: 1
-          items:
-            type: string
-          example: [Cálculo I, Programación]
-        modalidades:
-          type: array
-          minItems: 1
-          items:
-            $ref: "#/components/schemas/Modalidad"
-
     SolicitudRegistro:
       type: object
-      required: [nombre, correo, contrasena, rol, documentoIdentidad, aceptaTerminos, versionTerminos]
+      required: [nombre, correo, contrasena, aceptaTerminos, versionTerminos]
       properties:
         nombre:
           type: string
@@ -357,11 +1387,10 @@ components:
           format: password
           minLength: 8
           maxLength: 72
-        rol:
-          $ref: "#/components/schemas/Rol"
         documentoIdentidad:
           type: string
           maxLength: 20
+          description: Opcional; es un dato sensible que la app no pide
         aceptaTerminos:
           type: boolean
           description: Debe ser `true`; consentimiento de tratamiento de datos (Ley 1581 de 2012)
@@ -369,10 +1398,6 @@ components:
           type: string
           description: Versión del texto de términos y política de datos que el usuario aceptó
           example: "2026-10-18"
-        datosTutor:
-          allOf:
-            - $ref: "#/components/schemas/DatosTutor"
-          description: Obligatorio si `rol` es `TUTOR`
 
     RespuestaRegistro:
       type: object
@@ -457,11 +1482,11 @@ components:
           type: string
           format: email
         rol:
-          $ref: "#/components/schemas/Rol"
+          allOf:
+            - $ref: "#/components/schemas/Rol"
+          description: Modo en uso de la cuenta
         estadoCuenta:
           $ref: "#/components/schemas/EstadoCuenta"
-        estadoVerificacionTutor:
-          $ref: "#/components/schemas/EstadoVerificacionTutor"
 
     Sesion:
       type: object
@@ -499,3 +1524,691 @@ components:
                 type: string
               problema:
                 type: string
+
+    Hora:
+      type: string
+      description: Hora del día en formato `HH:mm`, en hora de Colombia
+      pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+      example: "14:00"
+
+    DiaSemana:
+      type: string
+      enum: [LUNES, MARTES, MIERCOLES, JUEVES, VIERNES, SABADO, DOMINGO]
+
+    Franja:
+      type: string
+      description: |
+        Parte del día para filtrar por horario (HU-05).
+        `MANANA`: 06:00–12:00. `TARDE`: 12:00–18:00. `NOCHE`: 18:00–24:00.
+      enum: [MANANA, TARDE, NOCHE]
+
+    AreaEstudio:
+      type: string
+      description: Agrupa materias en áreas reconocibles; "Matemáticas" encuentra Cálculo I, Álgebra y Matemática Básica
+      enum: [MATEMATICAS, PROGRAMACION, CIENCIAS, IDIOMAS, DATOS, DISENO, NEGOCIOS]
+
+    OrdenTutores:
+      type: string
+      description: "`CALIFICACION`: de mayor a menor promedio (UC3, paso 4)"
+      enum: [CALIFICACION]
+      default: CALIFICACION
+
+    EstadoSolicitud:
+      type: string
+      description: |
+        `PENDIENTE`: espera respuesta del tutor.
+        `ACEPTADA`: el tutor aceptó; ya existe la sesión.
+        `RECHAZADA`: el tutor la rechazó, con motivo opcional (RF6).
+        `FINALIZADA`: su sesión quedó `COMPLETADA`.
+        `CANCELADA`: el estudiante la canceló.
+        `EXPIRADA`: pasó `venceEn` sin respuesta del tutor (RF6).
+      enum: [PENDIENTE, ACEPTADA, RECHAZADA, FINALIZADA, CANCELADA, EXPIRADA]
+
+    EstadoSesion:
+      type: string
+      description: |
+        `PROGRAMADA`: por venir.
+        `COMPLETADA`: ocurrió; se puede calificar (RF9).
+        `CANCELADA`: se canceló antes de empezar.
+        `NO_ASISTIO`: una de las partes no asistió; no se califica.
+      enum: [PROGRAMADA, COMPLETADA, CANCELADA, NO_ASISTIO]
+
+    Paginacion:
+      type: object
+      required: [pagina, tamano, totalElementos, totalPaginas]
+      properties:
+        pagina:
+          type: integer
+          example: 0
+        tamano:
+          type: integer
+          example: 20
+        totalElementos:
+          type: integer
+          example: 42
+        totalPaginas:
+          type: integer
+          example: 3
+
+    PerfilPropio:
+      description: La cuenta en sesión, con lo que necesitan el Perfil y el Inicio
+      allOf:
+        - $ref: "#/components/schemas/Usuario"
+        - type: object
+          required: [handle, modo, perfilTutorActivo, materias]
+          properties:
+            handle:
+              type: string
+              description: Nombre de usuario público; lo genera el servidor
+              example: "@diego"
+            modo:
+              allOf:
+                - $ref: "#/components/schemas/Rol"
+              description: Modo en uso; se cambia con `PUT /api/usuarios/yo/modo`
+            perfilTutorActivo:
+              type: boolean
+              description: La cuenta ya usó el modo Tutor y tiene perfil de tutor
+            universidad:
+              type: string
+            carrera:
+              type: string
+            bio:
+              type: string
+              description: Presentación pública como tutor
+            materias:
+              type: array
+              description: Materias que enseña como tutor; vacía si no tiene perfil de tutor
+              items:
+                type: string
+              example: [Cálculo I, Programación]
+            precioHora:
+              type: number
+              format: double
+              minimum: 0
+              description: Tarifa por hora en pesos colombianos (COP); se omite si no la ha fijado
+              example: 35000
+
+    SolicitudCambiarModo:
+      type: object
+      required: [modo]
+      properties:
+        modo:
+          $ref: "#/components/schemas/Rol"
+
+    SolicitudEditarPerfilTutor:
+      type: object
+      minProperties: 1
+      properties:
+        bio:
+          type: string
+          maxLength: 500
+        materias:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            type: string
+            minLength: 1
+            maxLength: 80
+          example: [Cálculo I, Programación]
+        precioHora:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 10000000
+          description: Tarifa por hora en pesos colombianos (COP), con hasta 2 decimales
+          example: 35000
+        universidad:
+          type: string
+          maxLength: 120
+          example: Universidad Industrial de Santander
+        carrera:
+          type: string
+          maxLength: 120
+          example: Ingeniería de Sistemas
+
+    ResumenActividad:
+      type: object
+      required: [sesiones, horas, porCalificar, totalResenas, personas, materias]
+      properties:
+        sesiones:
+          type: integer
+          description: Sesiones completadas en este modo
+          example: 12
+        horas:
+          type: number
+          format: double
+          description: Horas de esas sesiones
+          example: 13.5
+        porCalificar:
+          type: integer
+          description: Sesiones completadas que el usuario aún no califica
+          example: 1
+        promedioRecibido:
+          type: number
+          format: double
+          minimum: 1
+          maximum: 5
+          description: Promedio de lo que la otra parte le ha calificado; se omite si no tiene calificaciones
+          example: 4.7
+        totalResenas:
+          type: integer
+          description: Calificaciones recibidas en este modo
+          example: 9
+        personas:
+          type: integer
+          description: Personas distintas con quienes completó sesiones
+          example: 5
+        materias:
+          type: array
+          description: Materias de las sesiones completadas, la más frecuente primero
+          items:
+            type: string
+
+    FranjaTutor:
+      type: object
+      description: Hora publicada por un tutor; dura 1 h (RF7)
+      required: [dia, hora, modalidades]
+      properties:
+        dia:
+          $ref: "#/components/schemas/DiaSemana"
+        hora:
+          $ref: "#/components/schemas/Hora"
+        modalidades:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/Modalidad"
+
+    Tutor:
+      type: object
+      required:
+        - id
+        - nombre
+        - handle
+        - bio
+        - universidad
+        - materias
+        - calificacionPromedio
+        - totalResenas
+        - sesionesTotales
+        - estudiantes
+        - precioHora
+        - enLinea
+        - horario
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombre:
+          type: string
+          example: Ana Torres
+        handle:
+          type: string
+          example: "@anatorres"
+        bio:
+          type: string
+          description: Vacía si el tutor no la ha escrito
+        universidad:
+          type: string
+          description: Vacía si el tutor no la ha indicado
+        materias:
+          type: array
+          items:
+            type: string
+          example: [Cálculo I, Álgebra Lineal]
+        calificacionPromedio:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 5
+          description: Promedio de sus reseñas; 0 si aún no tiene (RF9)
+          example: 4.8
+        totalResenas:
+          type: integer
+          example: 23
+        sesionesTotales:
+          type: integer
+          description: Sesiones completadas como tutor
+          example: 58
+        estudiantes:
+          type: integer
+          description: Estudiantes distintos con sesiones completadas
+          example: 31
+        precioHora:
+          type: number
+          format: double
+          minimum: 0
+          description: Tarifa por hora en pesos colombianos (COP); 0 si el tutor aún no la ha fijado
+          example: 35000
+        enLinea:
+          type: boolean
+          description: Conectado en este momento, según su actividad reciente en la API
+        horario:
+          type: array
+          description: Horas publicadas en la semana, en orden de calendario
+          items:
+            $ref: "#/components/schemas/FranjaTutor"
+
+    PaginaTutores:
+      allOf:
+        - $ref: "#/components/schemas/Paginacion"
+        - type: object
+          required: [elementos]
+          properties:
+            elementos:
+              type: array
+              items:
+                $ref: "#/components/schemas/Tutor"
+
+    Resena:
+      type: object
+      required: [id, tutorId, autor, handleAutor, texto, estrellas, fecha]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tutorId:
+          type: string
+          format: uuid
+        autor:
+          type: string
+          example: Diego Camacho
+        handleAutor:
+          type: string
+          example: "@diego"
+        texto:
+          type: string
+          description: Vacío si el estudiante calificó sin comentario
+        estrellas:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        fecha:
+          type: string
+          format: date
+          description: Día en que se publicó
+          example: "2026-11-02"
+
+    PaginaResenas:
+      allOf:
+        - $ref: "#/components/schemas/Paginacion"
+        - type: object
+          required: [elementos]
+          properties:
+            elementos:
+              type: array
+              items:
+                $ref: "#/components/schemas/Resena"
+
+    SolicitudReporte:
+      type: object
+      required: [motivo]
+      properties:
+        motivo:
+          type: string
+          minLength: 3
+          maxLength: 500
+          example: Información falsa en su perfil
+
+    Reporte:
+      type: object
+      required: [id, creadoEn]
+      properties:
+        id:
+          type: string
+          format: uuid
+        creadoEn:
+          type: string
+          format: date-time
+          example: "2026-11-02T14:00:00-05:00"
+
+    HoraDisponible:
+      type: object
+      description: Una hora del calendario; sin modalidades, no está publicada (RF7)
+      required: [hora, modalidades]
+      properties:
+        hora:
+          $ref: "#/components/schemas/Hora"
+        modalidades:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/Modalidad"
+
+    DiaDisponibilidad:
+      type: object
+      required: [dia, horas]
+      properties:
+        dia:
+          $ref: "#/components/schemas/DiaSemana"
+        horas:
+          type: array
+          items:
+            $ref: "#/components/schemas/HoraDisponible"
+
+    SemanaDisponibilidad:
+      type: object
+      required: [creado, dias]
+      properties:
+        creado:
+          type: boolean
+          description: El tutor ya tiene calendario
+        dias:
+          type: array
+          description: Los 7 días, de lunes a domingo; vacío si `creado` es `false`
+          items:
+            $ref: "#/components/schemas/DiaDisponibilidad"
+
+    SolicitudDefinirHora:
+      type: object
+      required: [dia, hora, modalidades]
+      properties:
+        dia:
+          $ref: "#/components/schemas/DiaSemana"
+        hora:
+          $ref: "#/components/schemas/Hora"
+        modalidades:
+          type: array
+          description: Vacío para dejar de ofrecer esa hora
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/Modalidad"
+
+    DiaSolicitable:
+      type: object
+      description: Una fecha concreta en la que el tutor tiene al menos una hora libre (RF5)
+      required: [fecha, franjas]
+      properties:
+        fecha:
+          type: string
+          format: date
+          example: "2026-11-03"
+        franjas:
+          type: array
+          description: Horas libres de ese día, en orden
+          items:
+            $ref: "#/components/schemas/HoraDisponible"
+
+    SolicitudNueva:
+      type: object
+      required: [tutorId, materia, tema, fecha, hora, modalidad]
+      properties:
+        tutorId:
+          type: string
+          format: uuid
+        materia:
+          type: string
+          maxLength: 80
+          example: Cálculo I
+        tema:
+          type: string
+          description: Tema a reforzar (RF5)
+          minLength: 1
+          maxLength: 200
+          example: Integrales por partes
+        fecha:
+          type: string
+          format: date
+          example: "2026-11-03"
+        hora:
+          $ref: "#/components/schemas/Hora"
+        modalidad:
+          $ref: "#/components/schemas/Modalidad"
+        mensaje:
+          type: string
+          description: Mensaje opcional para el tutor
+          maxLength: 500
+
+    Solicitud:
+      type: object
+      required:
+        - id
+        - tutorId
+        - nombreTutor
+        - estudianteId
+        - nombreEstudiante
+        - materia
+        - tema
+        - fecha
+        - hora
+        - modalidad
+        - estado
+        - mensaje
+        - enviada
+        - venceEn
+      properties:
+        id:
+          type: string
+          format: uuid
+        tutorId:
+          type: string
+          format: uuid
+        nombreTutor:
+          type: string
+        estudianteId:
+          type: string
+          format: uuid
+        nombreEstudiante:
+          type: string
+        materia:
+          type: string
+        tema:
+          type: string
+        fecha:
+          type: string
+          format: date
+          description: Día pedido para la tutoría
+          example: "2026-11-03"
+        hora:
+          $ref: "#/components/schemas/Hora"
+        modalidad:
+          $ref: "#/components/schemas/Modalidad"
+        estado:
+          $ref: "#/components/schemas/EstadoSolicitud"
+        mensaje:
+          type: string
+          description: Vacío si el estudiante no escribió ninguno
+        motivoRechazo:
+          type: string
+          description: Motivo que dio el tutor al rechazar; se omite si no dio ninguno (RF6)
+        enviada:
+          type: string
+          format: date-time
+          description: Momento en que el estudiante la envió; lo fija el servidor
+          example: "2026-11-02T09:30:00-05:00"
+        venceEn:
+          type: string
+          format: date-time
+          description: |
+            Límite para responder: 24 h después de `enviada`, o el inicio de la tutoría pedida si llega antes
+            (RF6). Solo tiene efecto mientras la solicitud está `PENDIENTE`.
+          example: "2026-11-03T08:00:00-05:00"
+
+    SolicitudRechazar:
+      type: object
+      properties:
+        motivo:
+          type: string
+          description: Motivo opcional que verá el estudiante (RF6)
+          maxLength: 300
+
+    ResultadoAceptarSolicitud:
+      type: object
+      required: [solicitud, sesion, chat]
+      properties:
+        solicitud:
+          $ref: "#/components/schemas/Solicitud"
+        sesion:
+          $ref: "#/components/schemas/SesionTutoria"
+        chat:
+          $ref: "#/components/schemas/Chat"
+
+    SesionTutoria:
+      type: object
+      description: |
+        Sesión de tutoría (RF10), vista desde la cuenta que la pide. No confundir con `Sesion`, que es la sesión
+        iniciada con sus tokens.
+      required:
+        - id
+        - solicitudId
+        - contraparteId
+        - conQuien
+        - materia
+        - fecha
+        - hora
+        - duracionHoras
+        - modalidad
+        - estado
+        - comoTutor
+      properties:
+        id:
+          type: string
+          format: uuid
+        solicitudId:
+          type: string
+          format: uuid
+          description: Solicitud de la que nació al ser aceptada (RF6)
+        contraparteId:
+          type: string
+          format: uuid
+          description: La otra parte; el tutor si el usuario fue estudiante, el estudiante si fue tutor
+        conQuien:
+          type: string
+          description: Nombre de la otra parte
+          example: Ana Torres
+        materia:
+          type: string
+          example: Cálculo I
+        fecha:
+          type: string
+          format: date
+          example: "2026-11-03"
+        hora:
+          $ref: "#/components/schemas/Hora"
+        duracionHoras:
+          type: number
+          format: double
+          example: 1
+        modalidad:
+          $ref: "#/components/schemas/Modalidad"
+        estado:
+          $ref: "#/components/schemas/EstadoSesion"
+        comoTutor:
+          type: boolean
+          description: "`true` si el usuario dio la sesión como tutor"
+        calificacion:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Calificación que el usuario dio a la otra parte; se omite si aún no califica (RF9)
+        comentario:
+          type: string
+          description: Comentario de esa calificación; se omite si no escribió ninguno
+        calificacionRecibida:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Calificación que la otra parte le dio al usuario; se omite si aún no lo ha calificado (RF9)
+
+    SolicitudCalificar:
+      type: object
+      required: [estrellas]
+      properties:
+        estrellas:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comentario:
+          type: string
+          description: Comentario opcional
+          maxLength: 500
+
+    Chat:
+      type: object
+      required: [id, contraparteId, nombre, ultimoMensaje, noLeidos, enLinea, soloLectura, comoTutor]
+      properties:
+        id:
+          type: string
+          format: uuid
+        contraparteId:
+          type: string
+          format: uuid
+          description: Id de la otra persona (tutor o estudiante), para abrir su perfil o reportarla
+        nombre:
+          type: string
+          description: Nombre de la otra persona
+          example: Ana Torres
+        ultimoMensaje:
+          type: string
+          description: Vacío si aún no hay mensajes
+        ultimoMensajeEn:
+          type: string
+          format: date-time
+          description: Momento del último mensaje; se omite si aún no hay mensajes
+          example: "2026-11-02T10:24:00-05:00"
+        noLeidos:
+          type: integer
+          example: 2
+        enLinea:
+          type: boolean
+        soloLectura:
+          type: boolean
+          description: |
+            Ya no quedan sesiones por venir con esa persona: el historial se conserva pero no admite mensajes
+            nuevos. Vuelve a `false` si se acepta otra solicitud entre las dos (RF8).
+        comoTutor:
+          type: boolean
+          description: "`true` si la conversación es con un estudiante (el usuario actúa como tutor)"
+
+    Mensaje:
+      type: object
+      required: [id, chatId, texto, enviadoEn, mio]
+      properties:
+        id:
+          type: string
+          format: uuid
+        chatId:
+          type: string
+          format: uuid
+        texto:
+          type: string
+          example: Hola, ¿revisamos integrales el martes?
+        enviadoEn:
+          type: string
+          format: date-time
+          description: Momento en que lo recibió el servidor; ordena la conversación
+          example: "2026-11-02T10:24:00-05:00"
+        mio:
+          type: boolean
+          description: "`true` si lo envió la cuenta que consulta"
+
+    PaginaMensajes:
+      type: object
+      required: [mensajes, hayMas]
+      properties:
+        mensajes:
+          type: array
+          description: Del más antiguo al más reciente
+          items:
+            $ref: "#/components/schemas/Mensaje"
+        hayMas:
+          type: boolean
+          description: |
+            Quedan más mensajes en la dirección pedida: más nuevos si se usó `desde`; más antiguos en los demás casos.
+
+    SolicitudMensaje:
+      type: object
+      required: [texto]
+      properties:
+        texto:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        idCliente:
+          type: string
+          format: uuid
+          description: Id que genera la app para cada mensaje; evita duplicados al reintentar el envío

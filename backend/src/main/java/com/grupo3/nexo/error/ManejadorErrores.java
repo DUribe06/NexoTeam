@@ -1,6 +1,7 @@
 package com.grupo3.nexo.error;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /** Traduce las excepciones al esquema de error del contrato. */
 @RestControllerAdvice
@@ -42,11 +44,24 @@ public class ManejadorErrores {
             .body(ErrorApi.de("DATOS_INVALIDOS", "El cuerpo de la solicitud no es un JSON válido"));
     }
 
-    /** Dos registros simultáneos con el mismo correo: gana uno y el otro choca con la restricción única. */
+    /** Un parámetro de la URL con un valor que no corresponde, como `?modo=OTRO`. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ErrorApi> parametroInvalido(MethodArgumentTypeMismatchException e) {
+        return ResponseEntity.badRequest().body(new ErrorApi("DATOS_INVALIDOS", "Hay datos incorrectos en la solicitud",
+            List.of(new ErrorApi.Detalle(e.getName(), "no es un valor válido"))));
+    }
+
+    /**
+     * Dos peticiones simultáneas que escriben lo mismo: gana una y la otra choca con una restricción. Solo el choque
+     * con el correo es un correo duplicado; cualquier otro (un handle, una materia) se puede reintentar.
+     */
     @ExceptionHandler(DataIntegrityViolationException.class)
     ResponseEntity<ErrorApi> integridad(DataIntegrityViolationException e) {
-        log.warn("Violación de integridad: {}", e.getMostSpecificCause().getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-            .body(ErrorApi.de("CORREO_DUPLICADO", "Ya existe una cuenta con ese correo"));
+        String causa = String.valueOf(e.getMostSpecificCause().getMessage());
+        log.warn("Violación de integridad: {}", causa);
+        ErrorApi error = causa.toLowerCase(Locale.ROOT).contains("uq_usuarios_correo")
+            ? ErrorApi.de("CORREO_DUPLICADO", "Ya existe una cuenta con ese correo")
+            : ErrorApi.de("CONFLICTO", "Otra operación cambió estos datos al mismo tiempo; inténtalo de nuevo");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 }

@@ -45,14 +45,13 @@ public class SesionService {
         this.reloj = reloj;
     }
 
-    /** Abre una sesión nueva para el usuario. */
+    /** Abre una sesión nueva. El token no lleva el rol ni el modo: pueden cambiar mientras vive, se leen de la base. */
     public SesionDto iniciar(Usuario usuario) {
         Instant ahora = reloj.instant();
         JwtClaimsSet claims = JwtClaimsSet.builder()
             .subject(usuario.getId().toString())
             .issuedAt(ahora)
             .expiresAt(ahora.plus(VIGENCIA_ACCESO))
-            .claim("rol", usuario.getRol().name())
             .claim("correo", usuario.getCorreo())
             .build();
         String acceso = jwt.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))

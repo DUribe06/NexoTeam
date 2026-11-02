@@ -40,3 +40,7 @@ out/
 .env
 *.pem
 *.key
+
+# Configuración local (secreto JWT y clave de la base)
+.env*
+

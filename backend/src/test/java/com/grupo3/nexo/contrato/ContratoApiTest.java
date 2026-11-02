@@ -88,11 +88,45 @@ class ContratoApiTest {
     }
 
     @Test
-    void elRegistroExigeConsentimientoYDocumento() {
+    void elRegistroExigeConsentimientoPeroNoRolNiDocumento() {
         Schema<?> registro = api.getComponents().getSchemas().get("SolicitudRegistro");
         assertTrue(registro.getRequired().containsAll(
-            List.of("correo", "contrasena", "rol", "documentoIdentidad", "aceptaTerminos", "versionTerminos")));
+            List.of("correo", "contrasena", "aceptaTerminos", "versionTerminos")));
+        assertTrue(!registro.getRequired().contains("documentoIdentidad"));
+        assertTrue(registro.getProperties().containsKey("documentoIdentidad"));
+        assertTrue(!registro.getProperties().containsKey("rol"));
+        assertTrue(!registro.getProperties().containsKey("datosTutor"));
         assertTrue(post("/api/auth/registro").getResponses().keySet().containsAll(List.of("201", "409", "422", "429")));
+    }
+
+    @Test
+    void elModuloUsuarioEstaCompletoYExigeToken() {
+        var yo = api.getPaths().get("/api/usuarios/yo").getGet();
+        var modo = api.getPaths().get("/api/usuarios/yo/modo").getPut();
+        var perfil = api.getPaths().get("/api/usuarios/yo/perfil-tutor").getPatch();
+        var resumen = api.getPaths().get("/api/usuarios/yo/resumen").getGet();
+        for (Operation op : List.of(yo, modo, perfil, resumen)) {
+            assertTrue(op.getResponses().containsKey("401"), op.getSummary());
+            assertTrue(op.getSecurity() != null && !op.getSecurity().isEmpty(), op.getSummary());
+        }
+        assertTrue(perfil.getResponses().containsKey("403"));
+    }
+
+    @Test
+    void elPerfilDeTutorPermiteFijarTarifaUniversidadYCarrera() {
+        Map<String, Schema> esquemas = api.getComponents().getSchemas();
+        List<String> campos = List.of("bio", "materias", "precioHora", "universidad", "carrera");
+        assertTrue(esquemas.get("SolicitudEditarPerfilTutor").getProperties().keySet().containsAll(campos));
+        Schema<?> propio = (Schema<?>) esquemas.get("PerfilPropio").getAllOf().get(1);
+        assertTrue(propio.getProperties().keySet().containsAll(campos));
+    }
+
+    @Test
+    void elTutorYaNoTieneEstadoDeVerificacion() {
+        Map<String, Schema> esquemas = api.getComponents().getSchemas();
+        assertTrue(!esquemas.containsKey("EstadoVerificacionTutor"));
+        assertTrue(!esquemas.containsKey("DatosTutor"));
+        assertTrue(!esquemas.get("Usuario").getProperties().containsKey("estadoVerificacionTutor"));
     }
 
     @Test

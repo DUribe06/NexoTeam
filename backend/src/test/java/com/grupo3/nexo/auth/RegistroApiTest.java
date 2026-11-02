@@ -23,8 +23,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.grupo3.nexo.usuarios.EstadoCuenta;
-import com.grupo3.nexo.usuarios.EstadoVerificacionTutor;
-import com.grupo3.nexo.usuarios.Modalidad;
+import com.grupo3.nexo.usuarios.Rol;
 import com.grupo3.nexo.usuarios.Usuario;
 import com.grupo3.nexo.usuarios.UsuarioRepository;
 
@@ -43,8 +42,8 @@ class RegistroApiTest {
 
     private static String estudiante(String correo, String contrasena) {
         return """
-            {"nombre":"Valeria Ríos","correo":"%s","contrasena":"%s","rol":"ESTUDIANTE",
-             "documentoIdentidad":"1098765432","aceptaTerminos":true,"versionTerminos":"2026-10-18"}
+            {"nombre":"Valeria Ríos","correo":"%s","contrasena":"%s",
+             "aceptaTerminos":true,"versionTerminos":"2026-10-18"}
             """.formatted(correo, contrasena);
     }
 
@@ -52,11 +51,9 @@ class RegistroApiTest {
         return estudiante(correo, "Clave2026seg");
     }
 
-    private static String tutor(String correo, String datosTutor) {
-        return """
-            {"nombre":"Diego Ramírez","correo":"%s","contrasena":"Clave2026seg","rol":"TUTOR",
-             "documentoIdentidad":"1098000111","aceptaTerminos":true,"versionTerminos":"2026-10-18"%s}
-            """.formatted(correo, datosTutor == null ? "" : ",\"datosTutor\":" + datosTutor);
+    /** La petición que enviaría un cliente de la versión anterior del contrato. */
+    private static String conCampos(String correo, String camposDeMas) {
+        return estudiante(correo).replace("\"aceptaTerminos\"", camposDeMas + ",\"aceptaTerminos\"");
     }
 
     private ResultActions registrar(String cuerpo) throws Exception {
@@ -78,7 +75,9 @@ class RegistroApiTest {
 
         Usuario u = usuarios.findByCorreo("valeria@ejemplo.com").orElseThrow();
         assertEquals(EstadoCuenta.PENDIENTE_VERIFICACION_CORREO, u.getEstadoCuenta());
-        assertEquals(null, u.getEstadoVerificacionTutor());
+        assertEquals(Rol.ESTUDIANTE, u.getRol());
+        assertFalse(u.isPerfilTutorActivo());
+        assertEquals(null, u.getDocumentoIdentidad());
         assertEquals("2026-10-18", u.getTerminosVersion());
         assertTrue(u.getTerminosAceptadosEn() != null);
     }
@@ -113,15 +112,33 @@ class RegistroApiTest {
     }
 
     @Test
-    void registraUnTutorPendienteDeVerificacionConSusMateriasYModalidades() throws Exception {
-        registrar(tutor("tutor@ejemplo.com",
-            "{\"materias\":[\"Cálculo I\",\" Programación \"],\"modalidades\":[\"VIRTUAL\",\"PRESENCIAL\"]}"))
+    void quienPideSerTutorAlRegistrarseIgualNaceEstudianteYSinPerfil() throws Exception {
+        registrar(conCampos("tutor@ejemplo.com",
+            "\"rol\":\"TUTOR\",\"datosTutor\":{\"materias\":[\"Cálculo I\"],\"modalidades\":[\"VIRTUAL\"]}"))
             .andExpect(status().isCreated());
 
         Usuario u = usuarios.findByCorreo("tutor@ejemplo.com").orElseThrow();
-        assertEquals(EstadoVerificacionTutor.PENDIENTE, u.getEstadoVerificacionTutor());
-        assertEquals(java.util.Set.of("Cálculo I", "Programación"), u.getMaterias());
-        assertEquals(java.util.Set.of(Modalidad.VIRTUAL, Modalidad.PRESENCIAL), u.getModalidades());
+        assertEquals(Rol.ESTUDIANTE, u.getRol());
+        assertFalse(u.isPerfilTutorActivo());
+        assertTrue(u.getMaterias().isEmpty());
+    }
+
+    @Test
+    void elDocumentoEsOpcionalPeroSeGuardaSiLlega() throws Exception {
+        registrar(conCampos("doc@ejemplo.com", "\"documentoIdentidad\":\" 1098765432 \"")).andExpect(status().isCreated());
+        assertEquals("1098765432", usuarios.findByCorreo("doc@ejemplo.com").orElseThrow().getDocumentoIdentidad());
+
+        registrar(conCampos("docvacio@ejemplo.com", "\"documentoIdentidad\":\"  \"")).andExpect(status().isCreated());
+        assertEquals(null, usuarios.findByCorreo("docvacio@ejemplo.com").orElseThrow().getDocumentoIdentidad());
+    }
+
+    @Test
+    void generaUnHandleUnicoSinTildesNiDatosDelCorreo() throws Exception {
+        registrar(estudiante("privado1@ejemplo.com")).andExpect(status().isCreated());
+        registrar(estudiante("privado2@ejemplo.com")).andExpect(status().isCreated());
+
+        assertEquals("@valeriarios", usuarios.findByCorreo("privado1@ejemplo.com").orElseThrow().getHandle());
+        assertEquals("@valeriarios2", usuarios.findByCorreo("privado2@ejemplo.com").orElseThrow().getHandle());
     }
 
     @Test
@@ -184,8 +201,8 @@ class RegistroApiTest {
     @Test
     void indicaCadaCampoIncorrecto() throws Exception {
         registrar("""
-            {"nombre":"","correo":"no-es-un-correo","contrasena":"corta","rol":"ESTUDIANTE",
-             "documentoIdentidad":"","aceptaTerminos":true,"versionTerminos":"2026-10-18"}
+            {"nombre":"","correo":"no-es-un-correo","contrasena":"corta",
+             "documentoIdentidad":"123456789012345678901","aceptaTerminos":true,"versionTerminos":"2026-10-18"}
             """)
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.codigo").value("DATOS_INVALIDOS"))
@@ -196,35 +213,16 @@ class RegistroApiTest {
     }
 
     @Test
-    void unTutorDebeEnviarSusDatos() throws Exception {
-        registrar(tutor("t1@ejemplo.com", null))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.detalles[?(@.campo=='datosTutor')]").exists());
-        registrar(tutor("t2@ejemplo.com", "{\"materias\":[],\"modalidades\":[\"VIRTUAL\"]}"))
-            .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void unEstudianteNoPuedeEnviarDatosDeTutor() throws Exception {
-        registrar(estudiante("e@ejemplo.com").replace("}\n", ",\"datosTutor\":{\"materias\":[\"X\"],\"modalidades\":[\"VIRTUAL\"]}}\n"))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.detalles[?(@.campo=='datosTutor')]").exists());
-    }
-
-    @Test
     void nadiePuedeRegistrarseComoAdministrador() throws Exception {
-        registrar(estudiante("adm@ejemplo.com").replace("\"ESTUDIANTE\"", "\"ADMIN\""))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.detalles[?(@.campo=='rol')]").exists());
-        assertFalse(usuarios.existsByCorreo("adm@ejemplo.com"));
+        registrar(conCampos("adm@ejemplo.com", "\"rol\":\"ADMIN\"")).andExpect(status().isCreated());
+        assertEquals(Rol.ESTUDIANTE, usuarios.findByCorreo("adm@ejemplo.com").orElseThrow().getRol());
     }
 
     @Test
-    void rechazaUnRolInexistenteYUnJsonRoto() throws Exception {
-        registrar(estudiante("r@ejemplo.com").replace("\"ESTUDIANTE\"", "\"SUPERUSUARIO\""))
+    void rechazaUnJsonRoto() throws Exception {
+        registrar("{esto no es json")
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.codigo").value("DATOS_INVALIDOS"));
-        registrar("{esto no es json").andExpect(status().isBadRequest());
     }
 
     @Test

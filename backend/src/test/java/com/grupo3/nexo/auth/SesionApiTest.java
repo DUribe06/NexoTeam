@@ -26,12 +26,12 @@ class SesionApiTest extends PruebaAuthBase {
     }
 
     @Test
-    void elTokenDeAccesoEsUnJwtFirmadoConElRolDentro() throws Exception {
+    void elTokenDeAccesoEsUnJwtFirmadoSinElRolPorqueElModoCambia() throws Exception {
         String sesion = cuentaActiva("jwt@ejemplo.com");
         String[] partes = acceso(sesion).split("\\.");
         assertEquals(3, partes.length);
         String carga = new String(java.util.Base64.getUrlDecoder().decode(partes[1]), java.nio.charset.StandardCharsets.UTF_8);
-        assertTrue(carga.contains("\"rol\":\"ESTUDIANTE\""), carga);
+        assertTrue(!carga.contains("\"rol\""), carga);
         assertTrue(carga.contains("\"correo\":\"jwt@ejemplo.com\""), carga);
     }
 
@@ -119,6 +119,20 @@ class SesionApiTest extends PruebaAuthBase {
         String estudiante = cuentaActiva("noadmin@ejemplo.com");
         mvc.perform(get("/api/admin/tutores")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/admin/tutores").header("Authorization", "Bearer " + acceso(estudiante)))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void elRolDeAdministradorSeLeeDeLaBaseYNoDelToken() throws Exception {
+        String token = acceso(cuentaActiva("admin@ejemplo.com"));
+
+        sql("UPDATE usuarios SET rol = 'ADMIN' WHERE correo = ?", "admin@ejemplo.com");
+        // Pasa la autorización; 404 porque aún no hay ninguna ruta de administrador
+        mvc.perform(get("/api/admin/tutores").header("Authorization", "Bearer " + token))
+            .andExpect(status().isNotFound());
+
+        sql("UPDATE usuarios SET rol = 'ESTUDIANTE' WHERE correo = ?", "admin@ejemplo.com");
+        mvc.perform(get("/api/admin/tutores").header("Authorization", "Bearer " + token))
             .andExpect(status().isForbidden());
     }
 
