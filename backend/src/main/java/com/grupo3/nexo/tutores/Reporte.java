@@ -24,12 +24,10 @@ public class Reporte {
 
     private String motivo;
 
-    /** TRUE si está abierto y vacío si se cerró; ver V7. */
-    private Boolean abierto;
-
     @Column(name = "creado_en")
     private Instant creadoEn;
 
+    /** Vacío mientras sigue abierto. */
     @Column(name = "cerrado_en")
     private Instant cerradoEn;
 
@@ -41,7 +39,6 @@ public class Reporte {
         this.tutorId = tutorId;
         this.reportanteId = reportanteId;
         this.motivo = motivo;
-        this.abierto = true;
         this.creadoEn = creadoEn;
     }
 

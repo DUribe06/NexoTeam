@@ -12,6 +12,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
+
 import com.grupo3.nexo.error.ErrorApi;
 import com.grupo3.nexo.error.ErrorNegocio;
 import com.grupo3.nexo.usuarios.EstadoCuenta;
@@ -21,6 +25,9 @@ import com.grupo3.nexo.usuarios.UsuarioRepository;
 /** RF2: inicio de sesión con bloqueo temporal tras 5 intentos fallidos consecutivos. */
 @Service
 public class LoginService {
+
+    @PersistenceContext
+    private EntityManager em;
 
     private final UsuarioRepository usuarios;
     private final PasswordEncoder encriptador;
@@ -58,6 +65,8 @@ public class LoginService {
             throw cuentaBloqueada(usuario);
         }
         if (!encriptador.matches(contrasena, usuario.getContrasenaHash())) {
+            // Se bloquea y se relee solo aquí, no durante el hash: los fallos simultáneos suman todos y ninguno pisa a otro
+            em.refresh(usuario, LockModeType.PESSIMISTIC_WRITE);
             if (usuario.registrarLoginFallido(ahora, maximoIntentos, bloqueo)) {
                 throw cuentaBloqueada(usuario);
             }

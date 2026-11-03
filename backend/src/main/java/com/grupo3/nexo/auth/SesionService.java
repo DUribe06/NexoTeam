@@ -60,6 +60,8 @@ public class SesionService {
         byte[] aleatorio = new byte[32];
         azar.nextBytes(aleatorio);
         String refresco = Base64.getUrlEncoder().withoutPadding().encodeToString(aleatorio);
+        // Sin proceso programado: cada inicio de sesión limpia los vencidos de esa cuenta
+        tokens.borrarVencidos(usuario.getId(), ahora);
         tokens.save(new TokenRefresco(usuario.getId(), hash(refresco), ahora.plus(VIGENCIA_REFRESCO), ahora));
 
         return new SesionDto(acceso, refresco, (int) VIGENCIA_ACCESO.toSeconds(), UsuarioDto.de(usuario));
@@ -72,7 +74,7 @@ public class SesionService {
     @Transactional(noRollbackFor = ErrorNegocio.class)
     public SesionDto refrescar(String tokenRefresco) {
         Instant ahora = reloj.instant();
-        TokenRefresco guardado = tokens.findByTokenHash(hash(tokenRefresco)).orElseThrow(SesionService::tokenInvalido);
+        TokenRefresco guardado = tokens.buscarParaConsumir(hash(tokenRefresco)).orElseThrow(SesionService::tokenInvalido);
         if (guardado.estaRevocado()) {
             revocarTodos(guardado.getUsuarioId(), ahora);
             throw tokenInvalido();

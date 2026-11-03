@@ -1,5 +1,6 @@
 package com.grupo3.nexo.usuarios;
 
+import org.hibernate.annotations.DynamicUpdate;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
@@ -23,6 +24,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
+// Solo las columnas que cambiaron: cambiar el modo y editar el perfil a la vez no se pisan entre sí
+@DynamicUpdate
 @Entity
 @Table(name = "usuarios")
 public class Usuario {

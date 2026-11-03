@@ -2,6 +2,7 @@ package com.grupo3.nexo.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.grupo3.nexo.usuarios.RegistroActividad;
@@ -13,6 +14,12 @@ public class WebConfig implements WebMvcConfigurer {
 
     public WebConfig(RegistroActividad registroActividad) {
         this.registroActividad = registroActividad;
+    }
+
+    @Override
+    public void addViewControllers(ViewControllerRegistry registro) {
+        registro.addRedirectViewController("/admin", "/admin/index.html");
+        registro.addRedirectViewController("/admin/", "/admin/index.html");
     }
 
     @Override

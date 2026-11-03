@@ -3,13 +3,13 @@ package com.grupo3.nexo.usuarios;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.grupo3.nexo.config.Ids;
 import com.grupo3.nexo.error.ErrorNegocio;
 
 /** Perfil propio y modo de uso. Toda cuenta puede ser Estudiante y Tutor; el tutor no se verifica. */
@@ -62,14 +62,13 @@ public class UsuarioService {
         return PerfilPropioDto.de(usuario);
     }
 
-    /**
-     * TODO(fase de sesiones): calcular las cifras con las sesiones del usuario en `modo` (si es null, su modo actual).
-     * Hasta que exista ese módulo no hay actividad que contar, así que siempre responde ceros.
-     */
-    @Transactional(readOnly = true)
-    public ResumenActividadDto resumen(UUID usuarioId, Modo modo) {
-        cuentaEnSesion(usuarioId);
-        return ResumenActividadDto.sinActividad();
+    /** El modo pedido o, si no se pidió ninguno, el actual. Un administrador no usa modos: consulta como estudiante. */
+    public Modo modoDe(UUID usuarioId, Modo pedido) {
+        Usuario usuario = cuentaEnSesion(usuarioId);
+        if (pedido != null) {
+            return pedido;
+        }
+        return usuario.getRol() == Rol.TUTOR ? Modo.TUTOR : Modo.ESTUDIANTE;
     }
 
     /** El token vive 15 min: si entretanto la cuenta se borró o se suspendió, ya no sirve. */
@@ -91,17 +90,9 @@ public class UsuarioService {
 
     /** El tutor con ese id. El id llega en texto: uno mal formado tampoco es de ningún tutor, así que da el mismo 404. */
     public Usuario tutorPublico(String tutorId) {
-        return idDe(tutorId).flatMap(usuarios::findById)
+        return Ids.leer(tutorId).flatMap(usuarios::findById)
             .filter(Usuario::esTutorPublico)
             .orElseThrow(() -> new ErrorNegocio(HttpStatus.NOT_FOUND, "TUTOR_NO_ENCONTRADO", "No existe ese tutor"));
-    }
-
-    private static Optional<UUID> idDe(String texto) {
-        try {
-            return Optional.of(UUID.fromString(texto));
-        } catch (IllegalArgumentException e) {
-            return Optional.empty();
-        }
     }
 
     private static String textoOpcional(String texto) {

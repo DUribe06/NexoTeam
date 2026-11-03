@@ -29,7 +29,7 @@ class EsquemaUsuariosTest {
             INSERT INTO usuarios (id, nombre, correo, contrasena_hash, handle, rol, estado_cuenta,
                                   perfil_tutor_activo, terminos_version, terminos_aceptados_en)
             VALUES (?, 'Prueba', ?, 'hash', ?, ?, 'PENDIENTE_VERIFICACION_CORREO', ?, ?,
-                    CASE WHEN ? IS NULL THEN NULL ELSE CURRENT_TIMESTAMP END)
+                    CASE WHEN CAST(? AS VARCHAR) IS NULL THEN NULL ELSE CURRENT_TIMESTAMP END)
             """, id, correo, "@" + id.toString().substring(0, 18), rol, perfilTutor, terminos, terminos);
         return id;
     }

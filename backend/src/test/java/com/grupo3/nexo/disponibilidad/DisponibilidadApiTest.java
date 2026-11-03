@@ -169,6 +169,64 @@ class DisponibilidadApiTest extends PruebaAuthBase {
             Integer.class, CORREO));
     }
 
+    private ResultActions definirSemana(String token, String horas) throws Exception {
+        return pedir(put("/api/disponibilidad/yo/semana").contentType(MediaType.APPLICATION_JSON).content("{\"horas\":[" + horas + "]}"), token);
+    }
+
+    @Test
+    void laSemanaCompletaReemplazaLoPublicadoYCreaElCalendario() throws Exception {
+        String token = campo(tutor("semana@ejemplo.com"), "$.tokenAcceso");
+
+        definirSemana(token, """
+            {"dia":"LUNES","hora":"10:00","modalidades":["VIRTUAL","PRESENCIAL"]},
+            {"dia":"MARTES","hora":"08:00","modalidades":["VIRTUAL"]}""")
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.creado").value(true))
+            .andExpect(jsonPath("$.dias[0].horas[1].modalidades", Matchers.contains("PRESENCIAL", "VIRTUAL")))
+            .andExpect(jsonPath("$.dias[1].horas[0].modalidades", Matchers.contains("VIRTUAL")));
+        em.flush();
+        em.clear();
+
+        // Lo que no viene se despublica, y lo que se queda no choca con el índice único
+        definirSemana(token, """
+            {"dia":"LUNES","hora":"10:00","modalidades":["VIRTUAL"]}""")
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.dias[0].horas[1].modalidades", Matchers.contains("VIRTUAL")))
+            .andExpect(jsonPath("$.dias[1].horas[0].modalidades").isEmpty());
+        em.flush();
+        em.clear();
+
+        definirSemana(token, "").andExpect(status().isOk()).andExpect(jsonPath("$.dias[0].horas[1].modalidades").isEmpty());
+    }
+
+    @Test
+    void quienNoEsTutorNoPuedeGuardarLaSemana() throws Exception {
+        definirSemana(campo(sesion("estudiante@ejemplo.com"), "$.tokenAcceso"), "").andExpect(status().isForbidden());
+    }
+
+    @Test
+    void laSemanaRechazaDatosMalosSinCambiarNada() throws Exception {
+        String token = tokenConCalendario();
+        definir(token, "LUNES", "10:00", "VIRTUAL").andExpect(status().isOk());
+
+        definirSemana(token, """
+            {"dia":"MARTES","hora":"08:00","modalidades":["VIRTUAL"]},
+            {"dia":"MIERCOLES","hora":"09:00","modalidades":["VIRTUAL"]}""")
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.codigo").value("HORA_NO_VALIDA"));
+        definirSemana(token, """
+            {"dia":"MARTES","hora":"08:00","modalidades":["VIRTUAL"]},
+            {"dia":"MARTES","hora":"08:00","modalidades":["PRESENCIAL"]}""")
+            .andExpect(status().isBadRequest());
+        definirSemana(token, """
+            {"dia":"MARTES","hora":"08:00","modalidades":["VIRTUAL","VIRTUAL"]}""")
+            .andExpect(status().isBadRequest());
+
+        verPropia(token)
+            .andExpect(jsonPath("$.dias[0].horas[1].modalidades", Matchers.contains("VIRTUAL")))
+            .andExpect(jsonPath("$.dias[1].horas[0].modalidades").isEmpty());
+    }
+
     @Test
     void repetirLaMismaHoraNoDuplicaFilas() throws Exception {
         String token = tokenConCalendario();

@@ -17,6 +17,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,6 +30,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import com.grupo3.nexo.auth.PruebaAuthBase;
+import com.grupo3.nexo.config.HoraColombia;
 
 /** /api/tutores: búsqueda (RF3), perfil y reseñas (RF4) y reportes (RF11). */
 class TutorApiTest extends PruebaAuthBase {
@@ -37,6 +39,7 @@ class TutorApiTest extends PruebaAuthBase {
     }
 
     private Cuenta yo;
+    private int resenasCreadas;
 
     @BeforeEach
     void iniciarSesion() throws Exception {
@@ -84,10 +87,31 @@ class TutorApiTest extends PruebaAuthBase {
         return c;
     }
 
+    /** Toda reseña sale de una sesión completada; a mediodía para que la fecha sea esa en hora de Colombia. */
     private void resena(Cuenta tutor, Cuenta autor, int estrellas, String texto, LocalDate fecha) {
-        sql("INSERT INTO resenas (id, tutor_id, autor_id, texto, estrellas, fecha, creado_en) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            UUID.randomUUID(), UUID.fromString(tutor.id()), UUID.fromString(autor.id()), texto, estrellas,
-            Date.valueOf(fecha), Timestamp.from(Instant.now()));
+        em.flush();
+        Instant inicio = fecha.minusDays(1 + resenasCreadas++).atTime(10, 0).atZone(HoraColombia.ZONA).toInstant();
+        UUID estudiante = UUID.fromString(autor.id());
+        UUID profesor = UUID.fromString(tutor.id());
+        UUID solicitud = UUID.randomUUID();
+        UUID sesion = UUID.randomUUID();
+        Instant enviada = inicio.minus(3, ChronoUnit.DAYS);
+        jdbc.update("INSERT INTO chats (id, estudiante_id, tutor_id) VALUES (?, ?, ?) ON CONFLICT (estudiante_id, tutor_id) DO NOTHING",
+            UUID.randomUUID(), estudiante, profesor);
+        jdbc.update("""
+            INSERT INTO solicitudes (id, estudiante_id, tutor_id, materia, tema, inicio, modalidad, estado, enviada_en, vence_en)
+            VALUES (?, ?, ?, 'M', 'T', ?, 'VIRTUAL', 'FINALIZADA', ?, ?)
+            """, solicitud, estudiante, profesor, Timestamp.from(inicio), Timestamp.from(enviada), Timestamp.from(enviada.plus(1, ChronoUnit.DAYS)));
+        jdbc.update("""
+            INSERT INTO sesiones (id, solicitud_id, estudiante_id, tutor_id, inicio, fin, estado)
+            VALUES (?, ?, ?, ?, ?, ?, 'COMPLETADA')
+            """, sesion, solicitud, estudiante, profesor, Timestamp.from(inicio), Timestamp.from(inicio.plus(1, ChronoUnit.HOURS)));
+        jdbc.update("""
+            INSERT INTO calificaciones (id, sesion_id, estudiante_id, tutor_id, sentido, estrellas, comentario, creado_en)
+            VALUES (?, ?, ?, ?, 'ESTUDIANTE_A_TUTOR', ?, ?, ?)
+            """, UUID.randomUUID(), sesion, estudiante, profesor, estrellas, texto.isEmpty() ? null : texto,
+            Timestamp.from(fecha.atTime(12, 0).atZone(HoraColombia.ZONA).toInstant()));
+        em.clear();
     }
 
     private ResultActions buscar(String consulta) throws Exception {
@@ -549,10 +573,9 @@ class TutorApiTest extends PruebaAuthBase {
             .andReturn().getResponse().getContentAsString();
 
         em.flush();
-        var fila = jdbc.queryForMap("SELECT motivo, abierto, reportante_id, tutor_id, cerrado_en FROM reportes WHERE id = ?",
+        var fila = jdbc.queryForMap("SELECT motivo, reportante_id, tutor_id, cerrado_en FROM reportes WHERE id = ?",
             UUID.fromString(campo(respuesta, "$.id")));
         assertEquals("Información falsa", fila.get("motivo"));
-        assertEquals(Boolean.TRUE, fila.get("abierto"));
         assertNull(fila.get("cerrado_en"));
     }
 
@@ -571,7 +594,7 @@ class TutorApiTest extends PruebaAuthBase {
         reportar(yo.token(), luz.id(), "{\"motivo\":\"Otro tutor\"}").andExpect(status().isCreated());
 
         // Cerrado el reporte, se puede volver a reportar
-        sql("UPDATE reportes SET abierto = NULL, cerrado_en = CURRENT_TIMESTAMP WHERE reportante_id = ? AND tutor_id = ?",
+        sql("UPDATE reportes SET cerrado_en = CURRENT_TIMESTAMP WHERE reportante_id = ? AND tutor_id = ?",
             UUID.fromString(yo.id()), UUID.fromString(ana.id()));
         reportar(yo.token(), ana.id(), "{\"motivo\":\"De nuevo\"}").andExpect(status().isCreated());
     }
@@ -611,27 +634,5 @@ class TutorApiTest extends PruebaAuthBase {
             reportar(yo.token(), ana.id(), cuerpo).andExpect(status().isBadRequest()).andExpect(jsonPath("$.codigo").value("DATOS_INVALIDOS"));
         }
         reportar(yo.token(), ana.id(), "{\"motivo\":\"%s\"}".formatted("x".repeat(500))).andExpect(status().isCreated());
-    }
-
-    // ---------- Esquema ----------
-
-    @Test
-    void laResenaAdmiteSinSesionYRechazaEstrellasFueraDeRango() throws Exception {
-        Cuenta ana = tutor("ana@ejemplo.com", "Ana Torres", "Cálculo I");
-        em.flush();
-        String insertar = "INSERT INTO resenas (id, tutor_id, autor_id, sesion_id, estrellas, fecha) VALUES (?, ?, ?, ?, ?, CURRENT_DATE)";
-        UUID tutor = UUID.fromString(ana.id());
-        UUID autor = UUID.fromString(yo.id());
-
-        // Varias sin sesión, y una sesión que aún no existe porque todavía no hay clave foránea
-        jdbc.update(insertar, UUID.randomUUID(), tutor, autor, null, 5);
-        jdbc.update(insertar, UUID.randomUUID(), tutor, autor, null, 1);
-        UUID sesion = UUID.randomUUID();
-        jdbc.update(insertar, UUID.randomUUID(), tutor, autor, sesion, 3);
-
-        assertThrows(DataIntegrityViolationException.class, () -> jdbc.update(insertar, UUID.randomUUID(), tutor, autor, sesion, 4));
-        assertThrows(DataIntegrityViolationException.class, () -> jdbc.update(insertar, UUID.randomUUID(), tutor, autor, null, 0));
-        assertThrows(DataIntegrityViolationException.class, () -> jdbc.update(insertar, UUID.randomUUID(), tutor, autor, null, 6));
-        assertThrows(DataIntegrityViolationException.class, () -> jdbc.update(insertar, UUID.randomUUID(), tutor, tutor, null, 5));
     }
 }

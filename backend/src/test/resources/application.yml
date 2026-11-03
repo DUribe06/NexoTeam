@@ -1,15 +1,29 @@
+# Las pruebas corren contra PostgreSQL real: exclusiones, índices parciales y triggers son parte de lo que se prueba.
+# Usan el esquema `pruebas`, que se limpia al arrancar; nunca tocan `public`. Ver PruebasConBaseLimpia.
 spring:
   datasource:
-    url: jdbc:h2:mem:nexo;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
-    username: sa
-    password:
+    # autosave: cada prueba corre en una transacción, y sin esto el primer error de SQL esperado la dejaría inutilizable
+    url: ${NEXO_PRUEBAS_DB_URL:jdbc:postgresql://localhost:5432/nexo?currentSchema=pruebas,public&autosave=always}
+    username: ${NEXO_PRUEBAS_DB_USUARIO:nexo}
+    password: ${NEXO_PRUEBAS_DB_CLAVE:nexo}
+    hikari:
+      # Más corto que en producción (5 s): una prueba lo agota a propósito
+      connection-init-sql: SET lock_timeout = '2s'
+      data-source-properties:
+        logServerErrorDetail: false
   jpa:
     hibernate:
       # Valida que las entidades coincidan con las migraciones de Flyway
       ddl-auto: validate
     open-in-view: false
+    properties:
+      hibernate.default_schema: pruebas
   flyway:
     enabled: true
+    default-schema: pruebas
+    schemas: pruebas
+    create-schemas: true
+    clean-disabled: false
 
 nexo:
   correo:

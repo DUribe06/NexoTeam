@@ -10,14 +10,15 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
+import com.grupo3.nexo.sesiones.Penalizaciones;
 import com.grupo3.nexo.usuarios.EstadoCuenta;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 
 /**
- * La consulta del catálogo (RF3). Es SQL y no JPQL porque ignorar las tildes y ordenar por un promedio que no se guarda
- * necesita funciones de la base. Todo lo que usa existe igual en PostgreSQL y en H2.
+ * La consulta del catálogo (RF3). Es SQL y no JPQL porque ignorar las tildes necesita funciones de la base. El orden usa
+ * las columnas de reputación de `usuarios` y `ix_usuarios_catalogo`.
  */
 @Component
 class BusquedaTutores {
@@ -50,10 +51,8 @@ class BusquedaTutores {
         Consulta consulta = new Consulta(yo, filtros, conectadosDesde);
         Query query = em.createNativeQuery("""
             SELECT u.id FROM usuarios u
-            LEFT JOIN (SELECT tutor_id, AVG(CAST(estrellas AS DOUBLE PRECISION)) AS promedio, COUNT(*) AS total
-                       FROM resenas GROUP BY tutor_id) r ON r.tutor_id = u.id
             WHERE %s
-            ORDER BY COALESCE(r.promedio, 0) DESC, COALESCE(r.total, 0) DESC, u.nombre, u.id
+            ORDER BY u.calificacion_promedio DESC, u.total_resenas DESC, u.nombre, u.id
             """.formatted(consulta.condiciones), UUID.class);
         consulta.parametros.forEach(query::setParameter);
         return query.setFirstResult(pagina * tamano).setMaxResults(tamano).getResultList();
@@ -70,8 +69,8 @@ class BusquedaTutores {
             parametros.put("activa", EstadoCuenta.ACTIVA.name());
             StringBuilder sql = new StringBuilder("""
                 u.estado_cuenta = :activa AND u.perfil_tutor_activo = TRUE AND u.id <> :yo
-                AND EXISTS (%s)
-                """.formatted(MATERIA_DEL_TUTOR));
+                AND EXISTS (%s) AND %s
+                """.formatted(MATERIA_DEL_TUTOR, Penalizaciones.sinPausa("u.id")));
             sql.append(" AND EXISTS (").append(horaPublicada(f)).append(")");
 
             List<String> claves = f.clavesDeMateria();

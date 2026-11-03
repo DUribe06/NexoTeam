@@ -1,12 +1,16 @@
 package com.grupo3.nexo.disponibilidad;
 
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +19,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +31,7 @@ import com.grupo3.nexo.disponibilidad.DisponibilidadDtos.FranjaTutor;
 import com.grupo3.nexo.disponibilidad.DisponibilidadDtos.HoraDisponible;
 import com.grupo3.nexo.disponibilidad.DisponibilidadDtos.SemanaDisponibilidad;
 import com.grupo3.nexo.disponibilidad.DisponibilidadDtos.SolicitudDefinirHora;
+import com.grupo3.nexo.disponibilidad.DisponibilidadDtos.SolicitudDefinirSemana;
 import com.grupo3.nexo.error.ErrorNegocio;
 import com.grupo3.nexo.usuarios.Modalidad;
 import com.grupo3.nexo.usuarios.Usuario;
@@ -39,11 +45,13 @@ public class DisponibilidadService {
 
     private final HoraPublicadaRepository horas;
     private final UsuarioService usuarios;
+    private final JdbcClient jdbc;
     private final Clock reloj;
 
-    public DisponibilidadService(HoraPublicadaRepository horas, UsuarioService usuarios, Clock reloj) {
+    public DisponibilidadService(HoraPublicadaRepository horas, UsuarioService usuarios, JdbcClient jdbc, Clock reloj) {
         this.horas = horas;
         this.usuarios = usuarios;
+        this.jdbc = jdbc;
         this.reloj = reloj;
     }
 
@@ -85,9 +93,49 @@ public class DisponibilidadService {
     }
 
     /**
-     * Los próximos 14 días desde mañana con alguna hora publicada.
-     * TODO(fase de sesiones): descartar las horas en que el tutor ya tiene una sesión programada.
+     * Reemplaza la semana en una sola transacción: o queda toda o no cambia nada. Como {@link #definirHora}, solo toca
+     * las filas que cambian. Crea el calendario si hacía falta, para que el tutor no tenga que pedirlo aparte.
      */
+    @Transactional
+    public SemanaDisponibilidad definirSemana(UUID usuarioId, SolicitudDefinirSemana s) {
+        Usuario tutor = usuarios.tutorEnSesion(usuarioId);
+        record Fila(DiaSemana dia, LocalTime hora, Modalidad modalidad) {
+        }
+        Set<Fila> deseadas = new HashSet<>();
+        Set<String> franjas = new HashSet<>();
+        for (SolicitudDefinirHora h : s.horas()) {
+            LocalTime hora = LocalTime.parse(h.hora());
+            if (!HorasCalendario.HORAS.contains(hora)) {
+                throw new ErrorNegocio(HttpStatus.UNPROCESSABLE_ENTITY, "HORA_NO_VALIDA",
+                    "Esa hora no está en el calendario; usa 08:00, 10:00, 12:00, 14:00, 16:00, 18:00 o 20:00");
+            }
+            if (!franjas.add(h.dia() + " " + hora)) {
+                throw ErrorNegocio.datosInvalidos("horas", "no se puede repetir un día y una hora");
+            }
+            if (h.modalidades().size() != Set.copyOf(h.modalidades()).size()) {
+                throw ErrorNegocio.datosInvalidos("modalidades", "no se pueden repetir");
+            }
+            h.modalidades().forEach(m -> deseadas.add(new Fila(h.dia(), hora, m)));
+        }
+        if (!tutor.tieneCalendario()) {
+            tutor.crearCalendario(reloj.instant());
+        }
+
+        Set<Fila> yaPublicadas = new HashSet<>();
+        for (HoraPublicada actual : horas.findByUsuarioId(usuarioId)) {
+            Fila fila = new Fila(actual.getDia(), actual.getHora(), actual.getModalidad());
+            if (deseadas.contains(fila)) {
+                yaPublicadas.add(fila);
+            } else {
+                horas.delete(actual);
+            }
+        }
+        deseadas.stream().filter(f -> !yaPublicadas.contains(f))
+            .forEach(f -> horas.save(new HoraPublicada(usuarioId, f.dia(), f.hora(), f.modalidad())));
+        return semanaDe(tutor);
+    }
+
+    /** Los próximos 14 días desde mañana con alguna hora publicada, sin las que ya choquen con una sesión programada. */
     @Transactional(readOnly = true)
     public List<DiaSolicitable> solicitables(UUID usuarioId, String tutorId) {
         usuarios.cuentaEnSesion(usuarioId);
@@ -95,17 +143,38 @@ public class DisponibilidadService {
         Map<DiaSemana, Map<LocalTime, Set<Modalidad>>> publicadas = agrupar(horas.findByUsuarioId(tutor.getId()));
 
         LocalDate hoy = HoraColombia.hoy(reloj);
+        List<Sesion> ocupadas = sesionesProgramadas(tutor.getId());
         List<DiaSolicitable> dias = new ArrayList<>();
         for (int i = 1; i <= DIAS_SOLICITABLES; i++) {
             LocalDate fecha = hoy.plusDays(i);
             Map<LocalTime, Set<Modalidad>> delDia = publicadas.get(DiaSemana.de(fecha));
             if (delDia != null) {
-                dias.add(new DiaSolicitable(fecha, delDia.entrySet().stream()
+                List<HoraDisponible> libres = delDia.entrySet().stream()
+                    .filter(e -> ocupadas.stream().noneMatch(s -> s.chocaCon(fecha, e.getKey())))
                     .map(e -> new HoraDisponible(HorasCalendario.texto(e.getKey()), List.copyOf(e.getValue())))
-                    .toList()));
+                    .toList();
+                if (!libres.isEmpty()) {
+                    dias.add(new DiaSolicitable(fecha, libres));
+                }
             }
         }
         return dias;
+    }
+
+    private record Sesion(Instant inicio, Instant fin) {
+
+        /** Cada hora del calendario dura 1 h. */
+        boolean chocaCon(LocalDate fecha, LocalTime hora) {
+            Instant desde = fecha.atTime(hora).atZone(HoraColombia.ZONA).toInstant();
+            return inicio.isBefore(desde.plus(Duration.ofHours(1))) && fin.isAfter(desde);
+        }
+    }
+
+    private List<Sesion> sesionesProgramadas(UUID tutor) {
+        return jdbc.sql("SELECT inicio, fin FROM sesiones WHERE (tutor_id = ? OR estudiante_id = ?) AND estado = 'PROGRAMADA'").params(tutor, tutor)
+            .query((rs, n) -> new Sesion(rs.getObject("inicio", OffsetDateTime.class).toInstant(),
+                rs.getObject("fin", OffsetDateTime.class).toInstant()))
+            .list();
     }
 
     /** El horario público de cada tutor: solo las horas publicadas, en orden de calendario. */

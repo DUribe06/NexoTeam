@@ -18,6 +18,7 @@ import com.grupo3.nexo.disponibilidad.DisponibilidadDtos.CalendarioCreado;
 import com.grupo3.nexo.disponibilidad.DisponibilidadDtos.DiaSolicitable;
 import com.grupo3.nexo.disponibilidad.DisponibilidadDtos.SemanaDisponibilidad;
 import com.grupo3.nexo.disponibilidad.DisponibilidadDtos.SolicitudDefinirHora;
+import com.grupo3.nexo.disponibilidad.DisponibilidadDtos.SolicitudDefinirSemana;
 
 import jakarta.validation.Valid;
 
@@ -46,6 +47,11 @@ public class DisponibilidadController {
     @PutMapping("/api/disponibilidad/yo/horas")
     public SemanaDisponibilidad definirHora(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody SolicitudDefinirHora s) {
         return disponibilidad.definirHora(id(jwt), s);
+    }
+
+    @PutMapping("/api/disponibilidad/yo/semana")
+    public SemanaDisponibilidad definirSemana(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody SolicitudDefinirSemana s) {
+        return disponibilidad.definirSemana(id(jwt), s);
     }
 
     @GetMapping("/api/tutores/{tutorId}/disponibilidad")

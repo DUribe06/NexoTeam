@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: API de Nexo
-  version: 0.3.1
+  version: 0.8.0
   description: |
     Contrato entre la app Android y el backend (Spring Boot + PostgreSQL).
     Este archivo es la fuente de verdad: primero se acuerda aquí y luego se implementa.
@@ -48,6 +48,8 @@ tags:
     description: Calendario semanal del tutor (RF7) y horas que se le pueden pedir (RF5)
   - name: Solicitudes
     description: Envío de solicitudes de tutoría (RF5) y su respuesta por el tutor, con plazo de 24 h (RF6)
+  - name: Administración
+    description: Panel web de /admin (RF12); toda la ruta exige el rol ADMIN
   - name: Sesiones
     description: Sesiones que nacen de una solicitud aceptada, historial (RF10) y calificación mutua (RF9)
   - name: Chats
@@ -392,7 +394,6 @@ paths:
       description: |
         Las cifras del Perfil y del Historial: como estudiante, de las sesiones tomadas; como tutor, de las dadas.
         Solo cuentan las sesiones `COMPLETADA`, salvo `porCalificar` (completadas que el usuario aún no califica).
-        Mientras no exista el módulo de sesiones, todas las cifras son cero.
       security:
         - bearerAuth: []
       parameters:
@@ -407,6 +408,254 @@ paths:
         "401":
           $ref: "#/components/responses/NoAutenticado"
 
+  /api/usuarios/yo/eliminar:
+    post:
+      tags: [Usuario]
+      summary: Elimina la cuenta propia
+      description: |
+        La anonimiza (Ley 1581): se van nombre, correo, contraseña y perfil, y sus solicitudes pendientes se cierran. El
+        historial, las reseñas y los mensajes se quedan porque también son de otras personas. Los tokens dejan de servir.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contrasena]
+              properties:
+                contrasena:
+                  type: string
+      responses:
+        "204":
+          description: Cuenta eliminada
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: Una cuenta de administrador no se elimina desde aquí (`ADMIN_SIN_MODOS`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Tiene tutorías agendadas (`CUENTA_CON_SESIONES`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: La contraseña no coincide (`CONTRASENA_INCORRECTA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ==================== Administración ====================
+
+  /api/admin/reportes:
+    get:
+      tags: [Administración]
+      summary: Reportes, los abiertos primero (RF12)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista, de máximo 200 filas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReporteAdmin"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: La cuenta no es de administrador
+
+  /api/admin/reportes/{id}/cerrar:
+    post:
+      tags: [Administración]
+      summary: Cierra un reporte
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Hecho
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: La cuenta no es de administrador
+        "409":
+          description: No existe o ya estaba cerrado (`REPORTE_NO_ABIERTO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/revisiones:
+    get:
+      tags: [Administración]
+      summary: Revisiones de penalizaciones sin resolver
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista, de máximo 200 filas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RevisionAdmin"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: La cuenta no es de administrador
+
+  /api/admin/revisiones/{id}/aceptar:
+    post:
+      tags: [Administración]
+      summary: Retira la penalización y la pausa que causó
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Hecho
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: La cuenta no es de administrador
+        "409":
+          description: No existe o ya estaba resuelta (`REVISION_NO_ABIERTA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/revisiones/{id}/rechazar:
+    post:
+      tags: [Administración]
+      summary: Mantiene la penalización
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Hecho
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: La cuenta no es de administrador
+        "409":
+          description: No existe o ya estaba resuelta (`REVISION_NO_ABIERTA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/usuarios:
+    get:
+      tags: [Administración]
+      summary: Busca cuentas; máximo 50
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          description: Parte del nombre o del correo
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lista, de máximo 200 filas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UsuarioAdmin"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: La cuenta no es de administrador
+
+  /api/admin/usuarios/{id}/suspender:
+    post:
+      tags: [Administración]
+      summary: Suspende una cuenta activa y cierra sus sesiones
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Hecho
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: La cuenta no es de administrador
+        "409":
+          description: No existe o no está activa (`ESTADO_NO_CAMBIABLE`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/admin/usuarios/{id}/reactivar:
+    post:
+      tags: [Administración]
+      summary: Reactiva una cuenta suspendida
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Hecho
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: La cuenta no es de administrador
+        "409":
+          description: No existe o no está suspendida (`ESTADO_NO_CAMBIABLE`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   # ==================== Tutores ====================
 
   /api/tutores:
@@ -416,8 +665,8 @@ paths:
       description: |
         Todos los filtros son opcionales y se combinan con Y. `modalidad` y `franja` se evalúan sobre la misma
         hora del horario: "virtual en la noche" exige una hora nocturna que se ofrezca en virtual, no una virtual
-        y otra nocturna. Solo aparecen tutores con al menos una materia y una hora publicada; nunca la propia
-        cuenta. Por defecto, ordenados por calificación (UC3, paso 4).
+        y otra nocturna. Solo aparecen tutores con al menos una materia y una hora publicada, sin una pausa por
+        penalizaciones; nunca la propia cuenta. Por defecto, ordenados por calificación (UC3, paso 4).
       security:
         - bearerAuth: []
       parameters:
@@ -655,6 +904,48 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /api/disponibilidad/yo/semana:
+    put:
+      tags: [Disponibilidad]
+      summary: Reemplaza la semana completa de una vez (RF7)
+      description: |
+        Lo que no venga en `horas` deja de estar publicado. Ocurre en una sola transacción: o queda toda la semana o
+        no cambia nada. Si el tutor aún no tiene calendario, se crea. Despublicar una hora no cancela las sesiones ya
+        programadas en ella; las solicitudes pendientes para esa hora se pueden seguir respondiendo.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudDefinirSemana"
+      responses:
+        "200":
+          description: Calendario como quedó
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SemanaDisponibilidad"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/NoEsTutor"
+        "409":
+          description: Otra operación cambió la semana al mismo tiempo; se puede reintentar (`CONFLICTO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: Alguna hora no es de las del calendario (`HORA_NO_VALIDA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/tutores/{tutorId}/disponibilidad:
     get:
       tags: [Disponibilidad]
@@ -710,10 +1001,18 @@ paths:
           $ref: "#/components/responses/DatosInvalidos"
         "401":
           $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: Tu cuenta está en pausa por sus penalizaciones (`CUENTA_EN_PAUSA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "404":
           $ref: "#/components/responses/TutorNoEncontrado"
         "409":
-          description: Ya tienes una solicitud pendiente o aceptada con este tutor para ese día y hora (`SOLICITUD_DUPLICADA`)
+          description: |
+            Ya tienes una solicitud pendiente o aceptada con este tutor para ese día y hora (`SOLICITUD_DUPLICADA`)
+            o el tutor está en pausa por sus penalizaciones (`TUTOR_EN_PAUSA`)
           content:
             application/json:
               schema:
@@ -805,7 +1104,9 @@ paths:
         "401":
           $ref: "#/components/responses/NoAutenticado"
         "403":
-          description: Solo el tutor de la solicitud puede aceptarla (`NO_ES_TUTOR`)
+          description: |
+            Solo el tutor de la solicitud puede aceptarla (`NO_ES_TUTOR`), y no mientras tenga una pausa por
+            penalizaciones (`CUENTA_EN_PAUSA`); rechazarla sí puede
           content:
             application/json:
               schema:
@@ -815,7 +1116,7 @@ paths:
         "409":
           description: |
             La solicitud ya no espera respuesta (`SOLICITUD_NO_PENDIENTE`), venció el plazo (`SOLICITUD_EXPIRADA`)
-            o el tutor ya tiene otra sesión a esa hora (`HORA_NO_DISPONIBLE`)
+            o el tutor o el estudiante ya tienen otra sesión a esa hora (`HORA_NO_DISPONIBLE`)
           content:
             application/json:
               schema:
@@ -826,8 +1127,8 @@ paths:
       tags: [Solicitudes]
       summary: El tutor rechaza una solicitud, con motivo opcional (RF6)
       description: |
-        La solicitud pasa a `RECHAZADA` y el estudiante ve el motivo. Si hubiera una sesión asociada, se cancela y,
-        si no quedan sesiones por venir con esa persona, el chat pasa a solo lectura.
+        Solo se rechaza una solicitud `PENDIENTE`: pasa a `RECHAZADA` y el estudiante ve el motivo. Como aún no tiene
+        sesión, no cambia ninguna sesión ni ningún chat.
       security:
         - bearerAuth: []
       parameters:
@@ -1007,6 +1308,236 @@ paths:
         "404":
           $ref: "#/components/responses/SesionNoEncontrada"
 
+  /api/sesiones/{sesionId}/pin:
+    post:
+      tags: [Sesiones]
+      summary: El tutor llega y le envía el PIN al estudiante
+      description: |
+        Solo en presenciales, desde 30 minutos antes de la hora. Hasta entonces el estudiante no ve el PIN (`pin`).
+        Si el tutor no lo envía antes de `limite`, la sesión se cancela con `cierre: TUTOR_NO_LLEGO` y se penaliza al
+        tutor. Repetir la petición devuelve la sesión sin cambiar nada.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SesionId"
+      responses:
+        "200":
+          description: La sesión actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionTutoria"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: Quien la pide es el estudiante (`NO_ES_TUTOR`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/SesionNoEncontrada"
+        "409":
+          description: Ya no está programada (`SESION_NO_PROGRAMADA`), es virtual (`SESION_SIN_PIN`) o aún es muy temprano (`SESION_AUN_NO_EMPIEZA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/sesiones/{sesionId}/iniciar:
+    post:
+      tags: [Sesiones]
+      summary: El tutor escribe el PIN que le dice el estudiante e inicia la sesión
+      description: |
+        Si no se inicia antes de `limite`, la sesión se cancela con `cierre: ESTUDIANTE_NO_LLEGO` y se penaliza al
+        estudiante. Ya iniciada no se cancela. Tras 5 PIN incorrectos hay que esperar 5 minutos. Repetir la petición de
+        una sesión ya iniciada devuelve la sesión sin comprobar el PIN.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SesionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudIniciarSesion"
+      responses:
+        "200":
+          description: La sesión actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionTutoria"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: Quien la pide es el estudiante (`NO_ES_TUTOR`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/SesionNoEncontrada"
+        "409":
+          description: Ya no está programada (`SESION_NO_PROGRAMADA`), es virtual (`SESION_SIN_PIN`) o falta enviar el PIN (`PIN_SIN_ENVIAR`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: El PIN no coincide (`PIN_INCORRECTO`); `mensaje` dice cuántos intentos quedan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Demasiados intentos (`PIN_BLOQUEADO`), con `Retry-After`
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/sesiones/{sesionId}/acuerdo:
+    post:
+      tags: [Sesiones]
+      summary: Propone por el chat un retardo o cancelar la sesión
+      description: |
+        Solo en presenciales sin iniciar. Quien propone un retardo es quien va tarde; la sesión sigue terminando a la
+        misma hora. Proponer no detiene el reloj: si el otro no responde antes de `limite`, la sesión se vence igual.
+        La propuesta queda escrita en el chat como un mensaje de quien la hace.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SesionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudAcuerdo"
+      responses:
+        "201":
+          description: La sesión actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionTutoria"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/SesionNoEncontrada"
+        "409":
+          description: Ya no está programada (`SESION_NO_PROGRAMADA`), es virtual (`SESION_SIN_PIN`), ya empezó (`SESION_YA_INICIADA`), hay otra propuesta (`ACUERDO_PENDIENTE`), ya tuvo retardo (`RETARDO_YA_ACORDADO`) o la hora no sirve (`RETARDO_NO_VALIDO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/sesiones/{sesionId}/acuerdo/aceptar:
+    post:
+      tags: [Sesiones]
+      summary: Acepta lo que propuso la otra persona
+      description: |
+        Un retardo fija `horaPactada`, y a partir de ahí no llegar a los 10 minutos penaliza `GRAVE`. Una cancelación
+        cierra la sesión con `cierre: ACORDADA`, sin penalización para nadie.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SesionId"
+      responses:
+        "200":
+          description: La sesión actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionTutoria"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          description: Es su propia propuesta (`ACUERDO_PROPIO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          $ref: "#/components/responses/SesionNoEncontrada"
+        "409":
+          description: Sin propuesta (`ACUERDO_NO_PENDIENTE`), la sesión cambió (`SESION_NO_PROGRAMADA`, `SESION_YA_INICIADA`) o la hora ya pasó (`RETARDO_NO_VALIDO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/sesiones/{sesionId}/acuerdo/rechazar:
+    post:
+      tags: [Sesiones]
+      summary: Rechaza la propuesta, o la retira quien la hizo
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SesionId"
+      responses:
+        "200":
+          description: La sesión actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionTutoria"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/SesionNoEncontrada"
+        "409":
+          description: Sin propuesta (`ACUERDO_NO_PENDIENTE`) o la sesión cambió (`SESION_NO_PROGRAMADA`, `SESION_YA_INICIADA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/sesiones/{sesionId}/revision:
+    post:
+      tags: [Sesiones]
+      summary: Pide revisar la penalización que dejó esta sesión
+      description: |
+        Una por penalización, hasta 7 días después de recibirla. La penalización y su pausa siguen vigentes mientras
+        un administrador la revisa (RF12); si la retira, deja de contar. Mira `puedePedirRevision` en la sesión.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/SesionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudRevision"
+      responses:
+        "201":
+          description: Revisión pedida; devuelve la sesión con `revision` en `ABIERTA`
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SesionTutoria"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "404":
+          $ref: "#/components/responses/SesionNoEncontrada"
+        "409":
+          description: |
+            La sesión no te dejó penalización (`SIN_PENALIZACION`), ya la pediste (`REVISION_DUPLICADA`) o pasaron los
+            7 días (`REVISION_FUERA_DE_PLAZO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/sesiones/{sesionId}/calificacion:
     post:
       tags: [Sesiones]
@@ -1054,7 +1585,8 @@ paths:
       description: |
         Como estudiante, los chats con tutores; como tutor, con estudiantes. Primero los nuevos sin mensajes y
         después el último mensaje más reciente primero. Un chat existe solo si hubo una solicitud aceptada entre
-        las dos personas; no hay endpoint para crearlo.
+        las dos personas; no hay endpoint para crearlo. Un chat en solo lectura sin ningún mensaje no aparece: no hay
+        nada que leer ni se puede escribir en él.
       security:
         - bearerAuth: []
       parameters:
@@ -1182,7 +1714,8 @@ paths:
       summary: Envía un mensaje (RF8)
       description: |
         Solo mientras el chat está activo (`soloLectura` en `false`). Si la app reintenta con el mismo `idCliente`
-        tras un fallo de red, el servidor no lo duplica y devuelve el mensaje ya guardado.
+        tras un fallo de red, el servidor no lo duplica y devuelve el mensaje ya guardado. Cada persona puede enviar
+        hasta 30 mensajes por minuto; al superarlo recibe 429 con `Retry-After: 60`.
       security:
         - bearerAuth: []
       parameters:
@@ -1674,7 +2207,7 @@ components:
 
     ResumenActividad:
       type: object
-      required: [sesiones, horas, porCalificar, totalResenas, personas, materias]
+      required: [sesiones, horas, porCalificar, totalResenas, personas, materias, penalizaciones]
       properties:
         sesiones:
           type: integer
@@ -1709,6 +2242,62 @@ components:
           description: Materias de las sesiones completadas, la más frecuente primero
           items:
             type: string
+        penalizaciones:
+          type: integer
+          description: Penalizaciones recibidas en este modo en los últimos 90 días, de cualquier nivel
+          example: 1
+        suspendidaHasta:
+          type: string
+          format: date-time
+          description: |
+            Hasta cuándo dura la pausa. Una `GRAVE` pausa 7 días, 14 si es la segunda en 90 días y 30 desde la tercera;
+            la tercera `NORMAL` en 90 días pausa 7. Vale para toda la cuenta, sea cual sea el modo. Mientras dure, no puede enviar ni aceptar
+            solicitudes y no aparece en el catálogo. Se omite si no hay ninguna.
+
+    ReporteAdmin:
+      type: object
+      required: [id, tutorId, tutor, correoTutor, reportanteId, reportante, motivo, creadoEn]
+      properties:
+        id: { type: string, format: uuid }
+        tutorId: { type: string, format: uuid }
+        tutor: { type: string }
+        correoTutor: { type: string }
+        reportanteId: { type: string, format: uuid }
+        reportante: { type: string }
+        motivo: { type: string }
+        creadoEn: { type: string, format: date-time }
+        cerradoEn: { type: string, format: date-time }
+
+    RevisionAdmin:
+      type: object
+      required: [id, usuarioId, persona, correo, nivel, materia, sesion, penalizadaEn, motivo, pedidaEn]
+      properties:
+        id: { type: string, format: uuid }
+        usuarioId: { type: string, format: uuid }
+        persona: { type: string }
+        correo: { type: string }
+        nivel: { type: string, enum: [NORMAL, GRAVE] }
+        cierre: { type: string }
+        materia: { type: string }
+        sesion: { type: string, format: date-time }
+        penalizadaEn: { type: string, format: date-time }
+        motivo: { type: string }
+        pedidaEn: { type: string, format: date-time }
+
+    UsuarioAdmin:
+      type: object
+      required: [id, nombre, correo, handle, estadoCuenta, esTutor, penalizacionesComoTutor, penalizacionesComoEstudiante, reportesAbiertos]
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string }
+        correo: { type: string }
+        handle: { type: string }
+        estadoCuenta: { $ref: "#/components/schemas/EstadoCuenta" }
+        esTutor: { type: boolean }
+        penalizacionesComoTutor: { type: integer }
+        penalizacionesComoEstudiante: { type: integer }
+        pausaHasta: { type: string, format: date-time }
+        reportesAbiertos: { type: integer }
 
     FranjaTutor:
       type: object
@@ -1742,6 +2331,7 @@ components:
         - precioHora
         - enLinea
         - horario
+        - penalizaciones
       properties:
         id:
           type: string
@@ -1795,6 +2385,10 @@ components:
           description: Horas publicadas en la semana, en orden de calendario
           items:
             $ref: "#/components/schemas/FranjaTutor"
+        penalizaciones:
+          type: integer
+          description: Penalizaciones recibidas como tutor en los últimos 90 días, de cualquier nivel
+          example: 0
 
     PaginaTutores:
       allOf:
@@ -1907,6 +2501,17 @@ components:
           items:
             $ref: "#/components/schemas/DiaDisponibilidad"
 
+    SolicitudDefinirSemana:
+      type: object
+      required: [horas]
+      properties:
+        horas:
+          type: array
+          description: Las horas publicadas de la semana, sin repetir día y hora
+          maxItems: 49
+          items:
+            $ref: "#/components/schemas/SolicitudDefinirHora"
+
     SolicitudDefinirHora:
       type: object
       required: [dia, hora, modalidades]
@@ -1984,6 +2589,7 @@ components:
         - mensaje
         - enviada
         - venceEn
+        - penalizacionesEstudiante
       properties:
         id:
           type: string
@@ -2031,6 +2637,10 @@ components:
             Límite para responder: 24 h después de `enviada`, o el inicio de la tutoría pedida si llega antes
             (RF6). Solo tiene efecto mientras la solicitud está `PENDIENTE`.
           example: "2026-11-03T08:00:00-05:00"
+        penalizacionesEstudiante:
+          type: integer
+          description: Penalizaciones del estudiante como estudiante en los últimos 90 días
+          example: 0
 
     SolicitudRechazar:
       type: object
@@ -2051,6 +2661,41 @@ components:
         chat:
           $ref: "#/components/schemas/Chat"
 
+    SolicitudIniciarSesion:
+      type: object
+      required: [pin]
+      properties:
+        pin:
+          type: string
+          pattern: "^[0-9]{4}$"
+
+    SolicitudAcuerdo:
+      type: object
+      required: [tipo]
+      properties:
+        tipo:
+          type: string
+          enum: [RETARDO, CANCELACION]
+        minutos:
+          type: integer
+          minimum: 5
+          maximum: 60
+          description: Obligatorio en un retardo. Cuánto después de la hora original empezarían.
+
+    AcuerdoPendiente:
+      type: object
+      required: [tipo, propuestoPorMi]
+      properties:
+        tipo:
+          type: string
+          enum: [RETARDO, CANCELACION]
+        nuevaHora:
+          type: string
+          nullable: true
+          description: Solo en un retardo, en hora de Colombia (HH:mm)
+        propuestoPorMi:
+          type: boolean
+
     SesionTutoria:
       type: object
       description: |
@@ -2069,6 +2714,54 @@ components:
         - estado
         - comoTutor
       properties:
+        iniciadaEn:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cuándo escribió el tutor el PIN; null si no se ha iniciado o si es virtual
+        pinEnviado:
+          type: boolean
+          description: El tutor ya envió el PIN. Siempre false en virtuales.
+        pin:
+          type: string
+          nullable: true
+          description: Solo para el estudiante, desde que el tutor lo envía hasta que se inicia; al tutor nunca le llega
+        limite:
+          type: string
+          format: date-time
+          nullable: true
+          description: Hasta cuándo se puede iniciar una presencial programada; pasado este momento se cancela y penaliza
+        horaPactada:
+          type: string
+          nullable: true
+          description: Nueva hora si se pactó un retardo, en hora de Colombia (HH:mm)
+        retardoMio:
+          type: boolean
+          nullable: true
+          description: Si el retardo pactado es de quien consulta; null sin retardo
+        cierre:
+          type: string
+          nullable: true
+          enum: [TUTOR_NO_LLEGO, ESTUDIANTE_NO_LLEGO, ACORDADA]
+          description: Por qué se canceló; null si la canceló el estudiante antes de la hora o no se ha cancelado
+        penalizacion:
+          type: string
+          nullable: true
+          enum: [NORMAL, GRAVE]
+          description: La penalización que esta sesión le dejó a quien consulta; null si una revisión la retiró
+        revision:
+          type: string
+          nullable: true
+          enum: [ABIERTA, ACEPTADA, RECHAZADA]
+          description: En qué va la revisión que pidió quien consulta; se omite si no la pidió
+        puedePedirRevision:
+          type: boolean
+          description: Le quedó una penalización, aún no pidió revisión y no han pasado 7 días
+        acuerdo:
+          allOf:
+            - $ref: "#/components/schemas/AcuerdoPendiente"
+          nullable: true
+          description: Propuesta sin responder
         id:
           type: string
           format: uuid
@@ -2117,6 +2810,16 @@ components:
           minimum: 1
           maximum: 5
           description: Calificación que la otra parte le dio al usuario; se omite si aún no lo ha calificado (RF9)
+
+    SolicitudRevision:
+      type: object
+      required: [motivo]
+      properties:
+        motivo:
+          type: string
+          description: Qué pasó, según quien pide la revisión
+          minLength: 10
+          maxLength: 500
 
     SolicitudCalificar:
       type: object

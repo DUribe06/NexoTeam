@@ -21,7 +21,8 @@ import com.grupo3.nexo.usuarios.Rol;
 import com.grupo3.nexo.usuarios.UsuarioRepository;
 
 /**
- * API sin estado, autenticada con JWT. Son públicos: /api/salud, el contrato en /openapi y los endpoints de
+ * API sin estado, autenticada con JWT. Son públicos: /api/salud, el contrato en /openapi, los archivos del panel web
+ * (/admin; sus datos sí exigen token) y la política de privacidad, y los endpoints de
  * acceso de /api/auth (registro, verificar el correo, reenviar el código, login, refrescar, recuperar y restablecer
  * la contraseña). Todo lo demás exige
  * un token válido, y /api/admin/** además el rol ADMIN (D3), que se lee de la base: el token no lleva el rol.
@@ -45,7 +46,7 @@ public class SeguridadConfig {
             .authorizeHttpRequests(a -> a
                 // /error: cuando una petición falla, el contenedor la reenvía ahí; si no es pública, todo error se vería como 401
                 .requestMatchers("/error").permitAll()
-                .requestMatchers("/api/salud", "/openapi/**").permitAll()
+                .requestMatchers("/api/salud", "/openapi/**", "/admin", "/admin/", "/admin/**", "/privacidad.html").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/registro", "/api/auth/verificar-correo",
                     "/api/auth/reenviar-codigo", "/api/auth/login", "/api/auth/refrescar",
                     "/api/auth/recuperar", "/api/auth/restablecer").permitAll()

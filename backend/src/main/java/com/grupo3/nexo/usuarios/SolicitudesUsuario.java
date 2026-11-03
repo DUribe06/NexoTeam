@@ -19,6 +19,9 @@ public final class SolicitudesUsuario {
     public record CambiarModo(@NotNull Modo modo) {
     }
 
+    public record EliminarCuenta(@NotBlank String contrasena) {
+    }
+
     /** Un campo sin enviar no cambia; un texto vacío borra ese dato. */
     public record EditarPerfilTutor(
         @Size(max = 500) String bio,

@@ -10,6 +10,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
+
 import com.grupo3.nexo.correo.EnviadorCorreo;
 import com.grupo3.nexo.error.ErrorNegocio;
 import com.grupo3.nexo.usuarios.Usuario;
@@ -25,6 +29,9 @@ public class CodigoVerificacionService {
     static final int MAXIMO_INTENTOS = 5;
     static final Duration ESPERA_ENTRE_ENVIOS = Duration.ofSeconds(60);
     static final int MAXIMO_ENVIOS_POR_HORA = 5;
+
+    @PersistenceContext
+    private EntityManager em;
 
     private final SecureRandom azar = new SecureRandom();
     private final CodigoVerificacionRepository codigos;
@@ -43,6 +50,8 @@ public class CodigoVerificacionService {
     /** Crea un código nuevo (invalidando los anteriores), lo guarda cifrado y lo envía al correo del usuario. */
     public void emitirYEnviar(Usuario usuario, PropositoCodigo proposito) {
         Instant ahora = reloj.instant();
+        // Sin proceso programado: cada cuenta limpia lo suyo. La espera y el tope de reenvíos solo miran la última hora
+        codigos.borrarAntiguos(usuario.getId(), ahora.minus(Duration.ofDays(1)));
         codigos.findByUsuarioIdAndPropositoAndCerradoEnIsNull(usuario.getId(), proposito)
             .forEach(anterior -> anterior.cerrar(ahora));
 
@@ -64,7 +73,15 @@ public class CodigoVerificacionService {
         CodigoVerificacion codigo = codigos
             .findFirstByUsuarioIdAndPropositoAndCerradoEnIsNullOrderByCreadoEnDesc(usuario.getId(), proposito)
             .orElseThrow(CodigoVerificacionService::codigoInvalido);
+        // El hash es lento: se calcula antes de bloquear para no retener la fila ni hacer esperar a los demás intentos
+        boolean acierta = encriptador.matches(ingresado, codigo.getCodigoHash());
+        // Intentos simultáneos, de uno en uno: si no, varios leerían el mismo contador y se saltarían el límite de intentos
+        em.refresh(codigo, LockModeType.PESSIMISTIC_WRITE);
 
+        // Otro intento lo usó, o un reenvío lo cerró, mientras este esperaba: un código sirve una sola vez
+        if (codigo.getCerradoEn() != null) {
+            throw codigoInvalido();
+        }
         if (!ahora.isBefore(codigo.getVenceEn())) {
             codigo.cerrar(ahora);
             throw error("CODIGO_VENCIDO", "El código venció; pide uno nuevo");
@@ -73,7 +90,7 @@ public class CodigoVerificacionService {
             codigo.cerrar(ahora);
             throw error("CODIGO_INTENTOS_AGOTADOS", "Superaste los intentos; pide un código nuevo");
         }
-        if (!encriptador.matches(ingresado, codigo.getCodigoHash())) {
+        if (!acierta) {
             codigo.registrarIntentoFallido();
             if (codigo.getIntentos() >= MAXIMO_INTENTOS) {
                 codigo.cerrar(ahora);

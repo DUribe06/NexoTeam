@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ReporteRepository extends JpaRepository<Reporte, UUID> {
 
-    boolean existsByReportanteIdAndTutorIdAndAbiertoTrue(UUID reportanteId, UUID tutorId);
+    boolean existsByReportanteIdAndTutorIdAndCerradoEnIsNull(UUID reportanteId, UUID tutorId);
 }

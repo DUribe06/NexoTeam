@@ -1,0 +1,30 @@
+# Perfil de producción (lo activa SPRING_PROFILES_ACTIVE=prod). Todo secreto llega por variables de entorno.
+spring:
+  datasource:
+    # NEXO_DB_URL completa, o sus partes si el proveedor las entrega por separado (Render)
+    url: ${NEXO_DB_URL:jdbc:postgresql://${NEXO_DB_HOST}:${NEXO_DB_PUERTO:5432}/${NEXO_DB_NOMBRE}}
+  mail:
+    host: ${NEXO_SMTP_HOST}
+    port: ${NEXO_SMTP_PUERTO:587}
+    username: ${NEXO_SMTP_USUARIO}
+    password: ${NEXO_SMTP_CLAVE}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+
+server:
+  # El proveedor termina HTTPS delante de la aplicación
+  forward-headers-strategy: framework
+  error:
+    include-message: never
+    include-stacktrace: never
+
+nexo:
+  correo:
+    modo: smtp
+    remitente: ${NEXO_CORREO_REMITENTE}
+    verificar-mx: true

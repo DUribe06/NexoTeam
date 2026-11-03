@@ -18,7 +18,7 @@ public final class TutorDtos {
 
     public record Tutor(UUID id, String nombre, String handle, String bio, String universidad, List<String> materias,
                         double calificacionPromedio, long totalResenas, int sesionesTotales, int estudiantes,
-                        double precioHora, boolean enLinea, List<FranjaTutor> horario) {
+                        double precioHora, boolean enLinea, List<FranjaTutor> horario, int penalizaciones) {
     }
 
     public record ResenaDto(UUID id, UUID tutorId, String autor, String handleAutor, String texto, int estrellas,
@@ -34,7 +34,12 @@ public final class TutorDtos {
         }
     }
 
-    /** Promedio y total de reseñas de un tutor, calculados en la base. */
+    /** Promedio y total de reseñas de un tutor, los que mantiene la base al calificar. */
     public record ResumenResenas(UUID tutorId, double promedio, long total) {
+    }
+
+    /** Sesiones completadas de un tutor y los estudiantes distintos que atendió. */
+    public record ActividadTutor(int sesiones, int estudiantes) {
+        static final ActividadTutor NINGUNA = new ActividadTutor(0, 0);
     }
 }

@@ -1,0 +1,31 @@
+:root { --bosque: #0f3d2e; --medio: #587966; --borde: #d9e2dc; --fondo: #f6f8f6; --rojo: #ba1a1a; --tinte: #e4eee8; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/1.45 system-ui, sans-serif; color: var(--bosque); background: var(--fondo); }
+[hidden] { display: none !important; }
+button, input { font: inherit; }
+button { padding: 8px 14px; border: 1px solid var(--borde); border-radius: 8px; background: #fff; color: var(--bosque); cursor: pointer; }
+button:hover { background: var(--tinte); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--bosque); outline-offset: 1px; }
+button.primario { background: var(--bosque); border-color: var(--bosque); color: #fff; }
+button.peligro { color: var(--rojo); border-color: var(--rojo); }
+input { width: 100%; padding: 9px 11px; border: 1px solid var(--borde); border-radius: 8px; background: #fff; }
+.acceso { max-width: 340px; margin: 12vh auto; padding: 0 16px; }
+.acceso h1 { margin: 0; font-size: 30px; }
+.acceso p { margin: 0 0 18px; color: var(--medio); }
+.acceso label { display: block; margin: 12px 0 4px; font-weight: 600; }
+.acceso button { width: 100%; margin-top: 18px; }
+.error { color: var(--rojo) !important; margin-top: 12px !important; }
+header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px 20px; background: #fff; border-bottom: 1px solid var(--borde); }
+nav { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+[role=tab][aria-selected=true] { background: var(--tinte); border-color: var(--bosque); font-weight: 600; }
+.numero:not(:empty) { margin-left: 4px; font-variant-numeric: tabular-nums; }
+#panel main { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; }
+.aviso { padding: 10px 14px; border-radius: 8px; background: var(--tinte); }
+.tarjeta { margin-top: 12px; padding: 14px 16px; background: #fff; border: 1px solid var(--borde); border-radius: 10px; overflow-wrap: anywhere; }
+.tarjeta h2 { margin: 0; font-size: 16px; }
+.dato { margin: 2px 0; color: var(--medio); font-size: 14px; }
+.motivo { margin: 10px 0; white-space: pre-wrap; }
+.acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.vacio { margin-top: 28px; text-align: center; color: var(--medio); }
+.cerrado { opacity: .65; }
+.marca { color: var(--rojo); font-weight: 600; }
