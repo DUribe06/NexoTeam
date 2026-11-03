@@ -54,7 +54,6 @@ class RevisarNovedadesWorker @AssistedInject constructor(
             }
             val (novedades, foto) = calcularNovedades(antes, datos, Instant.now())
             // Con la app abierta, la persona ya lo está viendo en pantalla
-            Log.d(ETIQUETA, "Revisión: ${novedades.size} novedades, primera=${antes == null}, abierta=${appEnPrimerPlano()}")
             if (!appEnPrimerPlano()) novedades.forEach(::notificar)
             guardadas.edit().putString(CLAVE_FOTO, json.encodeToString(foto)).apply()
         } catch (e: CancellationException) {

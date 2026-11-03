@@ -19,3 +19,7 @@ app/build/
 /.impeccable/
 /skills-lock.json
 /PRODUCT.md
+
+# Archivos locales del gestor de archivos y del escritorio
+/.smartfs.db
+.directory
