@@ -9,11 +9,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record PerfilPropioDto(UUID id, String nombre, String correo, Rol rol, EstadoCuenta estadoCuenta,
                               String handle, Rol modo, boolean perfilTutorActivo, String universidad, String carrera,
-                              String bio, List<String> materias, Double precioHora) {
+                              String bio, List<String> materias, Double precioHora, boolean tieneContrasena) {
 
     public static PerfilPropioDto de(Usuario u) {
         return new PerfilPropioDto(u.getId(), u.getNombre(), u.getCorreo(), u.getRol(), u.getEstadoCuenta(),
             u.getHandle(), u.getRol(), u.isPerfilTutorActivo(), u.getUniversidad(), u.getCarrera(), u.getBio(),
-            u.getMaterias(), u.getPrecioHora() == null ? null : u.getPrecioHora().doubleValue());
+            u.getMaterias(), u.getPrecioHora() == null ? null : u.getPrecioHora().doubleValue(),
+            u.getContrasenaHash() != null);
     }
 }

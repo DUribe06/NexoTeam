@@ -25,6 +25,10 @@ public final class SolicitudesAuth {
         }
     }
 
+    /** Las condiciones solo hacen falta la primera vez; si faltan, el servidor responde `TERMINOS_REQUERIDOS`. */
+    public record Google(@NotBlank String tokenId, Boolean aceptaTerminos, @Size(max = 30) String versionTerminos) {
+    }
+
     public record SoloCorreo(@NotBlank @Email @Size(max = 254) String correo) {
         public SoloCorreo {
             correo = normalizar(correo);

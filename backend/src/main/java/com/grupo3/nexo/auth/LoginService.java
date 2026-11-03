@@ -64,7 +64,9 @@ public class LoginService {
         if (usuario.estaBloqueado(ahora)) {
             throw cuentaBloqueada(usuario);
         }
-        if (!encriptador.matches(contrasena, usuario.getContrasenaHash())) {
+        // Una cuenta que solo entra con Google no tiene contraseña: tarda lo mismo y falla como una errada
+        String hash = usuario.getContrasenaHash() != null ? usuario.getContrasenaHash() : hashFalso;
+        if (!encriptador.matches(contrasena, hash) || usuario.getContrasenaHash() == null) {
             // Se bloquea y se relee solo aquí, no durante el hash: los fallos simultáneos suman todos y ninguno pisa a otro
             em.refresh(usuario, LockModeType.PESSIMISTIC_WRITE);
             if (usuario.registrarLoginFallido(ahora, maximoIntentos, bloqueo)) {

@@ -41,8 +41,13 @@ public class Usuario {
     /** Siempre normalizado: minúsculas y sin espacios (lo exige también la base). */
     private String correo;
 
+    /** Null si la cuenta solo entra con Google. */
     @Column(name = "contrasena_hash")
     private String contrasenaHash;
+
+    /** Id estable de la persona en Google; null si nunca ha entrado con Google. */
+    @Column(name = "google_sub")
+    private String googleSub;
 
     /** Nombre público, único; lo genera el servidor (`@valeriarios`). */
     private String handle;
@@ -115,6 +120,31 @@ public class Usuario {
         u.terminosVersion = terminosVersion;
         u.terminosAceptadosEn = ahora;
         return u;
+    }
+
+    /** Google ya confirmó el correo: no hace falta código ni contraseña. */
+    public static Usuario nuevoConGoogle(String nombre, String correo, String googleSub, String handle,
+                                         String terminosVersion, Instant ahora) {
+        Usuario u = nuevo(nombre, correo, null, handle, null, terminosVersion, ahora);
+        u.googleSub = googleSub;
+        u.estadoCuenta = EstadoCuenta.ACTIVA;
+        return u;
+    }
+
+    public void unirConGoogle(String googleSub) {
+        this.googleSub = googleSub;
+    }
+
+    /**
+     * Alguien registró este correo sin confirmarlo y ahora entra su dueño. Se borra esa contraseña: si la puso otra
+     * persona, le daría acceso a la cuenta. Por lo mismo, las condiciones las acepta de nuevo quien sí es el dueño.
+     */
+    public void tomarCuentaSinConfirmar(String googleSub, String terminosVersion, Instant ahora) {
+        this.googleSub = googleSub;
+        contrasenaHash = null;
+        this.terminosVersion = terminosVersion;
+        terminosAceptadosEn = ahora;
+        marcarCorreoVerificado();
     }
 
     public boolean estaBloqueado(Instant ahora) {
@@ -195,6 +225,7 @@ public class Usuario {
     public String getNombre() { return nombre; }
     public String getCorreo() { return correo; }
     public String getContrasenaHash() { return contrasenaHash; }
+    public String getGoogleSub() { return googleSub; }
     public String getHandle() { return handle; }
     public Rol getRol() { return rol; }
     public String getDocumentoIdentidad() { return documentoIdentidad; }

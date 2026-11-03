@@ -48,7 +48,7 @@ public class SeguridadConfig {
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/salud", "/openapi/**", "/admin", "/admin/", "/admin/**", "/privacidad.html").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/registro", "/api/auth/verificar-correo",
-                    "/api/auth/reenviar-codigo", "/api/auth/login", "/api/auth/refrescar",
+                    "/api/auth/reenviar-codigo", "/api/auth/login", "/api/auth/google", "/api/auth/refrescar",
                     "/api/auth/recuperar", "/api/auth/restablecer").permitAll()
                 .requestMatchers("/api/admin/**").access(soloAdministradores(usuarios))
                 .anyRequest().authenticated())

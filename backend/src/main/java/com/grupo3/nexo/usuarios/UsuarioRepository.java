@@ -22,6 +22,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
     Optional<Usuario> findByCorreo(String correo);
 
+    Optional<Usuario> findByGoogleSub(String googleSub);
+
     @EntityGraph(attributePaths = "materias")
     List<Usuario> findByIdIn(Collection<UUID> ids);
 

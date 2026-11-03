@@ -55,7 +55,7 @@ public class UsuarioController {
     @PostMapping("/eliminar")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void eliminar(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody SolicitudesUsuario.EliminarCuenta s) {
-        eliminacion.eliminar(id(jwt), s.contrasena());
+        eliminacion.eliminar(id(jwt), s.contrasena(), s.tokenGoogle());
     }
 
     @GetMapping("/resumen")

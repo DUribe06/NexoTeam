@@ -19,7 +19,8 @@ public final class SolicitudesUsuario {
     public record CambiarModo(@NotNull Modo modo) {
     }
 
-    public record EliminarCuenta(@NotBlank String contrasena) {
+    /** La contraseña; o, si la cuenta no tiene, un token de Google recién pedido. */
+    public record EliminarCuenta(String contrasena, String tokenGoogle) {
     }
 
     /** Un campo sin enviar no cambia; un texto vacío borra ese dato. */

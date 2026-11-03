@@ -12,8 +12,7 @@ info:
     - Tutorías (Fase 2): perfil propio y modo de uso, búsqueda de tutores (RF3), perfil del tutor y reseñas (RF4),
       solicitudes y su respuesta (RF5, RF6), disponibilidad (RF7), chat (RF8), calificación mutua (RF9),
       sesiones e historial (RF10) y reportes (RF11). Cubre cada método de `domain/repository/` de la app; los
-      que no tienen endpoint propio lo explican en la operación que los reemplaza. La excepción es
-      `AuthRepository.iniciarSesionGoogle`, un flujo simplificado del prototipo que aún no tiene contrato.
+      que no tienen endpoint propio lo explican en la operación que los reemplaza.
 
     Convenciones:
     - JSON en UTF-8; nombres de campos en español y camelCase.
@@ -205,6 +204,54 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /api/auth/google:
+    post:
+      tags: [Autenticación]
+      summary: Inicia sesión con Google
+      description: |
+        La app envía el token de identidad que le entrega Google; el servidor comprueba firma, emisor, audiencia y
+        vigencia, y que Google haya confirmado el correo. Si ya hay una cuenta con ese correo, la une. La primera vez
+        hay que aceptar las condiciones: sin ellas responde `TERMINOS_REQUERIDOS`, y la app reintenta con el mismo token.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudGoogle"
+      responses:
+        "200":
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sesion"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          description: El token no es válido (`TOKEN_GOOGLE_INVALIDO`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: La cuenta está suspendida (`CUENTA_SUSPENDIDA`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: "Falta aceptar las condiciones (`TERMINOS_REQUERIDOS`) o el correo está unido a otra cuenta de Google (`GOOGLE_CUENTA_DISTINTA`)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: El servidor no pudo comprobar el token, o no tiene configurado Google (`GOOGLE_NO_DISPONIBLE`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /api/auth/refrescar:
     post:
       tags: [Autenticación]
@@ -423,9 +470,11 @@ paths:
           application/json:
             schema:
               type: object
-              required: [contrasena]
+              description: La contraseña; o, si la cuenta solo entra con Google, un token de Google recién pedido.
               properties:
                 contrasena:
+                  type: string
+                tokenGoogle:
                   type: string
       responses:
         "204":
@@ -447,7 +496,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
         "422":
-          description: La contraseña no coincide (`CONTRASENA_INCORRECTA`)
+          description: La contraseña no coincide (`CONTRASENA_INCORRECTA`), o la cuenta de Google no es la de esta cuenta (`GOOGLE_NO_COINCIDE`)
           content:
             application/json:
               schema:
@@ -1973,6 +2022,20 @@ components:
           type: string
           format: email
 
+    SolicitudGoogle:
+      type: object
+      required: [tokenId]
+      properties:
+        tokenId:
+          type: string
+          description: Token de identidad que entrega Google a la app
+        aceptaTerminos:
+          type: boolean
+          default: false
+        versionTerminos:
+          type: string
+          maxLength: 30
+
     SolicitudLogin:
       type: object
       required: [correo, contrasena]
@@ -2133,8 +2196,11 @@ components:
       allOf:
         - $ref: "#/components/schemas/Usuario"
         - type: object
-          required: [handle, modo, perfilTutorActivo, materias]
+          required: [handle, modo, perfilTutorActivo, materias, tieneContrasena]
           properties:
+            tieneContrasena:
+              type: boolean
+              description: Es false si la cuenta solo entra con Google
             handle:
               type: string
               description: Nombre de usuario público; lo genera el servidor

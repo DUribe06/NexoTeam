@@ -23,14 +23,17 @@ public class AuthController {
     private final LoginService login;
     private final SesionService sesiones;
     private final RecuperacionContrasenaService recuperacion;
+    private final InicioGoogleService google;
 
     public AuthController(RegistroService registro, VerificacionCorreoService verificacion, LoginService login,
-                          SesionService sesiones, RecuperacionContrasenaService recuperacion) {
+                          SesionService sesiones, RecuperacionContrasenaService recuperacion,
+                          InicioGoogleService google) {
         this.registro = registro;
         this.verificacion = verificacion;
         this.login = login;
         this.sesiones = sesiones;
         this.recuperacion = recuperacion;
+        this.google = google;
     }
 
     @PostMapping("/registro")
@@ -53,6 +56,11 @@ public class AuthController {
     @PostMapping("/login")
     public SesionDto iniciarSesion(@Valid @RequestBody SolicitudesAuth.Login s) {
         return login.iniciarSesion(s.correo(), s.contrasena());
+    }
+
+    @PostMapping("/google")
+    public SesionDto iniciarSesionConGoogle(@Valid @RequestBody SolicitudesAuth.Google s) {
+        return google.iniciarSesion(s);
     }
 
     @PostMapping("/refrescar")

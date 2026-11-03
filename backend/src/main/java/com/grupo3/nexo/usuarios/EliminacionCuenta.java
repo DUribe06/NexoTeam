@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.grupo3.nexo.auth.VerificadorTokenGoogle;
 import com.grupo3.nexo.error.ErrorNegocio;
 import com.grupo3.nexo.sesiones.TutoriasAlDia;
 
@@ -22,23 +23,24 @@ public class EliminacionCuenta {
     private final UsuarioService usuarios;
     private final TutoriasAlDia alDia;
     private final PasswordEncoder encriptador;
+    private final VerificadorTokenGoogle google;
 
-    public EliminacionCuenta(JdbcClient jdbc, UsuarioService usuarios, TutoriasAlDia alDia, PasswordEncoder encriptador) {
+    public EliminacionCuenta(JdbcClient jdbc, UsuarioService usuarios, TutoriasAlDia alDia, PasswordEncoder encriptador,
+                             VerificadorTokenGoogle google) {
         this.jdbc = jdbc;
         this.usuarios = usuarios;
         this.alDia = alDia;
         this.encriptador = encriptador;
+        this.google = google;
     }
 
     @Transactional
-    public void eliminar(UUID yo, String contrasena) {
+    public void eliminar(UUID yo, String contrasena, String tokenGoogle) {
         Usuario usuario = usuarios.cuentaEnSesion(yo);
         if (usuario.getRol() == Rol.ADMIN) {
             throw new ErrorNegocio(HttpStatus.FORBIDDEN, "ADMIN_SIN_MODOS", "Una cuenta de administrador no se elimina desde aquí");
         }
-        if (!encriptador.matches(contrasena, usuario.getContrasenaHash())) {
-            throw new ErrorNegocio(HttpStatus.UNPROCESSABLE_ENTITY, "CONTRASENA_INCORRECTA", "La contraseña no es correcta");
-        }
+        comprobarQueEsElDueno(usuario, contrasena, tokenGoogle);
         alDia.poner();
         boolean agendadas = jdbc.sql("""
             SELECT EXISTS (SELECT 1 FROM sesiones WHERE (tutor_id = ? OR estudiante_id = ?) AND estado = 'PROGRAMADA')
@@ -52,10 +54,23 @@ public class EliminacionCuenta {
             jdbc.sql("DELETE FROM " + tabla + " WHERE usuario_id = ?").param(yo).update();
         }
         jdbc.sql("""
-            UPDATE usuarios SET nombre = 'Cuenta eliminada', correo = ?, handle = ?, contrasena_hash = '!', rol = 'ESTUDIANTE',
+            UPDATE usuarios SET nombre = 'Cuenta eliminada', correo = ?, handle = ?, contrasena_hash = '!', google_sub = NULL, rol = 'ESTUDIANTE',
                    estado_cuenta = 'ELIMINADA', documento_identidad = NULL, universidad = NULL, carrera = NULL, bio = NULL,
                    precio_hora = NULL, perfil_tutor_activo = FALSE, calendario_creado_en = NULL, ultima_actividad_en = NULL
             WHERE id = ?
             """).params("eliminada-" + yo + "@nexo.invalid", "@x" + yo.toString().replace("-", ""), yo).update();
+    }
+
+    /** Lo único que distingue a la persona de quien encuentre el teléfono desbloqueado. */
+    private void comprobarQueEsElDueno(Usuario usuario, String contrasena, String tokenGoogle) {
+        if (usuario.getContrasenaHash() != null) {
+            if (contrasena == null || !encriptador.matches(contrasena, usuario.getContrasenaHash())) {
+                throw new ErrorNegocio(HttpStatus.UNPROCESSABLE_ENTITY, "CONTRASENA_INCORRECTA", "La contraseña no es correcta");
+            }
+            return;
+        }
+        if (tokenGoogle == null || !google.verificar(tokenGoogle).sub().equals(usuario.getGoogleSub())) {
+            throw new ErrorNegocio(HttpStatus.UNPROCESSABLE_ENTITY, "GOOGLE_NO_COINCIDE", "Elige la cuenta de Google con la que entras a Nexo");
+        }
     }
 }
