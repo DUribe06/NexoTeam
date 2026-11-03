@@ -4,10 +4,15 @@ import com.grupo3.nexo.BuildConfig
 import com.grupo3.nexo.data.repository.AuthRepositoryImpl
 import com.grupo3.nexo.data.repository.AuthRepositoryRemoto
 import com.grupo3.nexo.data.repository.ChatRepositoryImpl
+import com.grupo3.nexo.data.repository.ChatRepositoryRemoto
 import com.grupo3.nexo.data.repository.DisponibilidadRepositoryImpl
+import com.grupo3.nexo.data.repository.DisponibilidadRepositoryRemoto
 import com.grupo3.nexo.data.repository.SesionRepositoryImpl
+import com.grupo3.nexo.data.repository.SesionRepositoryRemoto
 import com.grupo3.nexo.data.repository.SolicitudRepositoryImpl
+import com.grupo3.nexo.data.repository.SolicitudRepositoryRemoto
 import com.grupo3.nexo.data.repository.TutorRepositoryImpl
+import com.grupo3.nexo.data.repository.TutorRepositoryRemoto
 import com.grupo3.nexo.domain.repository.AuthRepository
 import com.grupo3.nexo.domain.repository.ChatRepository
 import com.grupo3.nexo.domain.repository.DisponibilidadRepository
@@ -23,13 +28,9 @@ import javax.inject.Singleton
 
 /**
  * Módulo de inyección de dependencias.
- * La UI y los casos de uso dependen de las INTERFACES de dominio;
- * aquí se decide la implementación concreta (mock ahora, remota después).
- *
- * Para conectar la API: crear `XxxRepositoryRemoto` que implemente la interfaz de `domain/repository/`
- * (lanzando excepción ante fallos de red o del servidor) y cambiar el parámetro `impl` del provider
- * correspondiente por esa clase. Nada más cambia: casos de uso, ViewModels y pantallas siguen igual.
- * Cuentas ya tiene las dos y elige por `BuildConfig.USAR_API`; los `Provider` evitan crear la que no se usa.
+ * La UI y los casos de uso dependen de las INTERFACES de dominio; aquí se decide la implementación concreta según
+ * `BuildConfig.USAR_API`: los datos simulados o el servidor. Los `Provider` evitan crear la que no se usa.
+ * Los repositorios remotos se limpian solos al cerrar sesión o cambiar de modo (ver `ContextoRemoto`).
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -37,23 +38,38 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun proveerTutorRepository(impl: TutorRepositoryImpl): TutorRepository = impl
+    fun proveerTutorRepository(
+        simulado: Provider<TutorRepositoryImpl>,
+        remoto: Provider<TutorRepositoryRemoto>
+    ): TutorRepository = if (BuildConfig.USAR_API) remoto.get() else simulado.get()
 
     @Provides
     @Singleton
-    fun proveerSolicitudRepository(impl: SolicitudRepositoryImpl): SolicitudRepository = impl
+    fun proveerSolicitudRepository(
+        simulado: Provider<SolicitudRepositoryImpl>,
+        remoto: Provider<SolicitudRepositoryRemoto>
+    ): SolicitudRepository = if (BuildConfig.USAR_API) remoto.get() else simulado.get()
 
     @Provides
     @Singleton
-    fun proveerChatRepository(impl: ChatRepositoryImpl): ChatRepository = impl
+    fun proveerChatRepository(
+        simulado: Provider<ChatRepositoryImpl>,
+        remoto: Provider<ChatRepositoryRemoto>
+    ): ChatRepository = if (BuildConfig.USAR_API) remoto.get() else simulado.get()
 
     @Provides
     @Singleton
-    fun proveerSesionRepository(impl: SesionRepositoryImpl): SesionRepository = impl
+    fun proveerSesionRepository(
+        simulado: Provider<SesionRepositoryImpl>,
+        remoto: Provider<SesionRepositoryRemoto>
+    ): SesionRepository = if (BuildConfig.USAR_API) remoto.get() else simulado.get()
 
     @Provides
     @Singleton
-    fun proveerDisponibilidadRepository(impl: DisponibilidadRepositoryImpl): DisponibilidadRepository = impl
+    fun proveerDisponibilidadRepository(
+        simulado: Provider<DisponibilidadRepositoryImpl>,
+        remoto: Provider<DisponibilidadRepositoryRemoto>
+    ): DisponibilidadRepository = if (BuildConfig.USAR_API) remoto.get() else simulado.get()
 
     @Provides
     @Singleton

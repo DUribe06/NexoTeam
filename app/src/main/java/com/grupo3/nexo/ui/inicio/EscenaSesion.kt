@@ -2,6 +2,8 @@ package com.grupo3.nexo.ui.inicio
 
 import android.content.pm.ApplicationInfo
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -21,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -63,7 +66,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
+import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.theme.BordeSutil
+import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.CalCelda
 import com.grupo3.nexo.ui.theme.CalCuerpo
 import com.grupo3.nexo.ui.theme.CalDia
@@ -103,11 +108,23 @@ import kotlinx.coroutines.withContext
  * así el cuerpo se mueve como una sola cosa. Los datos de cada escena están en EscenaDatos.kt.
  */
 
+/** Se reemplaza en el detalle por el tiempo que falta de verdad. */
+private const val FALTA = "{falta}"
+
+private fun String.conFalta(minutos: Long?): String = replace(
+    FALTA,
+    when (minutos) {
+        null -> "Falta poco"
+        1L -> "Falta 1 minuto"
+        else -> "Faltan $minutos minutos"
+    }
+)
+
 /**
  * Etapas del seguimiento de una sesión, como el de un pedido. Siguen los estados del producto: solicitud
  * pendiente (RF5), aceptada (RF6), el día, el arranque, la sesión y la calificación mutua (RF9).
  * "Ya casi" y "En sesión" cambian según la modalidad: presencial o virtual. En presencial, como al pedir un
- * carro: primero el tutor va en camino y, cuando llega, ella le muestra el PIN para iniciar la sesión.
+ * carro: primero el tutor va en camino y, cuando llega y envía el PIN, ella se lo dice para iniciar la sesión.
  */
 enum class FaseSesion(
     val titulo: String,
@@ -119,10 +136,10 @@ enum class FaseSesion(
     ENVIADA("Solicitud enviada", "Esperando la respuesta del tutor.", "Solicitud recibida", "Un estudiante espera tu respuesta."),
     AGENDADA("Sesión agendada", "El tutor aceptó: ya está en tu calendario.", detalleTutor = "Aceptaste la solicitud: ya está en tu calendario."),
     HOY("Hoy es tu sesión", "Revisa la hora y deja listo lo que necesitas."),
-    YA_CASI("Ya casi", "Faltan 30 minutos: tu tutor va en camino.", detalleTutor = "Faltan 30 minutos: tu estudiante te espera."),
-    LLEGO("Tu tutor llegó", "Faltan 2 minutos: muéstrale el PIN para empezar.", "Ya llegaste", "Faltan 2 minutos: pídele el PIN al estudiante para empezar."),
+    YA_CASI("Ya casi", "$FALTA para tu sesión presencial."),
+    LLEGO("Tu tutor llegó", "Dile el PIN para empezar.", "PIN enviado", "Escribe el PIN que te diga el estudiante."),
     EN_SESION("Sesión en curso", "Concéntrate: el chat sigue abierto si lo necesitas."),
-    YA_CASI_VIRTUAL("Ya casi", "Faltan 30 minutos: la videollamada estará lista."),
+    YA_CASI_VIRTUAL("Ya casi", "$FALTA: la videollamada estará lista."),
     EN_SESION_VIRTUAL("Sesión en curso", "Videollamada con tu tutor en curso.", detalleTutor = "Videollamada con tu estudiante en curso."),
     CALIFICAR("¿Cómo te fue?", "Califica la sesión para ayudar a otros estudiantes.", detalleTutor = "Califica la sesión: tu opinión también cuenta.");
 
@@ -284,8 +301,11 @@ private fun DrawScope.fondo(c: Capa, img: ImageBitmap, m: Mov, a: Float, costura
     }
 }
 
-/** El PIN de muestra que ella le enseña al tutor en "Llegó". */
+/** Lo que se ve en la nube cuando se salta de fase a mano para revisar las escenas. */
 private const val PIN_MUESTRA = "4821"
+
+/** En la nube del tutor: él no conoce el PIN hasta que se lo digan. */
+private const val PIN_OCULTO = "••••"
 
 /* Cambio de escena: entra por la derecha y la anterior sale por la izquierda. */
 private const val ESCENA_RETRASO_MS = 120
@@ -781,13 +801,30 @@ private fun escenaDe(f: FaseSesion): Triple<Rig, Movimiento, Float> = when (f) {
 }
 
 /**
- * Escena animada de la próxima sesión. Arranca en "agendada" si hay sesiones y en "sola" si no, y se
- * ajusta si el dato cambia. Doble toque rápido: salta a la siguiente fase (control de revisión del
- * flujo mientras no hay horas ni estados reales de la sesión); solo en compilaciones de depuración.
+ * Escena animada de la próxima sesión. La fase llega decidida ([faseDe]) y cambia sola con la hora y los datos.
+ * Doble toque: salta a la siguiente fase para revisar las escenas; solo en compilaciones de depuración.
+ *
+ * @param cargando aún no se conoce la fase real: al llegar los datos, la escena se reemplaza sin el paso animado,
+ * que contaría un avance que no ocurrió.
+ * @param minutosParaEmpezar lo que falta para la sesión, para el texto de "Ya casi".
+ * @param aviso reemplaza el texto de la fase mientras una presencial espera el PIN.
+ * @param alTocarAviso qué hace tocar la barra cuando el aviso trae una acción.
  */
 @Composable
-fun BarraSesion(haySesiones: Boolean, esTutor: Boolean = false, modifier: Modifier = Modifier) {
-    var fase by remember(haySesiones) { mutableStateOf(if (haySesiones) FaseSesion.AGENDADA else FaseSesion.SOLA) }
+fun BarraSesion(
+    faseActual: FaseSesion,
+    cargando: Boolean,
+    minutosParaEmpezar: Long?,
+    esTutor: Boolean = false,
+    aviso: AvisoPin? = null,
+    alTocarAviso: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    // Lo saltado a mano dura hasta que la fase real cambie
+    var revisada by remember(faseActual) { mutableStateOf<FaseSesion?>(null) }
+    val fase = revisada ?: faseActual
+    val veniaCargando = remember { mutableStateOf(cargando) }
+    SideEffect { veniaCargando.value = cargando }
     val movimiento = !LocalAnimacionesReducidas.current
     val contexto = LocalContext.current
     val revision = remember(contexto) { contexto.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0 }
@@ -807,19 +844,26 @@ fun BarraSesion(haySesiones: Boolean, esTutor: Boolean = false, modifier: Modifi
             }
         }
     }
-    // El PIN de la nube (de muestra: aún no hay datos reales)
+    // Con la fase saltada a mano no hay aviso: se revisan las escenas tal cual
+    val avisoReal = aviso.takeIf { revisada == null }
+    val accion = avisoReal?.accion
+    // El PIN de la nube: el real para el estudiante; para el tutor, oculto
     val medidor = rememberTextMeasurer()
     val estiloPin = MaterialTheme.typography.titleSmall.merge(CodigoEspaciado).copy(color = TextoPrimario)
-    val pin = remember(estiloPin, revision) { if (revision) PIN_MUESTRA.map { medidor.measure(it.toString(), estiloPin) } else emptyList() }
+    val textoPin = if (revisada != null) PIN_MUESTRA else avisoReal?.pin ?: PIN_OCULTO
+    val pin = remember(estiloPin, textoPin) { textoPin.map { medidor.measure(it.toString(), estiloPin) } }
     Column(
         modifier
             .fillMaxWidth()
-            .then(if (revision) Modifier.pointerInput(Unit) { detectTapGestures(onDoubleTap = { fase = fase.siguiente() }) } else Modifier)
+            .then(if (revision) Modifier.pointerInput(Unit) { detectTapGestures(onDoubleTap = { revisada = fase.siguiente() }) } else Modifier)
+            // Toda la barra es el botón: el tutor acaba de llegar y no debe buscar dónde tocar
+            .then(if (accion != null) Modifier.pulsable(etiqueta = "${accion.etiqueta}. ${avisoReal.detalle}", alClicar = alTocarAviso) else Modifier)
     ) {
         AnimatedContent(
             targetState = fase,
             // La escena nueva entra por la derecha y la anterior sale por la izquierda, como un paso más
             transitionSpec = {
+                if (veniaCargando.value) return@AnimatedContent EnterTransition.None togetherWith ExitTransition.None
                 (fadeIn(tween(DuracionNormal, delayMillis = ESCENA_RETRASO_MS)) + slideInHorizontally(tween(ESCENA_PASO_MS, easing = CurvaEstandar)) { it / 3 }) togetherWith
                     (fadeOut(tween(ESCENA_SE_APAGA_MS)) + slideOutHorizontally(tween(ESCENA_PASO_MS, easing = CurvaEstandar)) { -it / 3 })
             },
@@ -836,21 +880,31 @@ fun BarraSesion(haySesiones: Boolean, esTutor: Boolean = false, modifier: Modifi
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(0.44f).padding(end = EspacioAjustado)) {
+                    // Durante el paso de escena, la que sale no toma el aviso de la que entra
+                    val avisoDeEsta = avisoReal.takeIf { f == fase }
                     Text(
-                        if (esTutor) f.tituloTutor else f.titulo,
+                        avisoDeEsta?.titulo ?: if (esTutor) f.tituloTutor else f.titulo,
                         style = MaterialTheme.typography.titleSmall,
                         color = TextoPrimario,
                         maxLines = if (letraGrande) 2 else 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        if (esTutor) f.detalleTutor else f.detalle,
+                        avisoDeEsta?.detalle ?: (if (esTutor) f.detalleTutor else f.detalle).conFalta(minutosParaEmpezar),
                         style = MaterialTheme.typography.bodySmall,
                         color = TextoTercero,
-                        maxLines = if (letraGrande) 4 else 2,
+                        maxLines = if (letraGrande) 5 else 4,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = EspacioMicro)
                     )
+                    avisoDeEsta?.accion?.let {
+                        Text(
+                            it.etiqueta,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = BosqueAcento,
+                            modifier = Modifier.padding(top = EspacioMicro)
+                        )
+                    }
                 }
                 Canvas(Modifier.weight(0.56f).height(62.dp).align(Alignment.Bottom).clipToBounds()) {
                     val t = if (movimiento) tiempo.value - inicio else pose

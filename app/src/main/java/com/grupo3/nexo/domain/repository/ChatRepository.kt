@@ -17,11 +17,11 @@ interface ChatRepository {
     suspend fun marcarLeido(chatId: String)
     /**
      * Devuelve el id del chat con esa persona y lo crea si todavía no existe (primer mensaje a un tutor).
-     * Con la API, el servidor devuelve el id del chat.
+     * El servidor no lo crea: si no hay una solicitud aceptada, lanza `ErrorApi` con `CHAT_NO_HABILITADO`.
      */
     suspend fun asegurarChat(personaId: String, nombre: String, enLinea: Boolean, comoTutor: Boolean): String
-    /** Deja activo el chat con esa persona: lo crea si falta y reabre uno en solo lectura (sesión nueva aceptada). */
+    /** Deja activo el chat con esa persona: lo crea si falta y reabre uno en solo lectura (sesión nueva aceptada). Con el servidor ya ocurrió al aceptar. */
     suspend fun habilitarChat(personaId: String, nombre: String, enLinea: Boolean, comoTutor: Boolean)
-    /** Pasa el chat con esa persona a solo lectura cuando ya no quedan sesiones por venir con ella. */
+    /** Pasa el chat con esa persona a solo lectura cuando ya no quedan sesiones por venir con ella. Con el servidor ya ocurrió al cancelar. */
     suspend fun cerrarChat(personaId: String)
 }

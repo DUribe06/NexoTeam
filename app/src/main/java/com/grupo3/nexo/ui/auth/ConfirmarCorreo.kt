@@ -162,7 +162,8 @@ internal fun CampoCodigo(
     alCambiar: (String) -> Unit,
     conError: Boolean,
     alPulsarListo: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    largo: Int = LARGO_CODIGO
 ) {
     val foco = remember { FocusRequester() }
     var enfocado by remember { mutableStateOf(false) }
@@ -181,17 +182,17 @@ internal fun CampoCodigo(
                 .fillMaxWidth()
                 .focusRequester(foco)
                 .onFocusChanged { enfocado = it.isFocused }
-                .semantics { contentDescription = "Código de $LARGO_CODIGO dígitos" },
+                .semantics { contentDescription = "Código de $largo dígitos" },
             decorationBox = { campo ->
                 Box {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        repeat(LARGO_CODIGO) { indice ->
+                        repeat(largo) { indice ->
                             CasillaCodigo(
                                 digito = valor.getOrNull(indice),
-                                activa = enfocado && indice == valor.length.coerceAtMost(LARGO_CODIGO - 1),
+                                activa = enfocado && indice == valor.length.coerceAtMost(largo - 1),
                                 conError = conError,
                                 modifier = Modifier.weight(1f)
                             )

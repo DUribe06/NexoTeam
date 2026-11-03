@@ -25,21 +25,24 @@ class AuthDtoTest {
     fun `lee la sesion del contrato`() {
         val dto = json.decodeFromString<SesionDto>(
             """{"tokenAcceso":"a","tokenRefresco":"r","expiraEnSegundos":900,
-                "usuario":{"id":"7f6a","nombre":"Ana","correo":"ana@correo.co","rol":"TUTOR",
-                "estadoCuenta":"ACTIVA","estadoVerificacionTutor":"PENDIENTE"}}"""
+                "usuario":{"id":"7f6a","nombre":"Ana","correo":"ana@correo.co","rol":"TUTOR","estadoCuenta":"ACTIVA"}}"""
         )
         assertEquals("a", dto.tokenAcceso)
         assertEquals(900, dto.expiraEnSegundos)
         assertEquals(RolDto.TUTOR, dto.usuario.rol)
-        assertEquals(EstadoVerificacionTutorDto.PENDIENTE, dto.usuario.estadoVerificacionTutor)
     }
 
     @Test
-    fun `el estado de verificacion del tutor es opcional`() {
-        val dto = json.decodeFromString<UsuarioDto>(
-            """{"id":"1","nombre":"Ana","correo":"a@b.co","rol":"ESTUDIANTE","estadoCuenta":"ACTIVA"}"""
+    fun `un rol o estado de cuenta que la app no conoce no tumba la lectura`() {
+        val admin = json.decodeFromString<UsuarioDto>(
+            """{"id":"1","nombre":"Ana","correo":"a@b.co","rol":"ADMIN","estadoCuenta":"ACTIVA"}"""
         )
-        assertNull(dto.estadoVerificacionTutor)
+        val nuevo = json.decodeFromString<UsuarioDto>(
+            """{"id":"1","nombre":"Ana","correo":"a@b.co","rol":"MONITOR","estadoCuenta":"EN_REVISION"}"""
+        )
+        assertEquals(RolDto.ADMIN, admin.rol)
+        assertEquals(RolDto.DESCONOCIDO, nuevo.rol)
+        assertEquals(EstadoCuentaDto.DESCONOCIDO, nuevo.estadoCuenta)
     }
 
     @Test

@@ -1,11 +1,5 @@
 package com.grupo3.nexo.ui.historial
 
-import com.grupo3.nexo.ui.components.formatoHora
-import com.grupo3.nexo.ui.theme.TamanoAvatarCompacto
-import com.grupo3.nexo.ui.theme.TamanoEstrellaCompacta
-import com.grupo3.nexo.ui.theme.AreaTactilMinima
-import com.grupo3.nexo.ui.components.avisoFallo
-import com.grupo3.nexo.ui.components.plural
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -55,34 +49,47 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.grupo3.nexo.domain.model.Sesion
 import com.grupo3.nexo.ui.components.Avatar
 import com.grupo3.nexo.ui.components.AvisoNexo
+import com.grupo3.nexo.ui.components.BotonPrimario
 import com.grupo3.nexo.ui.components.BotonSecundario
+import com.grupo3.nexo.ui.components.BotonTexto
 import com.grupo3.nexo.ui.components.CabeceraSeccion
+import com.grupo3.nexo.ui.components.Campo
 import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.EncabezadoSeccion
 import com.grupo3.nexo.ui.components.ErrorDeLista
-import com.grupo3.nexo.ui.components.mostrarError
 import com.grupo3.nexo.ui.components.EsqueletoLista
 import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.Estrellas
 import com.grupo3.nexo.ui.components.FiltroOpcion
 import com.grupo3.nexo.ui.components.HojaCalificacion
+import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.components.ListaResenas
 import com.grupo3.nexo.ui.components.RotuloGrupo
 import com.grupo3.nexo.ui.components.TextoLinea
+import com.grupo3.nexo.ui.components.avisoFallo
 import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.formatoFecha
+import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.components.formatoValoracion
+import com.grupo3.nexo.ui.components.mostrarError
+import com.grupo3.nexo.ui.components.motivoDeCierre
+import com.grupo3.nexo.ui.components.plural
 import com.grupo3.nexo.ui.components.superficie
+import com.grupo3.nexo.ui.components.textoDePenalizacion
+import com.grupo3.nexo.ui.components.textoDeRevision
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
+import com.grupo3.nexo.ui.theme.ErrorBosque
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioCercano
 import com.grupo3.nexo.ui.theme.EspacioCorto
 import com.grupo3.nexo.ui.theme.EspacioExtenso
+import com.grupo3.nexo.ui.theme.EspacioHolgado
 import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
@@ -91,6 +98,8 @@ import com.grupo3.nexo.ui.theme.FormaOrganica
 import com.grupo3.nexo.ui.theme.IconoDiminuto
 import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.MielOscura
+import com.grupo3.nexo.ui.theme.TamanoAvatarCompacto
+import com.grupo3.nexo.ui.theme.TamanoEstrellaCompacta
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
@@ -109,6 +118,7 @@ fun PantallaHistorial(
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     var porCalificarId by rememberSaveable { mutableStateOf<String?>(null) }
+    var porRevisarId by rememberSaveable { mutableStateOf<String?>(null) }
     val porCalificar = estado.todas.firstOrNull { it.id == porCalificarId }
     val avisos = remember { SnackbarHostState() }
     val alcance = rememberCoroutineScope()
@@ -151,7 +161,7 @@ fun PantallaHistorial(
                             }
                         }
                         items(estado.sesiones, key = { it.id }) { sesion ->
-                            TarjetaHistorial(sesion, estado.esTutor, alCalificar = { porCalificarId = sesion.id }, modifier = Modifier.animateItem())
+                            TarjetaHistorial(sesion, estado.esTutor, alCalificar = { porCalificarId = sesion.id }, alPedirRevision = { porRevisarId = sesion.id }, modifier = Modifier.animateItem())
                         }
                         if (estado.esTutor) {
                             item(key = "resenas") {
@@ -185,17 +195,62 @@ fun PantallaHistorial(
             alCerrar = { porCalificarId = null },
             alEnviar = { estrellas, comentario ->
                 val esTutor = estado.esTutor
-                viewModel.calificar(sesion.id, estrellas, comentario) { exito ->
+                viewModel.calificar(sesion.id, estrellas, comentario) { fallo ->
                     alcance.launch {
-                        if (exito) avisos.showSnackbar(if (esTutor) "Gracias, tu calificación quedó guardada" else "Gracias, tu calificación ayuda a otros estudiantes")
-                        else avisos.mostrarError(avisoFallo("guardar tu calificación"))
+                        if (fallo == null) avisos.showSnackbar(if (esTutor) "Gracias, tu calificación quedó guardada" else "Gracias, tu calificación ayuda a otros estudiantes")
+                        else avisos.mostrarError(avisoFallo("guardar tu calificación", fallo))
                     }
                 }
                 porCalificarId = null
             }
         )
     }
+
+    estado.todas.firstOrNull { it.id == porRevisarId }?.let { sesion ->
+        HojaRevision(
+            alCerrar = { porRevisarId = null },
+            alEnviar = { motivo ->
+                viewModel.pedirRevision(sesion.id, motivo) { fallo ->
+                    alcance.launch {
+                        if (fallo == null) avisos.showSnackbar("Recibimos tu solicitud de revisión")
+                        else avisos.mostrarError(avisoFallo("enviar tu solicitud", fallo))
+                    }
+                }
+                porRevisarId = null
+            }
+        )
+    }
 }
+
+private const val MINIMO_MOTIVO_REVISION = 10
+
+@Composable
+private fun HojaRevision(alCerrar: () -> Unit, alEnviar: (String) -> Unit) {
+    var motivo by rememberSaveable { mutableStateOf("") }
+    HojaNexo(
+        titulo = "Pedir revisión",
+        subtitulo = "Cuéntanos qué pasó. Un administrador revisará el caso; mientras tanto, la penalización sigue vigente.",
+        alCerrar = alCerrar
+    ) {
+        Spacer(Modifier.height(EspacioNormal))
+        Campo(
+            valor = motivo,
+            alCambiar = { motivo = it.take(MAXIMO_MOTIVO_REVISION) },
+            marcador = "Qué pasó ese día",
+            lineasMaximas = 4,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(EspacioHolgado))
+        BotonPrimario(
+            texto = "Enviar",
+            habilitado = motivo.trim().length >= MINIMO_MOTIVO_REVISION,
+            alClicar = { alEnviar(motivo) },
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+private const val MAXIMO_MOTIVO_REVISION = 500
 
 /* ==================== Componentes privados ==================== */
 
@@ -296,7 +351,7 @@ private fun CifraResumen(
 }
 
 @Composable
-private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -> Unit, modifier: Modifier = Modifier) {
+private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -> Unit, alPedirRevision: () -> Unit, modifier: Modifier = Modifier) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -319,6 +374,16 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
                 color = TextoTercero,
                 style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares)
             )
+            sesion.motivoDeCierre()?.let {
+                Text(it, color = TextoSecundario, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = EspacioMinimo))
+            }
+            sesion.textoDePenalizacion()?.let {
+                Text(it, color = ErrorBosque, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = EspacioMinimo))
+            }
+            sesion.textoDeRevision()?.let {
+                Text(it, color = TextoSecundario, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = EspacioMinimo))
+            }
+            if (sesion.puedePedirRevision) BotonTexto("Pedir revisión", alPedirRevision)
             sesion.calificacionRecibida?.takeIf { sesion.completada }?.let { nota ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

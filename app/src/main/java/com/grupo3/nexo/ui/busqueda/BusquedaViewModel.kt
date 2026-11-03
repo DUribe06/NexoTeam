@@ -4,11 +4,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.model.AreaEstudio
+import com.grupo3.nexo.domain.model.FiltroTutores
 import com.grupo3.nexo.domain.model.Franja
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.usecase.BuscarTutoresUseCase
-import com.grupo3.nexo.domain.usecase.FiltroTutores
 import com.grupo3.nexo.ui.Recarga
 import com.grupo3.nexo.ui.navigation.Rutas
 import dagger.hilt.android.lifecycle.HiltViewModel

@@ -1,8 +1,10 @@
 package com.grupo3.nexo.data.repository
 
 import com.grupo3.nexo.data.mock.MockData
+import com.grupo3.nexo.domain.model.FiltroTutores
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.Tutor
+import com.grupo3.nexo.domain.model.cumple
 import com.grupo3.nexo.domain.repository.TutorRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,6 +25,9 @@ class TutorRepositoryImpl @Inject constructor() : TutorRepository {
 
     override fun obtenerTutor(id: String): Flow<Tutor?> =
         tutores.asStateFlow().map { lista -> lista.firstOrNull { it.id == id } }
+
+    override fun buscarTutores(filtro: FiltroTutores): Flow<List<Tutor>> =
+        tutores.asStateFlow().map { lista -> lista.filter { it.cumple(filtro) } }
 
     override fun obtenerResenas(tutorId: String): Flow<List<Resena>> =
         resenas.asStateFlow().map { lista -> lista.filter { it.tutorId == tutorId } }

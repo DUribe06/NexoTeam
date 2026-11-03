@@ -15,7 +15,8 @@ import com.grupo3.nexo.domain.usecase.ActualizarSolicitudUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerMisSolicitudesUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.ui.Recarga
-import com.grupo3.nexo.ui.intentar
+import com.grupo3.nexo.ui.falloDe
+import com.grupo3.nexo.ui.resultadoDe
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -92,22 +93,21 @@ class SolicitudesViewModel @Inject constructor(
         filtro.value = if (valor == null || estado.value.filtro == valor) null else rol to valor
     }
 
-    /** Las tres acciones avisan con `alTerminar(true)` si se guardó y `alTerminar(false)` si falló. */
-    fun aceptar(id: String, alTerminar: (Boolean) -> Unit) = cambiar(id, EstadoSolicitud.ACEPTADA, null, alTerminar)
-    fun rechazar(id: String, motivo: String?, alTerminar: (Boolean) -> Unit) = cambiar(id, EstadoSolicitud.RECHAZADA, motivo, alTerminar)
-    fun cancelar(id: String, alTerminar: (Boolean) -> Unit) = cambiar(id, EstadoSolicitud.CANCELADA, null, alTerminar)
+    /** Las tres acciones avisan con `alTerminar(null)` si se guardó y `alTerminar(fallo)` si no. */
+    fun aceptar(id: String, alTerminar: (Throwable?) -> Unit) = cambiar(id, EstadoSolicitud.ACEPTADA, null, alTerminar)
+    fun rechazar(id: String, motivo: String?, alTerminar: (Throwable?) -> Unit) = cambiar(id, EstadoSolicitud.RECHAZADA, motivo, alTerminar)
+    fun cancelar(id: String, alTerminar: (Throwable?) -> Unit) = cambiar(id, EstadoSolicitud.CANCELADA, null, alTerminar)
 
     /** El chat existe solo para solicitudes aceptadas (RF8): se abre (o se crea) y, si falla, `alFallar` muestra el aviso. */
-    fun abrirConversacion(solicitud: Solicitud, alListo: (String) -> Unit, alFallar: () -> Unit) {
+    fun abrirConversacion(solicitud: Solicitud, alListo: (String) -> Unit, alFallar: (Throwable) -> Unit) {
         viewModelScope.launch {
-            var id: String? = null
-            if (intentar { id = abrirChat(solicitud) }) id?.let(alListo) else alFallar()
+            resultadoDe { abrirChat(solicitud) }.onSuccess { id -> id?.let(alListo) }.onFailure(alFallar)
         }
     }
 
     private val enCurso = AccionesEnCurso()
 
-    private fun cambiar(id: String, nuevo: EstadoSolicitud, motivo: String?, alTerminar: (Boolean) -> Unit) {
-        enCurso.lanzar(viewModelScope, "cambiar:$id") { alTerminar(intentar { actualizarSolicitud(id, nuevo, motivo) }) }
+    private fun cambiar(id: String, nuevo: EstadoSolicitud, motivo: String?, alTerminar: (Throwable?) -> Unit) {
+        enCurso.lanzar(viewModelScope, "cambiar:$id") { alTerminar(falloDe { actualizarSolicitud(id, nuevo, motivo) }) }
     }
 }

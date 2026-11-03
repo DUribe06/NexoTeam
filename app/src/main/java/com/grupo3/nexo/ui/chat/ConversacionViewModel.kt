@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.model.Mensaje
 import com.grupo3.nexo.domain.model.Sesion
+import com.grupo3.nexo.domain.usecase.AceptarAcuerdoUseCase
 import com.grupo3.nexo.domain.usecase.CalificarSesionUseCase
 import com.grupo3.nexo.domain.usecase.EnviarMensajeUseCase
 import com.grupo3.nexo.domain.usecase.MarcarChatLeidoUseCase
@@ -13,8 +14,11 @@ import com.grupo3.nexo.domain.usecase.ObtenerMensajesUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerSesionDeConversacionUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerSesionesDelModoUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerTutoresUseCase
+import com.grupo3.nexo.domain.usecase.ProponerAcuerdoUseCase
+import com.grupo3.nexo.domain.usecase.RechazarAcuerdoUseCase
 import com.grupo3.nexo.ui.AccionesEnCurso
 import com.grupo3.nexo.ui.Recarga
+import com.grupo3.nexo.ui.falloDe
 import com.grupo3.nexo.ui.intentar
 import com.grupo3.nexo.ui.navigation.Rutas
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,6 +42,9 @@ class ConversacionViewModel @Inject constructor(
     private val sesionDeConversacion: ObtenerSesionDeConversacionUseCase,
     private val enviarMensaje: EnviarMensajeUseCase,
     private val marcarLeido: MarcarChatLeidoUseCase,
+    private val proponerAcuerdo: ProponerAcuerdoUseCase,
+    private val aceptarAcuerdo: AceptarAcuerdoUseCase,
+    private val rechazarAcuerdo: RechazarAcuerdoUseCase,
     estadoGuardado: SavedStateHandle
 ) : ViewModel() {
 
@@ -90,18 +97,32 @@ class ConversacionViewModel @Inject constructor(
         chatId.value.takeIf { it.isNotEmpty() }?.let { id -> viewModelScope.launch { intentar { marcarLeido(id) } } }
     }
 
-    /** Avisa con `alTerminar(true)` si se guardó y `alTerminar(false)` si falló. */
+    /** Avisa con `alTerminar(null)` si se guardó y `alTerminar(fallo)` si no. */
     private val enCurso = AccionesEnCurso()
 
-    fun calificar(sesionId: String, estrellas: Int, comentario: String?, alTerminar: (Boolean) -> Unit) {
-        enCurso.lanzar(viewModelScope, "calificar:$sesionId") { alTerminar(intentar { calificarSesion(sesionId, estrellas, comentario) }) }
+    fun calificar(sesionId: String, estrellas: Int, comentario: String?, alTerminar: (Throwable?) -> Unit) {
+        enCurso.lanzar(viewModelScope, "calificar:$sesionId") { alTerminar(falloDe { calificarSesion(sesionId, estrellas, comentario) }) }
     }
 
-    /** Si el mensaje no sale, `alTerminar(false)` permite devolver el texto a la caja para reintentar. */
-    fun enviar(texto: String, alTerminar: (Boolean) -> Unit) {
+    /** Un retardo de `minutos` sobre la hora original, o cancelar con null. */
+    fun proponer(sesionId: String, minutos: Int?, alTerminar: (Throwable?) -> Unit) {
+        enCurso.lanzar(viewModelScope, "acuerdo:$sesionId") { alTerminar(falloDe { proponerAcuerdo(sesionId, minutos) }) }
+    }
+
+    fun aceptar(sesionId: String, alTerminar: (Throwable?) -> Unit) {
+        enCurso.lanzar(viewModelScope, "acuerdo:$sesionId") { alTerminar(falloDe { aceptarAcuerdo(sesionId) }) }
+    }
+
+    /** La otra persona la rechaza; quien la propuso la retira. */
+    fun rechazar(sesionId: String, alTerminar: (Throwable?) -> Unit) {
+        enCurso.lanzar(viewModelScope, "acuerdo:$sesionId") { alTerminar(falloDe { rechazarAcuerdo(sesionId) }) }
+    }
+
+    /** Si el mensaje no sale, `alTerminar(fallo)` permite devolver el texto a la caja para reintentar. */
+    fun enviar(texto: String, alTerminar: (Throwable?) -> Unit) {
         val limpio = texto.trim()
         if (limpio.isEmpty() || chatId.value.isEmpty() || estado.value.soloLectura) return
         // Solo se ignora el mismo texto mientras sale; otro mensaje distinto sigue su curso
-        enCurso.lanzar(viewModelScope, "enviar:$limpio") { alTerminar(intentar { enviarMensaje(chatId.value, limpio) }) }
+        enCurso.lanzar(viewModelScope, "enviar:$limpio") { alTerminar(falloDe { enviarMensaje(chatId.value, limpio) }) }
     }
 }

@@ -89,9 +89,11 @@ import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.components.formatoMomento
 import com.grupo3.nexo.ui.components.mostrarError
+import com.grupo3.nexo.ui.components.motivoDeCierre
 import com.grupo3.nexo.ui.components.plural
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
+import com.grupo3.nexo.ui.components.textoDePenalizacion
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
@@ -237,7 +239,7 @@ private fun FilaChat(chat: Chat, alAbrir: () -> Unit, modifier: Modifier = Modif
             }
             Spacer(Modifier.height(EspacioRozante))
             if (chat.soloLectura) {
-                Text("Sesión finalizada · solo lectura", color = TextoTercero, style = MaterialTheme.typography.labelMedium)
+                Text("Conversación cerrada · solo lectura", color = TextoTercero, style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(1.dp))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -306,6 +308,7 @@ fun PantallaConversacion(
     val listaEstado = rememberLazyListState()
     var texto by rememberSaveable { mutableStateOf("") }
     var calificando by rememberSaveable { mutableStateOf(false) }
+    var acordando by rememberSaveable { mutableStateOf(false) }
 
     // Al abrir, el chat ya aparece en el último mensaje; solo se anima lo que llega después
     var yaPosicionado by remember { mutableStateOf(false) }
@@ -325,11 +328,11 @@ fun PantallaConversacion(
     val alcance = rememberCoroutineScope()
 
     fun enviar(valor: String) {
-        viewModel.enviar(valor) { exito ->
+        viewModel.enviar(valor) { fallo ->
             // Si el mensaje no salió, el texto vuelve a la caja para reintentar (salvo que ya se haya escrito otra cosa)
-            if (!exito) {
+            if (fallo != null) {
                 if (texto.isEmpty()) texto = valor
-                alcance.launch { avisos.mostrarError(avisoFallo("enviar el mensaje")) }
+                alcance.launch { avisos.mostrarError(avisoFallo("enviar el mensaje", fallo)) }
             }
         }
         texto = ""
@@ -449,6 +452,16 @@ fun PantallaConversacion(
             // Mientras carga o falla no hay a quién escribir: sin campo de texto
             if (cargaMensajes == Carga.CARGANDO || cargaMensajes == Carga.ERROR) return@Column
 
+            // Quien va tarde lo acuerda aquí, antes de que se venza la hora
+            estado.sesion?.takeIf { it.admiteAcuerdo(LocalDate.now()) }?.let { sesion ->
+                TiraAcuerdo(
+                    sesion = sesion,
+                    alAcordar = { acordando = true },
+                    alAceptar = { viewModel.aceptar(sesion.id) { it?.let { fallo -> alcance.launch { avisos.mostrarError(avisoFallo("aceptar la propuesta", fallo)) } } } },
+                    alRechazar = { viewModel.rechazar(sesion.id) { it?.let { fallo -> alcance.launch { avisos.mostrarError(avisoFallo("responder la propuesta", fallo)) } } } }
+                )
+            }
+
             // Entrada de texto
             val puedeEnviar = texto.isNotBlank()
             val escalaEnviar by animateFloatAsState(
@@ -500,6 +513,18 @@ fun PantallaConversacion(
         AvisoNexo(avisos, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = EspacioAmplio))
     }
 
+    val sesionPorAcordar = estado.sesion?.takeIf { it.admiteAcuerdo(LocalDate.now()) }
+    if (acordando && sesionPorAcordar != null) {
+        HojaAcuerdo(
+            sesion = sesionPorAcordar,
+            alCerrar = { acordando = false },
+            alElegir = { minutos ->
+                acordando = false
+                viewModel.proponer(sesionPorAcordar.id, minutos) { it?.let { fallo -> alcance.launch { avisos.mostrarError(avisoFallo("enviar la propuesta", fallo)) } } }
+            }
+        )
+    }
+
     val sesionPorCalificar = estado.sesion
     if (calificando && sesionPorCalificar != null) {
         HojaCalificacion(
@@ -507,10 +532,10 @@ fun PantallaConversacion(
             esTutor = estado.esTutor,
             alCerrar = { calificando = false },
             alEnviar = { estrellas, comentario ->
-                viewModel.calificar(sesionPorCalificar.id, estrellas, comentario) { exito ->
+                viewModel.calificar(sesionPorCalificar.id, estrellas, comentario) { fallo ->
                     alcance.launch {
-                        if (exito) avisos.showSnackbar(if (estado.esTutor) "Gracias, tu calificación quedó guardada" else "Gracias, tu calificación ayuda a otros estudiantes")
-                        else avisos.mostrarError(avisoFallo("guardar tu calificación"))
+                        if (fallo == null) avisos.showSnackbar(if (estado.esTutor) "Gracias, tu calificación quedó guardada" else "Gracias, tu calificación ayuda a otros estudiantes")
+                        else avisos.mostrarError(avisoFallo("guardar tu calificación", fallo))
                     }
                 }
                 calificando = false
@@ -630,7 +655,11 @@ private fun PieSesionTerminada(sesion: Sesion?, alCalificar: () -> Unit) {
     }
     if (!sesion.completada) {
         AvisoSoloLectura(
-            motivo = if (sesion.estado == EstadoSesion.CANCELADA) "La sesión se canceló." else "La sesión se cerró sin asistencia."
+            motivo = when {
+                sesion.cierre != null -> listOfNotNull("La sesión se canceló.", sesion.motivoDeCierre(), sesion.textoDePenalizacion()).joinToString(" ")
+                sesion.estado == EstadoSesion.CANCELADA -> "La sesión se canceló."
+                else -> "La sesión se cerró sin asistencia."
+            }
         )
         return
     }

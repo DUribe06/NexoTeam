@@ -65,8 +65,10 @@ private class CuentasDePrueba : AuthRepository {
     }
     override suspend fun restablecerContrasena(correo: String, codigo: String, nueva: String) = alRestablecer()
     override suspend fun iniciarSesionGoogle() = alGoogle()
-    override fun cambiarModo(rol: Rol) = Unit
+    override suspend fun cambiarModo(rol: Rol) = Unit
+    override suspend fun definirMaterias(materias: List<String>) = Unit
     override fun cerrarSesion() = Unit
+    override suspend fun eliminarCuenta(contrasena: String) = Unit
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

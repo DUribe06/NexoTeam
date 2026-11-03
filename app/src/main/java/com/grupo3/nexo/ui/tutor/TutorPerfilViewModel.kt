@@ -4,17 +4,19 @@ import com.grupo3.nexo.ui.AccionesEnCurso
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.grupo3.nexo.domain.model.DiaSolicitable
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.model.primerNombre
 import com.grupo3.nexo.domain.usecase.EnviarSolicitudUseCase
+import com.grupo3.nexo.domain.usecase.ObtenerDiasSolicitablesUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerResenasUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerTutorUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.domain.usecase.ReportarTutorUseCase
 import com.grupo3.nexo.ui.Recarga
-import com.grupo3.nexo.ui.intentar
+import com.grupo3.nexo.ui.falloDe
 import com.grupo3.nexo.ui.navigation.Rutas
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -32,8 +34,8 @@ import kotlinx.coroutines.launch
 sealed interface AvisoPerfil {
     data class SolicitudEnviada(val tutor: String) : AvisoPerfil
     data object ReporteEnviado : AvisoPerfil
-    data object SolicitudFallida : AvisoPerfil
-    data object ReporteFallido : AvisoPerfil
+    data class SolicitudFallida(val fallo: Throwable) : AvisoPerfil
+    data class ReporteFallido(val fallo: Throwable) : AvisoPerfil
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -42,6 +44,7 @@ class TutorPerfilViewModel @Inject constructor(
     private val obtenerTutor: ObtenerTutorUseCase,
     private val obtenerResenas: ObtenerResenasUseCase,
     private val enviarSolicitud: EnviarSolicitudUseCase,
+    private val obtenerDiasSolicitables: ObtenerDiasSolicitablesUseCase,
     private val reportarTutor: ReportarTutorUseCase,
     obtenerUsuario: ObtenerUsuarioUseCase,
     estadoGuardado: SavedStateHandle
@@ -82,18 +85,22 @@ class TutorPerfilViewModel @Inject constructor(
 
     private val enCurso = AccionesEnCurso()
 
+    /** Días que se le pueden pedir al tutor, para la hoja Solicitar. */
+    fun diasDe(t: Tutor): Flow<List<DiaSolicitable>> = obtenerDiasSolicitables(t)
+
     fun solicitar(datos: DatosSolicitud) {
         val t = estado.value.tutor ?: return
         enCurso.lanzar(viewModelScope, "solicitar") {
-            val exito = intentar { enviarSolicitud(t, datos.materia, datos.tema, datos.fecha, datos.hora, datos.modalidad, datos.mensaje) }
-            aviso.value = if (exito) AvisoPerfil.SolicitudEnviada(t.nombre.primerNombre) else AvisoPerfil.SolicitudFallida
+            val fallo = falloDe { enviarSolicitud(t, datos.materia, datos.tema, datos.fecha, datos.hora, datos.modalidad, datos.mensaje) }
+            aviso.value = if (fallo == null) AvisoPerfil.SolicitudEnviada(t.nombre.primerNombre) else AvisoPerfil.SolicitudFallida(fallo)
         }
     }
 
     fun reportar(motivo: String) {
         val t = estado.value.tutor ?: return
         enCurso.lanzar(viewModelScope, "reportar") {
-            aviso.value = if (intentar { reportarTutor(t.id, motivo) }) AvisoPerfil.ReporteEnviado else AvisoPerfil.ReporteFallido
+            val fallo = falloDe { reportarTutor(t.id, motivo) }
+            aviso.value = if (fallo == null) AvisoPerfil.ReporteEnviado else AvisoPerfil.ReporteFallido(fallo)
         }
     }
 

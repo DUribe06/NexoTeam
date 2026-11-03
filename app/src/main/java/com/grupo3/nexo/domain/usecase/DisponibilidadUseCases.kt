@@ -14,12 +14,11 @@ class ObtenerDisponibilidadUseCase @Inject constructor(
     operator fun invoke(): Flow<List<DiaDisponibilidad>> = repositorio.obtener()
 }
 
-/** Define la modalidad de una hora; sin modalidades, la hora deja de estar disponible (RF7). */
-class DefinirHoraUseCase @Inject constructor(
+/** Guarda la semana completa; una hora sin modalidades deja de estar disponible (RF7). */
+class DefinirSemanaUseCase @Inject constructor(
     private val repositorio: DisponibilidadRepository
 ) {
-    suspend operator fun invoke(dia: String, hora: LocalTime, modalidades: Set<Modalidad>) =
-        repositorio.definirHora(dia, hora, modalidades)
+    suspend operator fun invoke(dias: List<DiaDisponibilidad>) = repositorio.definirSemana(dias)
 }
 
 /** Crea la semana editable cuando el tutor aún no tiene calendario, para que pueda empezar a publicar horas (RF7). */

@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.solicitudes
 
+import com.grupo3.nexo.ui.components.textoDePenalizacionesRecientes
 import com.grupo3.nexo.ui.components.PildoraAbrirChat
 import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.theme.TamanoAvatarCompacto
@@ -197,14 +198,14 @@ fun PantallaSolicitudes(
                                 horas = estado.horasRestantes[solicitud.id] ?: 0.0,
                                 horasEnteras = estado.horasEnteras[solicitud.id] ?: 0.0,
                                 alAceptar = {
-                                    viewModel.aceptar(solicitud.id) { exito ->
-                                        if (exito) avisar("Sesión con ${solicitud.nombreEstudiante.primerNombre} confirmada.")
-                                        else avisarError(avisoFallo("aceptar la solicitud"))
+                                    viewModel.aceptar(solicitud.id) { fallo ->
+                                        if (fallo == null) avisar("Sesión con ${solicitud.nombreEstudiante.primerNombre} confirmada.")
+                                        else avisarError(avisoFallo("aceptar la solicitud", fallo))
                                     }
                                 },
                                 alRechazar = { porRechazar = solicitud },
                                 alCancelar = { porCancelar = solicitud },
-                                alEscribir = { viewModel.abrirConversacion(solicitud, alAbrirChat) { avisarError(avisoFallo("abrir el chat")) } },
+                                alEscribir = { viewModel.abrirConversacion(solicitud, alAbrirChat) { fallo -> avisarError(avisoFallo("abrir el chat", fallo)) } },
                                 alVerOtros = { alBuscar(AreaEstudio.deMateria(solicitud.materia)?.name) },
                                 modifier = Modifier.animateItem()
                             )
@@ -227,9 +228,9 @@ fun PantallaSolicitudes(
             solicitud = s,
             alCerrar = { porRechazar = null },
             alConfirmar = { motivo ->
-                viewModel.rechazar(s.id, motivo) { exito ->
-                    if (exito) avisar("Solicitud rechazada. Le avisaremos a ${s.nombreEstudiante.primerNombre}.")
-                    else avisarError(avisoFallo("rechazar la solicitud"))
+                viewModel.rechazar(s.id, motivo) { fallo ->
+                    if (fallo == null) avisar("Solicitud rechazada. Le avisaremos a ${s.nombreEstudiante.primerNombre}.")
+                    else avisarError(avisoFallo("rechazar la solicitud", fallo))
                 }
                 porRechazar = null
             }
@@ -244,9 +245,9 @@ fun PantallaSolicitudes(
             else "${s.nombreTutor} ya no verá esta solicitud.",
             confirmar = if (aceptada) "Cancelar sesión" else "Cancelar solicitud",
             alConfirmar = {
-                viewModel.cancelar(s.id) { exito ->
-                    if (exito) avisar(if (aceptada) "Sesión cancelada." else "Solicitud cancelada.")
-                    else avisarError(if (aceptada) avisoFallo("cancelar la sesión") else avisoFallo("cancelar la solicitud"))
+                viewModel.cancelar(s.id) { fallo ->
+                    if (fallo == null) avisar(if (aceptada) "Sesión cancelada." else "Solicitud cancelada.")
+                    else avisarError(avisoFallo(if (aceptada) "cancelar la sesión" else "cancelar la solicitud", fallo))
                 }
                 porCancelar = null
             },
@@ -317,6 +318,15 @@ private fun TarjetaSolicitud(
                 "“${solicitud.mensaje}”",
                 color = TextoTercero,
                 style = MaterialTheme.typography.bodyMedium.merge(NotaCursiva)
+            )
+        }
+
+        if (esTutor && solicitud.estado == EstadoSolicitud.PENDIENTE && solicitud.penalizacionesEstudiante > 0) {
+            Spacer(Modifier.height(EspacioAjustado))
+            Text(
+                textoDePenalizacionesRecientes(solicitud.penalizacionesEstudiante),
+                color = TextoSecundario,
+                style = MaterialTheme.typography.bodySmall
             )
         }
 

@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.BuildConfig
 import com.grupo3.nexo.ui.theme.TamanoAvatarNormal
 import com.grupo3.nexo.ui.theme.TamanoEstrella
 import com.grupo3.nexo.ui.theme.TamanoMarcoIcono
@@ -95,6 +96,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -407,6 +410,9 @@ fun BotonSecundario(
     }
 }
 
+/** La sirve el mismo servidor de la API; también es el enlace que se registra en Google Play. */
+val URL_PRIVACIDAD: String get() = BuildConfig.API_URL + "privacidad.html"
+
 /** Acción de texto (enlaces como "Ver todo"), con área táctil de 48 dp. */
 @Composable
 fun BotonTexto(texto: String, alClicar: () -> Unit, modifier: Modifier = Modifier, color: Color = BosqueAcento, accion: String? = null) {
@@ -570,7 +576,9 @@ fun Campo(
     limpiable: Boolean = false,
     teclado: KeyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
     acciones: KeyboardActions = KeyboardActions.Default,
-    lineasMaximas: Int = 1
+    lineasMaximas: Int = 1,
+    /** Para contraseñas: muestra puntos en lugar del texto. */
+    oculto: Boolean = false
 ) {
     var enfocado by remember { mutableStateOf(false) }
     val colorBorde by animateColorAsState(
@@ -591,6 +599,7 @@ fun Campo(
         textStyle = CampoEntrada.copy(color = BosqueProfundo),
         cursorBrush = SolidColor(BosqueAcento),
         keyboardOptions = teclado,
+        visualTransformation = if (oculto) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardActions = acciones,
         modifier = modifier
             .fillMaxWidth()

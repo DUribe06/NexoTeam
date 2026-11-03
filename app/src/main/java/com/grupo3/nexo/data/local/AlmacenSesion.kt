@@ -10,6 +10,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,6 +29,10 @@ import kotlinx.serialization.json.Json
  */
 interface AlmacenSesion {
     val sesion: StateFlow<SesionDto?>
+
+    /** Espera a que se lea la sesión guardada: antes de eso, un null no significa que no haya sesión. */
+    suspend fun esperarCarga() {}
+
     fun guardar(nueva: SesionDto)
     fun borrar()
 }
@@ -47,7 +52,11 @@ class AlmacenSesionDataStore @Inject constructor(
     /** Si ya hubo un cambio, lo leído del disco al arrancar es viejo y no debe pisarlo. */
     private var modificada = false
 
+    private val cargada = CompletableDeferred<Unit>()
+
     override val sesion: StateFlow<SesionDto?> = _sesion.asStateFlow()
+
+    override suspend fun esperarCarga() = cargada.await()
 
     init {
         alcance.launch {
@@ -58,6 +67,7 @@ class AlmacenSesionDataStore @Inject constructor(
             synchronized(this@AlmacenSesionDataStore) {
                 if (!modificada) _sesion.value = leida
             }
+            cargada.complete(Unit)
         }
     }
 

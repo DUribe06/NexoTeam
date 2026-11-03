@@ -4,8 +4,10 @@ import com.grupo3.nexo.domain.model.CodigoError
 import com.grupo3.nexo.domain.model.DetalleError
 import com.grupo3.nexo.domain.model.ErrorApi
 import com.grupo3.nexo.domain.model.ResultadoAcceso
+import com.grupo3.nexo.ui.components.avisoFallo
 import java.io.IOException
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,10 +30,54 @@ class MensajesCuentaTest {
             CodigoError.CUENTA_NO_ENCONTRADA,
             CodigoError.TOKEN_INVALIDO,
             CodigoError.NO_AUTENTICADO,
-            CodigoError.GOOGLE_NO_DISPONIBLE
+            CodigoError.GOOGLE_NO_DISPONIBLE,
+            CodigoError.CUENTA_NO_USA_APP,
+            CodigoError.ADMIN_SIN_MODOS,
+            CodigoError.NO_ES_TUTOR,
+            CodigoError.NO_ES_ESTUDIANTE,
+            CodigoError.TUTOR_NO_ENCONTRADO,
+            CodigoError.REPORTE_DUPLICADO,
+            CodigoError.REPORTE_A_SI_MISMO,
+            CodigoError.CALENDARIO_NO_CREADO,
+            CodigoError.HORA_NO_VALIDA,
+            CodigoError.SOLICITUD_DUPLICADA,
+            CodigoError.FECHA_NO_VALIDA,
+            CodigoError.HORA_NO_DISPONIBLE,
+            CodigoError.MODALIDAD_NO_DISPONIBLE,
+            CodigoError.MATERIA_NO_OFRECIDA,
+            CodigoError.SOLICITUD_A_SI_MISMO,
+            CodigoError.SOLICITUD_NO_ENCONTRADA,
+            CodigoError.SOLICITUD_NO_PENDIENTE,
+            CodigoError.SOLICITUD_EXPIRADA,
+            CodigoError.SOLICITUD_NO_CANCELABLE,
+            CodigoError.SESION_NO_ENCONTRADA,
+            CodigoError.SESION_NO_COMPLETADA,
+            CodigoError.SESION_YA_CALIFICADA,
+            CodigoError.CHAT_NO_HABILITADO,
+            CodigoError.CHAT_NO_ENCONTRADO,
+            CodigoError.CHAT_SOLO_LECTURA
         ).forEach { codigo ->
             assertTrue(codigo, mensajeDeError(ErrorApi(codigo, "x")) != generico)
         }
+    }
+
+    @Test
+    fun `el aviso de una accion dice por que la rechazo el servidor, y solo sin conexion culpa a la red`() {
+        val rechazo = avisoFallo("aceptar la solicitud", ErrorApi(CodigoError.SOLICITUD_NO_PENDIENTE, "x"))
+        assertEquals("Esta solicitud ya fue respondida.", rechazo)
+        assertFalse(rechazo.contains("conexión"))
+        assertFalse(avisoFallo("aceptar la solicitud", ErrorApi(CodigoError.ERROR_SERVIDOR, "x")).contains("conexión"))
+        assertEquals(
+            "No se pudo aceptar la solicitud. Revisa tu conexión e inténtalo de nuevo.",
+            avisoFallo("aceptar la solicitud", IOException("sin red"))
+        )
+    }
+
+    @Test
+    fun `una cuenta de administrador no se confunde con un fallo de conexion`() {
+        val mensaje = mensajeDeError(ErrorApi(CodigoError.CUENTA_NO_USA_APP, "x"))
+        assertTrue(mensaje.contains("administración"))
+        assertFalse(mensaje.contains("conexión"))
     }
 
     @Test

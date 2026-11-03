@@ -8,10 +8,13 @@ import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Usuario
 import com.grupo3.nexo.domain.usecase.CambiarModoUseCase
 import com.grupo3.nexo.domain.usecase.CerrarSesionUseCase
+import com.grupo3.nexo.domain.usecase.EliminarCuentaUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerMisResenasUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerResumenActividadUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
+import com.grupo3.nexo.ui.AccionesEnCurso
 import com.grupo3.nexo.ui.Recarga
+import com.grupo3.nexo.ui.falloDe
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,7 +27,8 @@ class PerfilViewModel @Inject constructor(
     obtenerResumen: ObtenerResumenActividadUseCase,
     obtenerMisResenas: ObtenerMisResenasUseCase,
     private val cambiarModo: CambiarModoUseCase,
-    private val cerrarSesion: CerrarSesionUseCase
+    private val cerrarSesion: CerrarSesionUseCase,
+    private val eliminarCuentaPropia: EliminarCuentaUseCase
 ) : ViewModel() {
 
     data class Estado(
@@ -50,6 +54,17 @@ class PerfilViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado(usuario.value))
 
-    fun elegirModo(rol: Rol) = cambiarModo(rol)
+    private val enCurso = AccionesEnCurso()
+
+    /** Si falla el modo sigue igual y `alFallar` muestra el aviso. */
+    fun elegirModo(rol: Rol, alFallar: (Throwable) -> Unit) {
+        enCurso.lanzar(viewModelScope, "modo") { falloDe { cambiarModo(rol) }?.let(alFallar) }
+    }
+
     fun salir() = cerrarSesion()
+
+    /** Sin fallo, la sesión ya se cerró. */
+    fun eliminarCuenta(contrasena: String, alTerminar: (Throwable?) -> Unit) {
+        enCurso.lanzar(viewModelScope, "eliminar") { alTerminar(falloDe { eliminarCuentaPropia(contrasena) }) }
+    }
 }

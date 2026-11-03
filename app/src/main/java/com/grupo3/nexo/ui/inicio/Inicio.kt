@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -51,8 +52,10 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -86,7 +89,9 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.AreaEstudio
 import com.grupo3.nexo.domain.model.Modalidad
@@ -137,6 +142,7 @@ import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.BordeAcento
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueProfundo
+import com.grupo3.nexo.ui.theme.CifraAcceso
 import com.grupo3.nexo.ui.theme.CifraHora
 import com.grupo3.nexo.ui.theme.CuerpoNombre
 import com.grupo3.nexo.ui.theme.CuerpoSesion
@@ -209,6 +215,7 @@ import com.grupo3.nexo.ui.theme.TituloMateria
 import com.grupo3.nexo.ui.theme.pincelBosque
 import com.grupo3.nexo.ui.theme.resorteCascada
 import java.time.LocalDate
+import java.time.LocalDateTime
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -239,6 +246,9 @@ fun PantallaInicio(
     alVerSolicitudes: () -> Unit,
     alBuscar: (area: String?) -> Unit,
     alAbrirDisponibilidad: () -> Unit,
+    alAbrirHistorial: () -> Unit,
+    alAbrirResenas: () -> Unit,
+    alAbrirMaterias: () -> Unit,
     viewModel: InicioViewModel = hiltViewModel()
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -246,8 +256,9 @@ fun PantallaInicio(
     val alcance = rememberCoroutineScope()
     // La conversación se resuelve con la contraparte de la sesión y se navega con el id del chat
     val abrirChat: (Sesion) -> Unit = { sesion ->
-        viewModel.abrirChat(sesion, alAbrirChat) { alcance.launch { avisos.mostrarError(avisoFallo("abrir el chat")) } }
+        viewModel.abrirChat(sesion, alAbrirChat) { fallo -> alcance.launch { avisos.mostrarError(avisoFallo("abrir el chat", fallo)) } }
     }
+    var escribiendoPin by rememberSaveable { mutableStateOf(false) }
     val desplazamiento = rememberScrollState()
     val cabeceraVisible by remember { derivedStateOf { desplazamiento.value < 400 } }
     IconosClarosEnBarraDeEstado(activo = cabeceraVisible)
@@ -297,9 +308,9 @@ fun PantallaInicio(
             // Tira de materias sin contenedores: ícono y nombre, se desliza de lado (solo para buscar)
             val tira = rememberLazyListState()
             // Debajo del control flotante, una tira del mismo molde en ambos modos: materias para buscar
-            // (estudiante) o lo que hace falta para preparar la próxima sesión (tutor).
+            // (estudiante) o sus cuatro accesos, cada uno con su cifra (tutor).
             if (estado.esTutor) Column(Modifier.padding(top = EspacioMedio).aparicion(3, iniciado)) {
-                TiraSesion(estado, abrirChat, alVerSolicitudes, alAbrirDisponibilidad)
+                AccesosTutor(estado, alAbrirDisponibilidad, alAbrirHistorial, alAbrirResenas, alAbrirMaterias)
                 Box(Modifier.fillMaxWidth().padding(top = EspacioMicro).height(1.dp).background(Divisor))
             } else Column(Modifier.padding(top = EspacioMedio).aparicion(3, iniciado)) {
                 LazyRow(
@@ -316,11 +327,49 @@ fun PantallaInicio(
             }
 
             // Mientras cargan los datos (o si fallaron) no debe decir "Sin sesiones": arranca en la fase agendada
+            val ahora = relojDeMinutos()
+            val sesiones = estado.proximas.map { it.sesion }
+            val fase = if (estado.cargando || estado.error) FaseSesion.AGENDADA
+            else faseDe(sesiones, estado.historial, estado.pendientes, ahora)
+            val vigente = sesiones.vigente(ahora)
+            val aviso = if (estado.cargando || estado.error) null
+            else vigente?.let { avisoDePin(it, ahora) } ?: avisoDeCierre(estado.historial, ahora)
             BarraSesion(
-                haySesiones = estado.cargando || estado.error || estado.proximas.isNotEmpty(),
+                faseActual = fase,
+                cargando = estado.cargando,
+                minutosParaEmpezar = vigente?.minutosPara(ahora),
                 esTutor = estado.esTutor,
+                aviso = aviso,
+                alTocarAviso = {
+                    if (vigente != null) when (aviso?.accion) {
+                        AccionPin.ENVIAR -> viewModel.enviarPin(vigente) { fallo ->
+                            alcance.launch {
+                                if (fallo == null) avisos.showSnackbar("Le enviamos el PIN a ${vigente.conQuien}")
+                                else avisos.mostrarError(avisoFallo("enviar el PIN", fallo))
+                            }
+                        }
+                        AccionPin.ESCRIBIR -> escribiendoPin = true
+                        null -> Unit
+                    }
+                },
                 modifier = Modifier.padding(top = EspacioFino)
             )
+            if (escribiendoPin && vigente != null && vigente.pinEnviado && !vigente.iniciada) {
+                HojaPin(
+                    sesion = vigente,
+                    alCerrar = { escribiendoPin = false },
+                    alEnviar = { pin, alFallar ->
+                        viewModel.iniciar(vigente, pin) { fallo ->
+                            if (fallo == null) {
+                                escribiendoPin = false
+                                alcance.launch { avisos.showSnackbar("Empezó tu sesión con ${vigente.conQuien}") }
+                            } else {
+                                alFallar(avisoFallo("iniciar la sesión", fallo))
+                            }
+                        }
+                    }
+                )
+            }
             Column(
                 Modifier
                     .padding(horizontal = EspacioMargen)
@@ -348,7 +397,7 @@ fun PantallaInicio(
                         Carga.CARGANDO -> SesionEsqueleto()
                         Carga.VACIO -> SinSesiones(esTutor = estado.esTutor, alBuscar = { alBuscar(null) }, alVerSolicitudes = alVerSolicitudes)
                         Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus sesiones", alReintentar = viewModel::reintentar)
-                        Carga.LISTO -> proximasVisibles.takeIf { it.isNotEmpty() }?.let { TarjetaProximas(it, abrirChat) }
+                        Carga.LISTO -> proximasVisibles.takeIf { it.isNotEmpty() }?.let { TarjetaProximas(it, estado.temaProximo.takeIf { estado.esTutor }, abrirChat) }
                     }
                 }
             }
@@ -550,7 +599,7 @@ private val Modalidad.iconoPh: Int
  */
 
 @Composable
-private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbrirChat: (Sesion) -> Unit) {
+private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, tema: String?, alAbrirChat: (Sesion) -> Unit) {
     // Tocar una capa de atrás la pasa al frente; las demás se reacomodan en orden (como un mazo de cartas)
     var inicio by remember(proximas) { mutableIntStateOf(0) }
     // Al salir de la pantalla (otra pestaña, otra pantalla o la app en segundo plano) vuelve la más próxima
@@ -617,7 +666,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                         .height(IntrinsicSize.Min)
                 ) {
                     Text(
-                        formatoHora(s.hora),
+                        formatoHora(s.horaPactada ?: s.hora),
                         color = BosqueProfundo,
                         style = CifraHora.merge(CifrasTabulares)
                     )
@@ -632,11 +681,26 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, alAbr
                     Spacer(Modifier.width(EspacioCercano))
                     Column(Modifier.weight(1f)) {
                         TextoLinea(s.materia, TituloMateria, BosqueProfundo)
-                        TextoLinea(
-                            "${formatoHoras(s.duracionHoras)} · hasta las ${formatoHora(horaFin(s.hora, s.duracionHoras))}",
-                            CuerpoSesion,
-                            TextoSobreTinte
-                        )
+                        Row {
+                            // Si el tema no cabe se recorta él, nunca la hora
+                            tema?.let {
+                                Text(
+                                    it,
+                                    color = TextoSobreTinte,
+                                    style = CuerpoSesion,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
+                                )
+                                Text(" · ", color = TextoSobreTinte, style = CuerpoSesion, maxLines = 1)
+                            }
+                            Text(
+                                "${formatoHoras(s.duracionHoras)} · hasta las ${formatoHora(horaFin(s.hora, s.duracionHoras))}",
+                                color = TextoSobreTinte,
+                                style = CuerpoSesion,
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -758,67 +822,96 @@ private fun SinSesiones(esTutor: Boolean, alBuscar: () -> Unit, alVerSolicitudes
     }
 }
 
-/**
- * Modo tutor, en el lugar de la tira de materias y con su misma forma: lo que hace falta para preparar
- * la próxima sesión y, al final, el acceso a la disponibilidad. Lo de la sesión abre su conversación.
- */
+/** Los accesos del tutor, con la misma forma que la tira del estudiante: cada uno lleva a su pantalla y da una cifra. */
 @Composable
-private fun TiraSesion(
+private fun AccesosTutor(
     estado: InicioViewModel.Estado,
-    alAbrirChat: (Sesion) -> Unit,
-    alVerSolicitudes: () -> Unit,
-    alEditarDisponibilidad: () -> Unit
+    alDisponibilidad: () -> Unit,
+    alTutorias: () -> Unit,
+    alResenas: () -> Unit,
+    alMaterias: () -> Unit
 ) {
-    val tira = rememberLazyListState()
-    val sesion = estado.proximas.firstOrNull()?.sesion
-    val alAbrir = { sesion?.let { alAbrirChat(it) } ?: Unit }
     val horas = estado.horasPublicadas
-    LazyRow(
-        state = tira,
-        horizontalArrangement = Arrangement.spacedBy(EspacioMicro),
-        contentPadding = PaddingValues(horizontal = EspacioCercano),
-        modifier = Modifier.desvanecerBordes(tira)
-    ) {
-        if (sesion != null) {
-            val falta = faltaPara(estado.diasParaProxima ?: 0L, sesion.fecha)
-            item(key = "cuando") {
-                AccesoTira(R.drawable.ph_reloj, falta, "Abrir chat", "Tu próxima sesión: ${falta.lowercase()}, a las ${formatoHora(sesion.hora)}", alAbrir)
-            }
-            estado.temaProximo?.let { tema ->
-                item(key = "tema") {
-                    AccesoTira(R.drawable.ph_graduacion, tema, "Abrir chat", "Tema de la sesión: $tema", alAbrir)
-                }
-            }
-            item(key = "modalidad") {
-                val nombre = sesion.modalidad.etiqueta
-                AccesoTira(sesion.modalidad.iconoPh, nombre, "Abrir chat", "Sesión ${nombre.lowercase()}", alAbrir)
-            }
-        } else if (!estado.cargando) {
-            item(key = "sin") {
-                AccesoTira(R.drawable.ph_calendario, "Sin sesiones", "Ver solicitudes", "Sin sesiones agendadas", alVerSolicitudes)
-            }
-        }
-        item(key = "disponibilidad") {
-            AccesoTira(
-                R.drawable.ph_calendario_check,
-                if (horas == 0) "Publicar horarios" else "Disponibilidad",
-                "Editar disponibilidad",
-                if (horas == 0) "Sin horarios publicados. No apareces en las búsquedas"
-                else "Tu disponibilidad, ${formatoHoras(horas.toDouble())} a la semana. Con horario: ${estado.diasPublicados.joinToString(", ") { it.nombre }}",
-                alEditarDisponibilidad
-            )
-        }
+    val resumen = estado.resumen
+    val dadas = resumen?.sesiones
+    val promedio = resumen?.promedioRecibido
+    val materias = estado.usuario?.materias.orEmpty().size
+    Row(Modifier.fillMaxWidth().padding(horizontal = EspacioCercano)) {
+        AccesoConCifra(
+            R.drawable.ph_calendario_check, "Disponibilidad",
+            if (horas == 0) "Sin publicar" else "${formatoHoras(horas.toDouble())}/semana",
+            alerta = horas == 0 && !estado.cargando,
+            alClicar = alDisponibilidad
+        )
+        AccesoConCifra(
+            R.drawable.ph_historial, "Tutorías",
+            when (dadas) {
+                null -> "–"
+                0 -> "Ninguna aún"
+                else -> "$dadas ${plural(dadas, "dada", "dadas")}"
+            },
+            alClicar = alTutorias
+        )
+        AccesoConCifra(
+            R.drawable.ph_resena, "Reseñas",
+            when {
+                resumen == null -> "–"
+                promedio == null -> "Sin reseñas"
+                else -> "${formatoValoracion(promedio)} de 5"
+            },
+            alClicar = alResenas
+        )
+        AccesoConCifra(
+            R.drawable.ph_graduacion, "Materias",
+            if (materias == 0) "Agregar" else "$materias ${plural(materias, "publicada", "publicadas")}",
+            alerta = materias == 0 && !estado.cargando,
+            alClicar = alMaterias
+        )
     }
 }
 
-/** Cuánto falta para una fecha, en palabras: "Hoy", "Mañana", "En 2 días". */
-private fun faltaPara(dias: Long, fecha: LocalDate): String {
-    return when (dias) {
-        0L -> "Hoy"
-        1L -> "Mañana"
-        in 2L..Long.MAX_VALUE -> "En $dias días"
-        else -> fechaCorta(fecha)
+/** `alerta`: falta algo para que los estudiantes puedan encontrarlo o agendarle. */
+@Composable
+private fun RowScope.AccesoConCifra(icono: Int, nombre: String, cifra: String, alerta: Boolean = false, alClicar: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .weight(1f)
+            .clip(FormaControl)
+            .clickable(onClickLabel = "Abrir $nombre", role = Role.Button, onClick = alClicar)
+            .semantics(mergeDescendants = true) {}
+            .padding(vertical = EspacioCorto)
+    ) {
+        Icon(painterResource(icono), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(Icono26))
+        Spacer(Modifier.height(EspacioIcono))
+        Text(nombre, color = BosqueProfundo, style = EtiquetaArea, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            cifra,
+            color = if (alerta) BosqueAcento else TextoSecundario,
+            style = CifraAcceso.merge(CifrasTabulares),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
+}
+
+/**
+ * La hora actual, al minuto: mueve las fases de la sesión sin que nadie toque nada. Solo corre con la app a la vista y
+ * se pone al día en cuanto vuelve.
+ */
+@Composable
+private fun relojDeMinutos(): LocalDateTime {
+    val ciclo = LocalLifecycleOwner.current.lifecycle
+    val ahora by produceState(LocalDateTime.now(), ciclo) {
+        ciclo.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                val actual = LocalDateTime.now()
+                value = actual
+                delay((60 - actual.second) * 1_000L)
+            }
+        }
+    }
+    return ahora
 }
 
 /**

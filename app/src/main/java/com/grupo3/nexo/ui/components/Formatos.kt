@@ -1,6 +1,8 @@
 package com.grupo3.nexo.ui.components
 
+import com.grupo3.nexo.domain.model.ErrorApi
 import com.grupo3.nexo.domain.model.PLAZO_RESPUESTA_HORAS
+import com.grupo3.nexo.ui.auth.mensajeDeError
 import com.grupo3.nexo.domain.model.siglasUniversidad
 import java.time.Duration
 import java.time.LocalDate
@@ -42,6 +44,10 @@ private fun LocalDate.nombreDia(estilo: TextStyle): String =
 /** Fecha larga con el día de la semana: 2026-10-24 → "Sábado 24 de octubre". */
 fun fechaLarga(fecha: LocalDate): String =
     "${fecha.nombreDia(TextStyle.FULL)} ${fecha.dayOfMonth} de ${fecha.month.getDisplayName(TextStyle.FULL, localeColombia)}"
+
+/** Día y mes completo: 2026-11-09 → "9 de noviembre". */
+fun diaYMes(fecha: LocalDate): String =
+    "${fecha.dayOfMonth} de ${fecha.month.getDisplayName(TextStyle.FULL, localeColombia)}"
 
 /** Día de la semana y número: 2026-10-26 → "Lun 26". */
 fun fechaCorta(fecha: LocalDate): String = "${fecha.nombreDia(TextStyle.SHORT)} ${fecha.dayOfMonth}"
@@ -90,8 +96,12 @@ val PLAZO_RESPUESTA = formatoHoras(PLAZO_RESPUESTA_HORAS.toDouble())
 /** Sugerencia que cierra los avisos de fallo de red. */
 const val SUGERENCIA_CONEXION = "Revisa tu conexión e inténtalo de nuevo."
 
-/** Aviso de fallo con su sugerencia: avisoFallo("enviar el reporte") → "No se pudo enviar el reporte. Revisa tu conexión…". */
-fun avisoFallo(accion: String): String = "No se pudo $accion. $SUGERENCIA_CONEXION"
+/**
+ * Aviso de fallo de una acción. Si el servidor la rechazó ([fallo] es `ErrorApi`) dice por qué, sin culpar a la conexión;
+ * si no: avisoFallo("enviar el reporte") → "No se pudo enviar el reporte. Revisa tu conexión…".
+ */
+fun avisoFallo(accion: String, fallo: Throwable? = null): String =
+    if (fallo is ErrorApi) mensajeDeError(fallo) else "No se pudo $accion. $SUGERENCIA_CONEXION"
 
 /** Singular si [n] es 1 y plural en cualquier otro caso: plural(2, "estrella", "estrellas"). */
 fun plural(n: Int, uno: String, varios: String): String = if (n == 1) uno else varios

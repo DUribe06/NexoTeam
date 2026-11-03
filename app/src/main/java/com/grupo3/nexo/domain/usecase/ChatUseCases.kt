@@ -71,15 +71,14 @@ class AbrirChatUseCase @Inject constructor(
 class AbrirChatDeSolicitudUseCase @Inject constructor(
     private val abrirChat: AbrirChatUseCase,
     private val auth: AuthRepository,
-    private val tutores: ObtenerTutoresUseCase
+    private val tutor: ObtenerTutorUseCase
 ) {
-    // Con el backend real la creación del chat de una solicitud aceptada puede pasar al servidor
     suspend operator fun invoke(solicitud: Solicitud): String? =
         if (auth.usuarioActual.value.rol == Rol.TUTOR) {
             abrirChat.conEstudiante(solicitud.estudianteId, solicitud.nombreEstudiante)
         } else {
-            val tutor = tutores().first().firstOrNull { it.id == solicitud.tutorId } ?: return null
-            abrirChat(tutor)
+            // Por id y no en el catálogo: un tutor sin horas publicadas ya no aparece en la búsqueda, pero el chat sigue
+            tutor(solicitud.tutorId).first()?.let { abrirChat(it) }
         }
 }
 

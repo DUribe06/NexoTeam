@@ -86,6 +86,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -109,8 +110,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.grupo3.nexo.BuildConfig
 import com.grupo3.nexo.R
 import com.grupo3.nexo.ui.components.BotonPrimario
+import com.grupo3.nexo.ui.components.BotonTexto
+import com.grupo3.nexo.ui.components.URL_PRIVACIDAD
 import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
 import com.grupo3.nexo.ui.components.IconosNexo
@@ -375,14 +379,17 @@ private fun ContenidoAcceso(
             modifier = Modifier.entrada(5, iniciado)
         )
 
-        Spacer(Modifier.height(EspacioSeparadorAcceso))
-        SeparadorSocial(Modifier.entrada(6, iniciado))
-        Spacer(Modifier.height(EspacioCercano))
-        BotonGoogle(
-            habilitado = !estado.cargando,
-            alClicar = alEntrarConGoogle,
-            modifier = Modifier.entrada(6, iniciado)
-        )
+        // Con el servidor real falta la cuenta de Google del proyecto: un botón que no entra no se muestra
+        if (!BuildConfig.USAR_API) {
+            Spacer(Modifier.height(EspacioSeparadorAcceso))
+            SeparadorSocial(Modifier.entrada(6, iniciado))
+            Spacer(Modifier.height(EspacioCercano))
+            BotonGoogle(
+                habilitado = !estado.cargando,
+                alClicar = alEntrarConGoogle,
+                modifier = Modifier.entrada(6, iniciado)
+            )
+        }
 
         Spacer(Modifier.height(EspacioAjustado))
         EnlaceAcceso(
@@ -765,19 +772,26 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
     if (verCondiciones) HojaCondiciones(alCerrar = { verCondiciones = false })
 }
 
-/** Texto de muestra: las condiciones definitivas todavía no existen. */
+/** Si cambia este texto, cambia también VERSION_TERMINOS en AuthRepositoryRemoto. */
 @Composable
 private fun HojaCondiciones(alCerrar: () -> Unit) {
-    HojaNexo(titulo = "Condiciones de uso", subtitulo = "Texto de muestra", alCerrar = alCerrar) {
+    HojaNexo(titulo = "Condiciones de uso", alCerrar = alCerrar) {
         Spacer(Modifier.height(EspacioNormal))
         listOf(
-            "Nexo conecta a estudiantes con tutores universitarios para coordinar tutorías.",
-            "Usa datos verídicos en tu cuenta y trata con respeto a quienes te ayudan.",
-            "Si no puedes asistir a una sesión, cancélala con tiempo.",
-            "Las condiciones definitivas se publicarán antes del lanzamiento."
+            "Nexo conecta a estudiantes con tutores universitarios para coordinar tutorías. No procesa pagos ni responde por " +
+                "lo que se enseñe o se acuerde en una tutoría: eso queda entre las dos personas.",
+            "Usa datos verídicos en tu cuenta y trata con respeto a los demás. Podemos suspender una cuenta que incumpla esto.",
+            "Si no puedes asistir a una sesión, cancélala con tiempo o acuerda un retardo por el chat. No presentarse deja una " +
+                "penalización visible en tu perfil.",
+            "Tres penalizaciones normales en 90 días pausan tu cuenta 7 días. Una grave la pausa 7 días, la segunda 14 y la tercera " +
+                "30. En pausa no puedes enviar ni aceptar solicitudes. Tienes 7 días para pedir la revisión de una penalización."
         ).forEach { parrafo ->
             Text(parrafo, color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(EspacioMedio))
+        }
+        if (BuildConfig.USAR_API) {
+            val enlaces = LocalUriHandler.current
+            BotonTexto("Leer la política de privacidad", { enlaces.openUri(URL_PRIVACIDAD) })
         }
         Spacer(Modifier.height(EspacioCorto))
         BotonPrimario("Entendido", alCerrar)

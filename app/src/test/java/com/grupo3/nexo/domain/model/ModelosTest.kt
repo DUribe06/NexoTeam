@@ -28,6 +28,22 @@ class ModelosTest {
     )
 
     @Test
+    fun `sin venceEn del servidor el plazo es 24 h tras el envio, contando minutos completos`() {
+        val s = solicitud(EstadoSolicitud.PENDIENTE, 0)
+        assertEquals(s.enviada.plusHours(24), s.venceEn)
+        // A los 10 min 30 s de enviada solo cuentan 10 minutos: 23 h 50 min, como antes de existir venceEn
+        assertEquals(1430 / 60.0, s.horasRestantes(s.enviada.plusMinutes(10).plusSeconds(30)), 1e-9)
+        assertEquals(0.0, s.horasRestantes(s.enviada.plusHours(24).plusSeconds(30)), 1e-9)
+    }
+
+    @Test
+    fun `horasRestantes usa venceEn aunque llegue antes de las 24 h`() {
+        val s = solicitud(EstadoSolicitud.PENDIENTE, 2).copy(venceEn = ahora.plusHours(3))
+        assertEquals(3.0, s.horasRestantes(ahora), 1e-9)
+        assertEquals(EstadoSolicitud.EXPIRADA, s.conPlazoAplicado(ahora.plusHours(3)).estado)
+    }
+
+    @Test
     fun `una solicitud puede expirar`() {
         assertTrue(EstadoSolicitud.entries.contains(EstadoSolicitud.EXPIRADA))
         assertEquals("Expirada", EstadoSolicitud.EXPIRADA.etiqueta)

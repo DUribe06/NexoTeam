@@ -4,14 +4,17 @@ import kotlinx.serialization.Serializable
 
 /* Esquemas de /api/auth tal como están en backend/.../openapi/nexo-api.yaml. */
 
-@Serializable
-enum class RolDto { ESTUDIANTE, TUTOR }
+/** ADMIN no está en el contrato pero el servidor sí lo envía: esa cuenta no puede usar la app (RF12). */
+@Serializable(with = RolDtoSerializador::class)
+enum class RolDto { ESTUDIANTE, TUTOR, ADMIN, DESCONOCIDO }
 
-@Serializable
-enum class EstadoCuentaDto { PENDIENTE_VERIFICACION_CORREO, ACTIVA, SUSPENDIDA }
+object RolDtoSerializador : EnumTolerante<RolDto>("RolDto", RolDto.entries, RolDto.DESCONOCIDO)
 
-@Serializable
-enum class EstadoVerificacionTutorDto { PENDIENTE, VERIFICADO, RECHAZADO }
+@Serializable(with = EstadoCuentaDtoSerializador::class)
+enum class EstadoCuentaDto { PENDIENTE_VERIFICACION_CORREO, ACTIVA, SUSPENDIDA, DESCONOCIDO }
+
+object EstadoCuentaDtoSerializador :
+    EnumTolerante<EstadoCuentaDto>("EstadoCuentaDto", EstadoCuentaDto.entries, EstadoCuentaDto.DESCONOCIDO)
 
 @Serializable
 data class SolicitudRegistro(
@@ -51,8 +54,7 @@ data class UsuarioDto(
     val nombre: String,
     val correo: String,
     val rol: RolDto,
-    val estadoCuenta: EstadoCuentaDto,
-    val estadoVerificacionTutor: EstadoVerificacionTutorDto? = null
+    val estadoCuenta: EstadoCuentaDto
 )
 
 @Serializable

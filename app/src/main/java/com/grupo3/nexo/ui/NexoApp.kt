@@ -34,6 +34,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.grupo3.nexo.BuildConfig
 import com.grupo3.nexo.ui.auth.PantallaConfirmarCorreo
 import com.grupo3.nexo.ui.auth.PantallaLogin
 import com.grupo3.nexo.ui.auth.PantallaRecuperarContrasena
@@ -48,6 +49,8 @@ import com.grupo3.nexo.ui.inicio.PantallaInicio
 import com.grupo3.nexo.ui.navigation.Rutas
 import com.grupo3.nexo.ui.navigation.rutasDeAcceso
 import com.grupo3.nexo.ui.navigation.rutasDeBarra
+import com.grupo3.nexo.ui.perfil.PantallaMisMaterias
+import com.grupo3.nexo.ui.perfil.PantallaMisResenas
 import com.grupo3.nexo.ui.perfil.PantallaPerfil
 import com.grupo3.nexo.ui.solicitudes.PantallaSolicitudes
 import com.grupo3.nexo.ui.theme.CurvaEnfatizada
@@ -154,6 +157,7 @@ fun NexoApp() {
     // no la de la composición: al cerrar sesión desde el Perfil la navegación ya ocurrió y aquí no hay nada que hacer
     val cuentaViewModel: CuentaViewModel = hiltViewModel()
     val autenticado by cuentaViewModel.autenticado.collectAsStateWithLifecycle()
+    if (BuildConfig.USAR_API) PedirPermisoAvisos(autenticado)
     LaunchedEffect(autenticado) {
         val ruta = controlador.currentDestination?.route ?: return@LaunchedEffect
         if (autenticado && ruta in rutasDeAcceso) {
@@ -247,7 +251,10 @@ fun NexoApp() {
                     alAbrirPerfil = { controlador.irAPestana(Rutas.Perfil.ruta) },
                     alVerSolicitudes = { controlador.irAPestana(Rutas.Solicitudes.ruta) },
                     alBuscar = { area -> controlador.irABusqueda(area) },
-                    alAbrirDisponibilidad = { controlador.navigate(Rutas.Disponibilidad.ruta) }
+                    alAbrirDisponibilidad = { controlador.navigate(Rutas.Disponibilidad.ruta) },
+                    alAbrirHistorial = { controlador.navigate(Rutas.Historial.ruta) },
+                    alAbrirResenas = { controlador.navigate(Rutas.MisResenas.ruta) },
+                    alAbrirMaterias = { controlador.navigate(Rutas.MisMaterias.ruta) }
                 )
             }
             composable(
@@ -283,8 +290,16 @@ fun NexoApp() {
                 PantallaPerfil(
                     alCerrarSesion = { controlador.irAInicioSesion() },
                     alAbrirHistorial = { controlador.navigate(Rutas.Historial.ruta) },
-                    alAbrirDisponibilidad = { controlador.navigate(Rutas.Disponibilidad.ruta) }
+                    alAbrirDisponibilidad = { controlador.navigate(Rutas.Disponibilidad.ruta) },
+                    alAbrirResenas = { controlador.navigate(Rutas.MisResenas.ruta) },
+                    alAbrirMaterias = { controlador.navigate(Rutas.MisMaterias.ruta) }
                 )
+            }
+            composable(Rutas.MisResenas.ruta) {
+                PantallaMisResenas(alVolver = { controlador.popBackStack() })
+            }
+            composable(Rutas.MisMaterias.ruta) {
+                PantallaMisMaterias(alVolver = { controlador.popBackStack() })
             }
             composable(Rutas.Disponibilidad.ruta) {
                 PantallaDisponibilidad(alVolver = { controlador.popBackStack() })

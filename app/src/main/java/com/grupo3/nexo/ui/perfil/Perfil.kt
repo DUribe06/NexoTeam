@@ -3,6 +3,7 @@ package com.grupo3.nexo.ui.perfil
 import com.grupo3.nexo.ui.theme.TamanoAvatarNormal
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.components.plural
+import com.grupo3.nexo.ui.components.textoDePenalizacionesRecientes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -36,6 +37,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -43,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +60,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -68,7 +74,13 @@ import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.ResumenActividad
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Usuario
+import com.grupo3.nexo.ui.components.AvisoNexo
+import com.grupo3.nexo.BuildConfig
+import com.grupo3.nexo.ui.components.BotonPrimario
 import com.grupo3.nexo.ui.components.BotonTexto
+import com.grupo3.nexo.ui.components.Campo
+import com.grupo3.nexo.ui.components.HojaNexo
+import com.grupo3.nexo.ui.components.URL_PRIVACIDAD
 import com.grupo3.nexo.ui.components.CabeceraBosque
 import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.DialogoConfirmacion
@@ -84,10 +96,14 @@ import com.grupo3.nexo.ui.components.ListaResenas
 import com.grupo3.nexo.ui.components.Onda
 import com.grupo3.nexo.ui.components.VeloBarraEstado
 import com.grupo3.nexo.ui.components.aparicion
+import com.grupo3.nexo.ui.components.avisoFallo
 import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.enumerar
+import com.grupo3.nexo.ui.components.diaYMes
+import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.components.formatoValoracion
+import com.grupo3.nexo.ui.components.mostrarError
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
@@ -96,6 +112,7 @@ import com.grupo3.nexo.ui.theme.BordeRojoSalir
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueMedio
+import com.grupo3.nexo.ui.theme.BordeRojoPeligro
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.EnfasisMedio
@@ -104,8 +121,10 @@ import com.grupo3.nexo.ui.theme.EspacioAmplio
 import com.grupo3.nexo.ui.theme.EspacioCercano
 import com.grupo3.nexo.ui.theme.EspacioCorto
 import com.grupo3.nexo.ui.theme.EspacioExtenso
+import com.grupo3.nexo.ui.theme.EspacioHolgado
 import com.grupo3.nexo.ui.theme.EspacioFino
 import com.grupo3.nexo.ui.theme.EspacioMargen
+import kotlinx.coroutines.launch
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMicro
 import com.grupo3.nexo.ui.theme.EspacioMinimo
@@ -154,6 +173,8 @@ fun PantallaPerfil(
     alCerrarSesion: () -> Unit,
     alAbrirHistorial: () -> Unit,
     alAbrirDisponibilidad: () -> Unit,
+    alAbrirResenas: () -> Unit,
+    alAbrirMaterias: () -> Unit,
     viewModel: PerfilViewModel = hiltViewModel()
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -168,6 +189,9 @@ fun PantallaPerfil(
     IconosClarosEnBarraDeEstado(activo = cabeceraVisible)
     val iniciado = rememberPrimeraVez()
     var confirmarSalida by remember { mutableStateOf(false) }
+    var eliminando by remember { mutableStateOf(false) }
+    val avisos = remember { SnackbarHostState() }
+    val alcance = rememberCoroutineScope()
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val altoPantalla = maxHeight
@@ -183,7 +207,11 @@ fun PantallaPerfil(
                 // El selector ocupa el lugar del buscador: montado sobre la onda, con la única sombra
                 SelectorModo(
                     actual = usuario.rol,
-                    alElegir = viewModel::elegirModo,
+                    alElegir = { rol ->
+                        viewModel.elegirModo(rol) { fallo ->
+                            alcance.launch { avisos.mostrarError(avisoFallo("cambiar de modo", fallo)) }
+                        }
+                    },
                     modifier = Modifier
                         .solaparHaciaArriba(30.dp)
                         .onGloballyPositioned { arribaSelector = it.positionInRoot().y }
@@ -199,13 +227,16 @@ fun PantallaPerfil(
                     modifier = Modifier.aparicion(2, iniciado)
                 ) { esTutor ->
                     Column(Modifier.fillMaxWidth()) {
+                        estado.resumen?.let {
+                            AvisoPenalizaciones(it, esTutor, Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto))
+                        }
                         // Lo accionable va primero; las cifras y materias quedan como contexto
                         if (esTutor) {
                             Column(Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto)) {
                                 TarjetaDisponibilidad(alAbrirDisponibilidad)
                             }
                             Cifras(estado.resumen, true, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto))
-                            BloqueTutor(usuario, estado.resenas, cargando = estado.resumen == null, error = estado.error, alReintentar = viewModel::reintentar, alVerTodas = alAbrirHistorial, alPublicarHorario = alAbrirDisponibilidad)
+                            BloqueTutor(usuario, estado.resenas, cargando = estado.resumen == null, error = estado.error, alReintentar = viewModel::reintentar, alVerTodas = alAbrirResenas, alVerHistorial = alAbrirHistorial, alEditarMaterias = alAbrirMaterias)
                         } else {
                             val pendientes = estado.resumen?.porCalificar ?: 0
                             if (pendientes > 0) {
@@ -220,12 +251,31 @@ fun PantallaPerfil(
                             }
                         }
                         Spacer(Modifier.height(EspacioAmplio))
-                        Menu(esTutor = esTutor, alAbrirHistorial = alAbrirHistorial, alSalir = { confirmarSalida = true })
+                        Menu(
+                            esTutor = esTutor,
+                            alAbrirHistorial = alAbrirHistorial,
+                            alSalir = { confirmarSalida = true },
+                            alEliminar = { eliminando = true }
+                        )
                     }
                 }
             }
         }
         VeloBarraEstado(visible = !cabeceraVisible)
+        AvisoNexo(avisos, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = EspacioMedio))
+    }
+
+    if (eliminando) {
+        HojaEliminarCuenta(
+            alCerrar = { eliminando = false },
+            alConfirmar = { contrasena ->
+                viewModel.eliminarCuenta(contrasena) { fallo ->
+                    if (fallo == null) alCerrarSesion()
+                    else alcance.launch { avisos.mostrarError(avisoFallo("eliminar tu cuenta", fallo)) }
+                }
+                eliminando = false
+            }
+        )
     }
 
     if (confirmarSalida) {
@@ -425,16 +475,17 @@ private fun BloqueTutor(
     error: Boolean,
     alReintentar: () -> Unit,
     alVerTodas: () -> Unit,
-    alPublicarHorario: () -> Unit
+    alVerHistorial: () -> Unit,
+    alEditarMaterias: () -> Unit
 ) {
     val carga = cargaDe(cargando, resenas.isEmpty(), error)
     Column(Modifier.padding(horizontal = EspacioMargen)) {
         if (usuario.materias.isNotEmpty()) {
-            Materias("Enseñas", usuario.materias)
+            Materias("Enseñas", usuario.materias, accion = "Editar", alAccion = alEditarMaterias)
         } else {
             EncabezadoSeccion("Enseñas")
             Text("Aún no tienes materias publicadas.", color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
-            BotonTexto("Publicar mi horario", alPublicarHorario)
+            BotonTexto("Agregar materias", alEditarMaterias)
         }
         if (usuario.bio.isNotBlank()) {
             Text(
@@ -459,7 +510,7 @@ private fun BloqueTutor(
                 titulo = "Aún sin reseñas",
                 mensaje = "Aparecerán aquí cuando los estudiantes califiquen tus sesiones.",
                 accion = "Ver mi historial",
-                alAccion = alVerTodas
+                alAccion = alVerHistorial
             )
             Carga.LISTO -> ListaResenas(resenas.take(2))
         }
@@ -496,9 +547,15 @@ private fun EsqueletoSinMargen(filas: Int) {
 
 /** Materias como texto corrido, igual que en el perfil público: se leen de un vistazo y no recargan la pantalla. */
 @Composable
-private fun Materias(titulo: String, materias: List<String>, modifier: Modifier = Modifier) {
+private fun Materias(
+    titulo: String,
+    materias: List<String>,
+    modifier: Modifier = Modifier,
+    accion: String? = null,
+    alAccion: () -> Unit = {}
+) {
     Column(modifier) {
-        EncabezadoSeccion(titulo)
+        EncabezadoSeccion(titulo, accion = accion, alAccion = alAccion)
         Text(enumerar(materias), color = TextoPrimario, style = MaterialTheme.typography.bodyLarge)
     }
 }
@@ -530,8 +587,43 @@ private fun AvisoPorCalificar(cantidad: Int, alCalificar: () -> Unit, modifier: 
     }
 }
 
+/** Solo aparece si hay algo que contar: la pausa manda y el contador la acompaña. */
 @Composable
-private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> Unit) {
+private fun AvisoPenalizaciones(resumen: ResumenActividad, esTutor: Boolean, modifier: Modifier = Modifier) {
+    val hasta = resumen.suspendidaHasta
+    if (hasta == null && resumen.penalizaciones == 0) return
+    Column(
+        modifier
+            .fillMaxWidth()
+            .background(TinteBosque, FormaOrganica)
+            .border(1.dp, BordeRojoPeligro, FormaOrganica)
+            .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
+    ) {
+        if (hasta != null) {
+            Text(
+                "Tu cuenta está en pausa hasta el ${diaYMes(hasta.toLocalDate())}, ${formatoHora(hasta.toLocalTime())}",
+                color = BosqueProfundo,
+                style = MaterialTheme.typography.titleSmall
+            )
+            Text(
+                (if (esTutor) "No apareces en la búsqueda ni puedes aceptar solicitudes." else "No puedes enviar solicitudes.") +
+                    " Tus sesiones agendadas siguen en pie. ¿Fue un error? Pide revisión en el Historial.",
+                color = TextoSobreTinte,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        if (resumen.penalizaciones > 0) {
+            Text(
+                textoDePenalizacionesRecientes(resumen.penalizaciones) + if (esTutor) ", como tutor" else ", como estudiante",
+                color = if (hasta == null) BosqueProfundo else TextoSobreTinte,
+                style = if (hasta == null) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
+private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> Unit, alEliminar: () -> Unit) {
     // Tarjeta con los mismos márgenes que el resto del perfil, como la de reseñas
     Column(
         Modifier
@@ -557,6 +649,42 @@ private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> 
         Icon(IconosNexo.Salir, contentDescription = null, tint = rojo, modifier = Modifier.size(IconoNormal))
         Spacer(Modifier.width(EspacioCorto))
         Text("Cerrar sesión", color = rojo, style = MaterialTheme.typography.titleSmall)
+    }
+    Column(Modifier.fillMaxWidth().padding(top = EspacioMinimo), horizontalAlignment = Alignment.CenterHorizontally) {
+        if (BuildConfig.USAR_API) {
+            val enlaces = LocalUriHandler.current
+            BotonTexto("Política de privacidad", { enlaces.openUri(URL_PRIVACIDAD) }, color = TextoTercero)
+        }
+        BotonTexto("Eliminar mi cuenta", alEliminar, color = TextoTercero)
+    }
+}
+
+/** Pide la contraseña: es lo único que distingue a la persona de quien encuentre el teléfono desbloqueado. */
+@Composable
+private fun HojaEliminarCuenta(alCerrar: () -> Unit, alConfirmar: (String) -> Unit) {
+    var contrasena by remember { mutableStateOf("") }
+    HojaNexo(
+        titulo = "Eliminar tu cuenta",
+        subtitulo = "Se borran tu nombre, tu correo y tu perfil, y no se puede deshacer. Las tutorías pasadas, " +
+            "las reseñas y los mensajes se conservan sin tu nombre, porque también son de la otra persona.",
+        alCerrar = alCerrar
+    ) {
+        Spacer(Modifier.height(EspacioNormal))
+        Campo(
+            valor = contrasena,
+            alCambiar = { contrasena = it },
+            marcador = "Tu contraseña",
+            oculto = true,
+            teclado = KeyboardOptions(keyboardType = KeyboardType.Password),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(EspacioHolgado))
+        BotonPrimario(
+            texto = "Eliminar mi cuenta",
+            habilitado = contrasena.isNotEmpty(),
+            alClicar = { alConfirmar(contrasena) },
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 

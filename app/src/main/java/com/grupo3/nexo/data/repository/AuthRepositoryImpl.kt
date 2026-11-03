@@ -84,14 +84,20 @@ class AuthRepositoryImpl @Inject constructor() : AuthRepository {
         return true
     }
 
-    override fun cambiarModo(rol: Rol) {
+    override suspend fun cambiarModo(rol: Rol) {
         _usuario.update { it.copy(rol = rol) }
+    }
+
+    override suspend fun definirMaterias(materias: List<String>) {
+        _usuario.update { it.copy(materias = materias) }
     }
 
     override fun cerrarSesion() {
         _autenticado.value = false
         _usuario.value = MockData.usuario
     }
+
+    override suspend fun eliminarCuenta(contrasena: String) = cerrarSesion()
 
     private fun exigirCodigoValido(codigo: String) {
         if (codigo == CODIGO_RECHAZADO) throw ErrorApi(CodigoError.CODIGO_INVALIDO, "El código es incorrecto")

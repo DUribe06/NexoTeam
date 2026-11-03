@@ -30,6 +30,13 @@ interface AuthRepository {
     suspend fun recuperarContrasena(correo: String)
     suspend fun restablecerContrasena(correo: String, codigo: String, nueva: String)
     suspend fun iniciarSesionGoogle(): Boolean
-    fun cambiarModo(rol: Rol)
+
+    /** Si falla lanza la excepción y el modo no cambia: con el servidor real, el modo guardado es el suyo. */
+    suspend fun cambiarModo(rol: Rol)
+    /** Reemplaza las materias que enseña el tutor; el servidor exige al menos una. */
+    suspend fun definirMaterias(materias: List<String>)
     fun cerrarSesion()
+
+    /** Si la contraseña no coincide o quedan tutorías agendadas lanza el error y la cuenta sigue igual. */
+    suspend fun eliminarCuenta(contrasena: String)
 }

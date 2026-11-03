@@ -93,6 +93,7 @@ fun inicialesAvatar(tamano: Dp) = TextStyle(
 
 // Inicio
 val EtiquetaArea = estilo(11.5, 16, FontWeight.SemiBold)
+val CifraAcceso = estilo(11.5, 15, FontWeight.Medium)
 val EtiquetaFecha = estilo(12.5, 16, FontWeight.SemiBold)
 val CuerpoSesion = estilo(12.5, 17, FontWeight.Medium)
 val TituloMateria = estilo(16, 21, FontWeight.SemiBold, -0.15)

@@ -99,11 +99,18 @@ class IniciarSesionGoogleUseCase @Inject constructor(
     suspend operator fun invoke(): Boolean = repositorio.iniciarSesionGoogle()
 }
 
+/** Guarda las materias que enseña el tutor (RF4). */
+class DefinirMateriasUseCase @Inject constructor(
+    private val repositorio: AuthRepository
+) {
+    suspend operator fun invoke(materias: List<String>) = repositorio.definirMaterias(materias)
+}
+
 /** Cambia el modo de uso: Estudiante ↔ Tutor. */
 class CambiarModoUseCase @Inject constructor(
     private val repositorio: AuthRepository
 ) {
-    operator fun invoke(rol: Rol) = repositorio.cambiarModo(rol)
+    suspend operator fun invoke(rol: Rol) = repositorio.cambiarModo(rol)
 }
 
 /** Cierra la sesión actual. */
@@ -111,6 +118,13 @@ class CerrarSesionUseCase @Inject constructor(
     private val repositorio: AuthRepository
 ) {
     operator fun invoke() = repositorio.cerrarSesion()
+}
+
+/** Elimina la cuenta propia después de confirmar la contraseña. */
+class EliminarCuentaUseCase @Inject constructor(
+    private val repositorio: AuthRepository
+) {
+    suspend operator fun invoke(contrasena: String) = repositorio.eliminarCuenta(contrasena)
 }
 
 /** Usuario en sesión (para personalizar la interfaz según su rol). */

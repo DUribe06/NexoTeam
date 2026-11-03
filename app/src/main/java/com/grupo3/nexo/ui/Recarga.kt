@@ -49,6 +49,9 @@ suspend fun intentar(accion: suspend () -> Unit): Boolean =
         false
     }
 
+/** Como [intentar], pero devuelve la excepción para decir qué falló; null si salió bien. */
+suspend fun falloDe(accion: suspend () -> Unit): Throwable? = resultadoDe(accion).exceptionOrNull()
+
 /** Como [intentar], pero conserva el resultado o la excepción para decidir qué mostrar. */
 suspend fun <T> resultadoDe(accion: suspend () -> T): Result<T> =
     try {

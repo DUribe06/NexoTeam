@@ -74,7 +74,7 @@ import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.model.porDia
 import com.grupo3.nexo.domain.model.primerNombre
-import com.grupo3.nexo.domain.usecase.DiaSolicitable
+import com.grupo3.nexo.domain.model.DiaSolicitable
 import com.grupo3.nexo.domain.usecase.diasSolicitables
 import com.grupo3.nexo.domain.usecase.franjaValida
 import com.grupo3.nexo.domain.usecase.modalidadValida
@@ -120,6 +120,7 @@ import com.grupo3.nexo.ui.components.formatoValoracion
 import com.grupo3.nexo.ui.components.icono
 import com.grupo3.nexo.ui.components.mostrarError
 import com.grupo3.nexo.ui.components.plural
+import com.grupo3.nexo.ui.components.textoDePenalizacionesRecientes
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
@@ -199,8 +200,8 @@ fun PantallaTutorPerfil(
         when (aviso) {
             is AvisoPerfil.SolicitudEnviada -> avisos.showSnackbar("Solicitud enviada. ${aviso.tutor} tiene $PLAZO_RESPUESTA para responder.")
             AvisoPerfil.ReporteEnviado -> avisos.showSnackbar("Reporte enviado. Gracias por cuidar la comunidad.")
-            AvisoPerfil.SolicitudFallida -> avisos.mostrarError(avisoFallo("enviar la solicitud"))
-            AvisoPerfil.ReporteFallido -> avisos.mostrarError(avisoFallo("enviar el reporte"))
+            is AvisoPerfil.SolicitudFallida -> avisos.mostrarError(avisoFallo("enviar la solicitud", aviso.fallo))
+            is AvisoPerfil.ReporteFallido -> avisos.mostrarError(avisoFallo("enviar el reporte", aviso.fallo))
         }
         viewModel.descartarAviso()
     }
@@ -247,12 +248,24 @@ fun PantallaTutorPerfil(
                         Identidad(tutor, Modifier.aparicion(0, iniciado))
                     }
                     item(key = "cifras") {
-                        Cifras(
-                            tutor,
+                        Column(
                             Modifier
                                 .padding(start = EspacioMargen, end = EspacioMargen, top = EspacioHolgado)
                                 .aparicion(1, iniciado)
-                        )
+                        ) {
+                            Cifras(tutor)
+                            if (tutor.penalizaciones > 0) {
+                                Text(
+                                    textoDePenalizacionesRecientes(tutor.penalizaciones),
+                                    color = TextoSecundario,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = EspacioAjustado)
+                                )
+                            }
+                        }
                     }
                     item(key = "sobre") {
                         Column(
@@ -368,8 +381,11 @@ fun PantallaTutorPerfil(
     }
 
     if (mostrarSolicitud && tutor != null && !estado.esTutor) {
+        val dias by remember(tutor) { viewModel.diasDe(tutor) }
+            .collectAsStateWithLifecycle(initialValue = remember(tutor) { diasSolicitables(tutor.horario) })
         HojaSolicitud(
             tutor = tutor,
+            dias = dias,
             alCerrar = { mostrarSolicitud = false },
             alEnviar = { datos ->
                 viewModel.solicitar(datos)
@@ -655,10 +671,10 @@ private val DiaSolicitable.etiqueta: String get() = formatoFecha(fecha)
 @Composable
 private fun HojaSolicitud(
     tutor: Tutor,
+    dias: List<DiaSolicitable>,
     alCerrar: () -> Unit,
     alEnviar: (DatosSolicitud) -> Unit
 ) {
-    val dias = remember(tutor.horario) { diasSolicitables(tutor.horario) }
     var materia by rememberSaveable { mutableStateOf(tutor.materias.firstOrNull().orEmpty()) }
     var tema by rememberSaveable { mutableStateOf("") }
     var indiceDia by rememberSaveable { mutableIntStateOf(0) }

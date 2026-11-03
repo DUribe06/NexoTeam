@@ -41,10 +41,10 @@ class ObtenerMisSolicitudesUseCase @Inject constructor(
         combine(repositorio.obtenerSolicitudes(), auth.usuarioActual) { todas, usuario ->
             val esTutor = usuario.rol == Rol.TUTOR
             todas.filter { if (esTutor) it.tutorId == usuario.id else it.estudianteId == usuario.id }
-                // Pendientes: primero la que vence antes (la enviada hace más tiempo); el resto, la más reciente arriba
+                // Pendientes: primero la que vence antes; el resto, la más reciente arriba
                 .sortedWith(
                     compareBy<Solicitud> { orden.indexOf(it.estado) }
-                        .thenBy { if (it.estado == EstadoSolicitud.PENDIENTE) it.enviada else null }
+                        .thenBy { if (it.estado == EstadoSolicitud.PENDIENTE) it.venceEn else null }
                         .thenByDescending { it.enviada }
                 )
         }
@@ -61,7 +61,7 @@ class ActualizarSolicitudUseCase @Inject constructor(
      * Aceptar agenda la sesión y deja activo el chat con esa persona; cancelar una aceptada la cancela
      * también y, si no quedan sesiones por venir con ella, el chat pasa a solo lectura (RF6 → RF8, RF10).
      */
-    // Con el backend real esta orquestación (solicitud, sesión y chat) pasa al servidor, en una sola llamada
+    // Con el backend real esta orquestación ya la hizo el servidor en actualizarEstado: las secundarias no hacen nada
     suspend operator fun invoke(id: String, estado: EstadoSolicitud, motivo: String? = null) {
         val anterior = repositorio.obtenerSolicitudes().first().firstOrNull { it.id == id } ?: return
         // La escritura principal decide el resultado: si falla, la excepción llega a quien llamó

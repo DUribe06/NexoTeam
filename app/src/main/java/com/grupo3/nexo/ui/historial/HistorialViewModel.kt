@@ -8,12 +8,13 @@ import com.grupo3.nexo.domain.model.ResumenActividad
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Sesion
 import com.grupo3.nexo.domain.usecase.CalificarSesionUseCase
+import com.grupo3.nexo.domain.usecase.PedirRevisionUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerHistorialUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerMisResenasUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerResumenActividadUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
 import com.grupo3.nexo.ui.Recarga
-import com.grupo3.nexo.ui.intentar
+import com.grupo3.nexo.ui.falloDe
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,7 +29,8 @@ class HistorialViewModel @Inject constructor(
     obtenerUsuario: ObtenerUsuarioUseCase,
     obtenerResumen: ObtenerResumenActividadUseCase,
     obtenerResenas: ObtenerMisResenasUseCase,
-    private val calificarSesion: CalificarSesionUseCase
+    private val calificarSesion: CalificarSesionUseCase,
+    private val pedirRevisionDe: PedirRevisionUseCase
 ) : ViewModel() {
 
     data class Estado(
@@ -70,10 +72,14 @@ class HistorialViewModel @Inject constructor(
         materia.value = if (materia.value == valor) null else valor
     }
 
-    /** Avisa con `alTerminar(true)` si se guardó y `alTerminar(false)` si falló. */
+    /** Avisa con `alTerminar(null)` si se guardó y `alTerminar(fallo)` si no. */
     private val enCurso = AccionesEnCurso()
 
-    fun calificar(sesionId: String, estrellas: Int, comentario: String?, alTerminar: (Boolean) -> Unit) {
-        enCurso.lanzar(viewModelScope, "calificar:$sesionId") { alTerminar(intentar { calificarSesion(sesionId, estrellas, comentario) }) }
+    fun calificar(sesionId: String, estrellas: Int, comentario: String?, alTerminar: (Throwable?) -> Unit) {
+        enCurso.lanzar(viewModelScope, "calificar:$sesionId") { alTerminar(falloDe { calificarSesion(sesionId, estrellas, comentario) }) }
+    }
+
+    fun pedirRevision(sesionId: String, motivo: String, alTerminar: (Throwable?) -> Unit) {
+        enCurso.lanzar(viewModelScope, "revision:$sesionId") { alTerminar(falloDe { pedirRevisionDe(sesionId, motivo) }) }
     }
 }
