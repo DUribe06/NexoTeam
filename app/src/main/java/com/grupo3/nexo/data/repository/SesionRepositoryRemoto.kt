@@ -28,7 +28,7 @@ import kotlinx.coroutines.launch
 private const val INTERVALO_SONDEO_MS = 10_000L
 
 /**
- * Sesiones contra /api/sesiones, solo las del modo actual. Se usa cuando `BuildConfig.USAR_API` es true.
+ * Sesiones contra /api/sesiones, solo las del modo actual.
  * Mientras alguien las observa se consultan cada [INTERVALO_SONDEO_MS]: el PIN, un retardo o una cancelación los hace la
  * otra persona, en otro teléfono.
  */

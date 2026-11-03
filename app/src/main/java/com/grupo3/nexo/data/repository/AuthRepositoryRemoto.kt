@@ -57,7 +57,7 @@ private const val ESPERA_PERFIL_MS = 5_000L
 private const val ESPERA_PERFIL_MAXIMA_MS = 60_000L
 
 /**
- * Cuentas contra /api/auth y /api/usuarios. Se usa cuando `BuildConfig.USAR_API` es true.
+ * Cuentas contra /api/auth y /api/usuarios.
  * El modo en uso vive en la sesión guardada: así sobrevive a reiniciar la app y `ContextoRemoto` lo lee de ahí. El resto
  * del perfil (handle, universidad...) llega de GET /api/usuarios/yo poco después de abrir la sesión.
  */

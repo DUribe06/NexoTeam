@@ -30,7 +30,7 @@ private const val INTERVALO_SONDEO_MS = 5_000L
 private const val LIMITE_MENSAJES = 100
 
 /**
- * Chats contra /api/chats. Se usa cuando `BuildConfig.USAR_API` es true.
+ * Chats contra /api/chats.
  * Mientras alguien observa la bandeja o una conversación se consulta al servidor cada [intervaloSondeoMs]; un fallo de
  * esas consultas no se muestra (lo que ya se ve sigue valiendo) y se reintenta en la siguiente.
  */

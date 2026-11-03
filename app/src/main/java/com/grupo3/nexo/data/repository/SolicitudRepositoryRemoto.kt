@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 /**
- * Solicitudes contra /api/solicitudes, solo las del modo actual. Se usa cuando `BuildConfig.USAR_API` es true.
+ * Solicitudes contra /api/solicitudes, solo las del modo actual.
  * Aceptar, rechazar y cancelar también crean o cancelan la sesión y habilitan o cierran el chat en el servidor, en una
  * sola transacción: por eso cada una refresca solicitudes, sesiones y chats.
  */

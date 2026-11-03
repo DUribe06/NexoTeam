@@ -33,8 +33,8 @@ info:
     - Listas: las del propio usuario (solicitudes, sesiones, chats) van completas; el catálogo de tutores y las
       reseñas, por páginas (`pagina`, `tamano`); los mensajes, por cursor (`antes`, `desde`).
 servers:
-  - url: http://10.0.2.2:8080
-    description: Desarrollo (visto desde el emulador de Android)
+  - url: /
+    description: El mismo servidor que publica este contrato
 tags:
   - name: Salud
   - name: Autenticación

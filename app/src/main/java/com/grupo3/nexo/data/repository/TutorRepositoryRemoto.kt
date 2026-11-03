@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 /** Límite de `q` en el contrato: un texto más largo se rechazaría con DATOS_INVALIDOS. */
 private const val MAXIMO_CONSULTA = 100
 
-/** Tutores contra /api/tutores. Se usa cuando `BuildConfig.USAR_API` es true. */
+/** Tutores contra /api/tutores. */
 @Singleton
 class TutorRepositoryRemoto @Inject constructor(
     private val api: NexoApi,

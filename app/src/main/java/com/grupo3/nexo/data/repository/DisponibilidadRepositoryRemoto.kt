@@ -19,7 +19,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
-/** Disponibilidad contra /api/disponibilidad. Se usa cuando `BuildConfig.USAR_API` es true. */
+/** Disponibilidad contra /api/disponibilidad. */
 @Singleton
 class DisponibilidadRepositoryRemoto @Inject constructor(
     private val api: NexoApi,
