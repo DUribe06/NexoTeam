@@ -250,11 +250,12 @@ class SesionRepositoryRemotoTest {
         override suspend fun reenviarCodigo(correo: String) = Unit
         override suspend fun recuperarContrasena(correo: String) = Unit
         override suspend fun restablecerContrasena(correo: String, codigo: String, nueva: String) = Unit
-        override suspend fun iniciarSesionGoogle() = true
+        override suspend fun iniciarSesionGoogle(tokenId: String, aceptaCondiciones: Boolean) = throw NotImplementedError()
         override suspend fun cambiarModo(rol: Rol) = Unit
         override suspend fun definirMaterias(materias: List<String>) = Unit
         override fun cerrarSesion() = Unit
         override suspend fun eliminarCuenta(contrasena: String) = Unit
+        override suspend fun eliminarCuentaConGoogle(tokenGoogle: String) = Unit
     }
 
     private companion object {

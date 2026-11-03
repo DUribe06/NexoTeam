@@ -37,8 +37,13 @@ class LoginViewModel @Inject constructor(
         /** Si no es null, hay que ir a confirmar este correo. */
         val correoPorVerificar: String? = null,
         /** Al entrar con un correo sin confirmar no se acaba de enviar ningún código: hay que pedir uno. */
-        val reenviarAlVerificar: Boolean = false
+        val reenviarAlVerificar: Boolean = false,
+        /** Primera vez con Google: hay que mostrar las condiciones antes de crear la cuenta. */
+        val pedirCondicionesGoogle: Boolean = false
     )
+
+    /** Se guarda mientras la persona lee las condiciones, para no volver a mostrarle el selector de cuentas. */
+    private var tokenGoogle: String? = null
 
     private val _estado = MutableStateFlow(Estado())
     val estado = _estado.asStateFlow()
@@ -87,16 +92,46 @@ class LoginViewModel @Inject constructor(
         }
     }
 
-    fun entrarGoogle() {
-        if (_estado.value.cargando) return
+    /** [pedirToken] muestra el selector de cuentas; quien ya marcó la casilla del registro no vuelve a ver las condiciones. */
+    fun entrarGoogle(pedirToken: suspend () -> ResultadoGoogle) {
+        val e = _estado.value
+        if (e.cargando) return
         viewModelScope.launch {
             _estado.update { it.copy(cargando = true, error = null, aviso = null) }
-            val resultado = resultadoDe { iniciarSesionGoogle() }
-            val fallo = resultado.exceptionOrNull()
-            _estado.update {
-                if (fallo == null) it.copy(cargando = false, autenticado = true)
-                else it.copy(cargando = false, error = mensajeDeError(fallo))
+            when (val cuenta = pedirToken()) {
+                is ResultadoGoogle.Token -> enviarTokenGoogle(cuenta.valor, e.esRegistro && e.aceptaCondiciones)
+                ResultadoGoogle.Cancelado -> _estado.update { it.copy(cargando = false) }
+                ResultadoGoogle.SinCuentas -> _estado.update { it.copy(cargando = false, error = MENSAJE_GOOGLE_SIN_CUENTAS) }
+                ResultadoGoogle.NoDisponible -> _estado.update { it.copy(cargando = false, error = MENSAJE_GOOGLE_NO_DISPONIBLE) }
             }
+        }
+    }
+
+    fun aceptarCondicionesGoogle() {
+        val token = tokenGoogle ?: return
+        if (_estado.value.cargando) return
+        viewModelScope.launch {
+            _estado.update { it.copy(cargando = true, pedirCondicionesGoogle = false) }
+            enviarTokenGoogle(token, aceptaCondiciones = true)
+        }
+    }
+
+    fun cancelarCondicionesGoogle() {
+        tokenGoogle = null
+        _estado.update { it.copy(pedirCondicionesGoogle = false) }
+    }
+
+    private suspend fun enviarTokenGoogle(token: String, aceptaCondiciones: Boolean) {
+        val resultado = resultadoDe { iniciarSesionGoogle(token, aceptaCondiciones) }
+        val acceso = resultado.getOrNull()
+        tokenGoogle = token.takeIf { acceso == ResultadoAcceso.FaltaAceptarCondiciones }
+        _estado.update {
+            it.copy(
+                cargando = false,
+                autenticado = acceso == ResultadoAcceso.Entro,
+                pedirCondicionesGoogle = acceso == ResultadoAcceso.FaltaAceptarCondiciones,
+                error = resultado.fold(::mensajeDeAcceso, ::mensajeDeError)
+            )
         }
     }
 

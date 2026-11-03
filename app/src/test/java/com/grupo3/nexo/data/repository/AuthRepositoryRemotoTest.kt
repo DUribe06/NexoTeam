@@ -203,13 +203,67 @@ class AuthRepositoryRemotoTest {
     }
 
     @Test
-    fun `google lanza el error que la pantalla muestra como disponible pronto`() = runTest {
+    fun `google envia el token y abre la sesion`() = runTest {
+        servidor.enqueue(MockResponse().setBody(cuerpoSesion()))
+
+        assertEquals(ResultadoAcceso.Entro, repositorio.iniciarSesionGoogle("token-google", aceptaCondiciones = false))
+
+        val peticion = servidor.takeRequest(5, TimeUnit.SECONDS)!!
+        assertEquals("/api/auth/google", peticion.path)
+        assertEquals("""{"tokenId":"token-google"}""", peticion.body.readUtf8())
+        assertTrue(repositorio.autenticado.value)
+    }
+
+    @Test
+    fun `google envia las condiciones con su version cuando se aceptan`() = runTest {
+        servidor.enqueue(MockResponse().setBody(cuerpoSesion()))
+
+        repositorio.iniciarSesionGoogle("token-google", aceptaCondiciones = true)
+
+        val cuerpo = servidor.takeRequest(5, TimeUnit.SECONDS)!!.body.readUtf8()
+        assertTrue(cuerpo, cuerpo.contains(""""aceptaTerminos":true"""))
+        assertTrue(cuerpo, cuerpo.contains(""""versionTerminos":""""))
+    }
+
+    @Test
+    fun `google sin condiciones aceptadas no abre la sesion`() = runTest {
+        servidor.enqueue(MockResponse().setResponseCode(409).setBody(cuerpoError(CodigoError.TERMINOS_REQUERIDOS)))
+
+        assertEquals(ResultadoAcceso.FaltaAceptarCondiciones, repositorio.iniciarSesionGoogle("token-google", false))
+        assertFalse(repositorio.autenticado.value)
+    }
+
+    @Test
+    fun `google con cuenta suspendida lo informa como resultado`() = runTest {
+        servidor.enqueue(MockResponse().setResponseCode(403).setBody(cuerpoError(CodigoError.CUENTA_SUSPENDIDA)))
+
+        assertEquals(ResultadoAcceso.CuentaSuspendida, repositorio.iniciarSesionGoogle("token-google", false))
+    }
+
+    @Test
+    fun `un token de google rechazado llega como error`() = runTest {
+        servidor.enqueue(MockResponse().setResponseCode(401).setBody(cuerpoError(CodigoError.TOKEN_GOOGLE_INVALIDO)))
+
         try {
-            repositorio.iniciarSesionGoogle()
+            repositorio.iniciarSesionGoogle("token-malo", false)
             fail("Debía fallar")
         } catch (e: ErrorApi) {
-            assertEquals(CodigoError.GOOGLE_NO_DISPONIBLE, e.codigo)
+            assertEquals(CodigoError.TOKEN_GOOGLE_INVALIDO, e.codigo)
         }
+    }
+
+    @Test
+    fun `eliminar con google envia el token y borra la sesion`() = runTest {
+        servidor.enqueue(MockResponse().setBody(cuerpoSesion()))
+        repositorio.iniciarSesion("ana@correo.co", "clave1234")
+        servidor.takeRequest(5, TimeUnit.SECONDS)
+        servidor.enqueue(MockResponse().setResponseCode(204))
+
+        repositorio.eliminarCuentaConGoogle("token-google")
+
+        val peticion = generateSequence { servidor.takeRequest(5, TimeUnit.SECONDS) }.first { it.path != ColaConPerfil.RUTA_PERFIL }
+        assertEquals("""{"tokenGoogle":"token-google"}""", peticion.body.readUtf8())
+        assertFalse(repositorio.autenticado.value)
     }
 
     @Test

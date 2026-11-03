@@ -355,7 +355,9 @@ data class Usuario(
     val carrera: String = "",
     /** Perfil público como tutor. */
     val bio: String = "",
-    val materias: List<String> = emptyList()
+    val materias: List<String> = emptyList(),
+    /** False si la cuenta solo entra con Google. */
+    val tieneContrasena: Boolean = true
 )
 
 /** Cifras del usuario en el modo actual, para el Perfil y el Historial. */

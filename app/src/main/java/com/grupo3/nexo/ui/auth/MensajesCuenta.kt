@@ -11,7 +11,7 @@ private const val SEGUNDOS_POR_MINUTO = 60
 
 /** Qué decirle a la persona según cómo terminó el intento de entrar; null si no hay nada que avisar. */
 fun mensajeDeAcceso(resultado: ResultadoAcceso): String? = when (resultado) {
-    ResultadoAcceso.Entro, is ResultadoAcceso.FaltaVerificarCorreo -> null
+    ResultadoAcceso.Entro, is ResultadoAcceso.FaltaVerificarCorreo, ResultadoAcceso.FaltaAceptarCondiciones -> null
     ResultadoAcceso.CredencialesIncorrectas -> "No pudimos validar tus datos. Revisa el correo y la contraseña."
     is ResultadoAcceso.CuentaBloqueada -> {
         val cuando = resultado.minutos?.let { "en $it ${plural(it, "minuto", "minutos")}" } ?: "en unos minutos"
@@ -36,7 +36,10 @@ private fun mensajeDeErrorApi(error: ErrorApi): String = when (error.codigo) {
     CodigoError.CODIGO_INTENTOS_AGOTADOS -> "Superaste los intentos. Pide un código nuevo."
     CodigoError.CUENTA_NO_ENCONTRADA -> "No hay una cuenta por confirmar con ese correo."
     CodigoError.TOKEN_INVALIDO, CodigoError.NO_AUTENTICADO -> "Tu sesión venció. Inicia sesión de nuevo."
-    CodigoError.GOOGLE_NO_DISPONIBLE -> "Inicio con Google disponible pronto."
+    CodigoError.GOOGLE_NO_DISPONIBLE -> "El inicio con Google no está disponible en este momento. Entra con tu correo."
+    CodigoError.TOKEN_GOOGLE_INVALIDO -> "No pudimos validar tu cuenta de Google. Inténtalo de nuevo."
+    CodigoError.GOOGLE_CUENTA_DISTINTA -> "Este correo ya está unido a otra cuenta de Google."
+    CodigoError.GOOGLE_NO_COINCIDE -> "Elige la cuenta de Google con la que entras a Nexo."
     CodigoError.CUENTA_NO_USA_APP, CodigoError.ADMIN_SIN_MODOS ->
         "Esta cuenta es de administración y no puede usar la app. Entra con una cuenta de estudiante o tutor."
     CodigoError.NO_ES_TUTOR -> "Esto solo lo puede hacer el tutor. Revisa que estés en modo Tutor."

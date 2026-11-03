@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Solo en debug: permite HTTP para hablar con el backend del PC, ya sea desde el emulador o desde un teléfono por WiFi,
-     cuya IP cambia según la red. La versión release no incluye este archivo. -->
-<network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
-</network-security-config>

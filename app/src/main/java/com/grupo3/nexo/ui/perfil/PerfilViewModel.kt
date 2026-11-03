@@ -67,4 +67,8 @@ class PerfilViewModel @Inject constructor(
     fun eliminarCuenta(contrasena: String, alTerminar: (Throwable?) -> Unit) {
         enCurso.lanzar(viewModelScope, "eliminar") { alTerminar(falloDe { eliminarCuentaPropia(contrasena) }) }
     }
+
+    fun eliminarCuentaConGoogle(tokenGoogle: String, alTerminar: (Throwable?) -> Unit) {
+        enCurso.lanzar(viewModelScope, "eliminar") { alTerminar(falloDe { eliminarCuentaPropia.conGoogle(tokenGoogle) }) }
+    }
 }

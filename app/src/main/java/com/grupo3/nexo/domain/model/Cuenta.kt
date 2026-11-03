@@ -10,6 +10,9 @@ sealed interface ResultadoAcceso {
 
     data object CredencialesIncorrectas : ResultadoAcceso
 
+    /** Primera vez con Google: falta que acepte las condiciones para crear la cuenta. */
+    data object FaltaAceptarCondiciones : ResultadoAcceso
+
     /** Bloqueo temporal por intentos fallidos; [minutos] es null si el servidor no dijo cuánto falta. */
     data class CuentaBloqueada(val minutos: Int?) : ResultadoAcceso
 
@@ -101,6 +104,9 @@ object CodigoError {
     /** Propio de la app: la cuenta es de administrador (o de un rol que no conoce), que no usa la app (RF12). */
     const val CUENTA_NO_USA_APP = "CUENTA_NO_USA_APP"
 
-    /** Propio de la app: el backend todavía no tiene inicio con Google. */
     const val GOOGLE_NO_DISPONIBLE = "GOOGLE_NO_DISPONIBLE"
+    const val TOKEN_GOOGLE_INVALIDO = "TOKEN_GOOGLE_INVALIDO"
+    const val TERMINOS_REQUERIDOS = "TERMINOS_REQUERIDOS"
+    const val GOOGLE_CUENTA_DISTINTA = "GOOGLE_CUENTA_DISTINTA"
+    const val GOOGLE_NO_COINCIDE = "GOOGLE_NO_COINCIDE"
 }

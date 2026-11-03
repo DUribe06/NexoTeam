@@ -25,7 +25,6 @@ class NexoApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        if (!BuildConfig.USAR_API) return
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             almacenSesion.esperarCarga()
             almacenSesion.sesion.map { it?.usuario?.id }.distinctUntilChanged().collect { usuario ->

@@ -61,6 +61,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -73,9 +74,12 @@ import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.ResumenActividad
 import com.grupo3.nexo.domain.model.Rol
+import com.grupo3.nexo.ui.auth.MENSAJE_GOOGLE_NO_DISPONIBLE
+import com.grupo3.nexo.ui.auth.MENSAJE_GOOGLE_SIN_CUENTAS
+import com.grupo3.nexo.ui.auth.ResultadoGoogle
+import com.grupo3.nexo.ui.auth.pedirTokenGoogle
 import com.grupo3.nexo.domain.model.Usuario
 import com.grupo3.nexo.ui.components.AvisoNexo
-import com.grupo3.nexo.BuildConfig
 import com.grupo3.nexo.ui.components.BotonPrimario
 import com.grupo3.nexo.ui.components.BotonTexto
 import com.grupo3.nexo.ui.components.Campo
@@ -266,14 +270,28 @@ fun PantallaPerfil(
     }
 
     if (eliminando) {
+        val alTerminar: (Throwable?) -> Unit = { fallo ->
+            if (fallo == null) alCerrarSesion()
+            else alcance.launch { avisos.mostrarError(avisoFallo("eliminar tu cuenta", fallo)) }
+        }
+        val contexto = LocalContext.current
         HojaEliminarCuenta(
+            conContrasena = usuario.tieneContrasena,
             alCerrar = { eliminando = false },
             alConfirmar = { contrasena ->
-                viewModel.eliminarCuenta(contrasena) { fallo ->
-                    if (fallo == null) alCerrarSesion()
-                    else alcance.launch { avisos.mostrarError(avisoFallo("eliminar tu cuenta", fallo)) }
-                }
+                viewModel.eliminarCuenta(contrasena, alTerminar)
                 eliminando = false
+            },
+            alConfirmarConGoogle = {
+                alcance.launch {
+                    when (val cuenta = pedirTokenGoogle(contexto)) {
+                        is ResultadoGoogle.Token -> viewModel.eliminarCuentaConGoogle(cuenta.valor, alTerminar)
+                        ResultadoGoogle.Cancelado -> Unit
+                        ResultadoGoogle.SinCuentas -> avisos.mostrarError(MENSAJE_GOOGLE_SIN_CUENTAS)
+                        ResultadoGoogle.NoDisponible -> avisos.mostrarError(MENSAJE_GOOGLE_NO_DISPONIBLE)
+                    }
+                    eliminando = false
+                }
             }
         )
     }
@@ -281,7 +299,7 @@ fun PantallaPerfil(
     if (confirmarSalida) {
         DialogoConfirmacion(
             titulo = "¿Cerrar sesión?",
-            mensaje = "Tendrás que volver a ingresar tu correo y contraseña.",
+            mensaje = "Tendrás que volver a iniciar sesión para entrar.",
             confirmar = "Cerrar sesión",
             alConfirmar = {
                 confirmarSalida = false
@@ -651,17 +669,23 @@ private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> 
         Text("Cerrar sesión", color = rojo, style = MaterialTheme.typography.titleSmall)
     }
     Column(Modifier.fillMaxWidth().padding(top = EspacioMinimo), horizontalAlignment = Alignment.CenterHorizontally) {
-        if (BuildConfig.USAR_API) {
-            val enlaces = LocalUriHandler.current
-            BotonTexto("Política de privacidad", { enlaces.openUri(URL_PRIVACIDAD) }, color = TextoTercero)
-        }
+        val enlaces = LocalUriHandler.current
+        BotonTexto("Política de privacidad", { enlaces.openUri(URL_PRIVACIDAD) }, color = TextoTercero)
         BotonTexto("Eliminar mi cuenta", alEliminar, color = TextoTercero)
     }
 }
 
-/** Pide la contraseña: es lo único que distingue a la persona de quien encuentre el teléfono desbloqueado. */
+/**
+ * Pide la contraseña, o la cuenta de Google si no tiene: es lo único que distingue a la persona de quien encuentre
+ * el teléfono desbloqueado.
+ */
 @Composable
-private fun HojaEliminarCuenta(alCerrar: () -> Unit, alConfirmar: (String) -> Unit) {
+private fun HojaEliminarCuenta(
+    conContrasena: Boolean,
+    alCerrar: () -> Unit,
+    alConfirmar: (String) -> Unit,
+    alConfirmarConGoogle: () -> Unit
+) {
     var contrasena by remember { mutableStateOf("") }
     HojaNexo(
         titulo = "Eliminar tu cuenta",
@@ -669,20 +693,22 @@ private fun HojaEliminarCuenta(alCerrar: () -> Unit, alConfirmar: (String) -> Un
             "las reseñas y los mensajes se conservan sin tu nombre, porque también son de la otra persona.",
         alCerrar = alCerrar
     ) {
-        Spacer(Modifier.height(EspacioNormal))
-        Campo(
-            valor = contrasena,
-            alCambiar = { contrasena = it },
-            marcador = "Tu contraseña",
-            oculto = true,
-            teclado = KeyboardOptions(keyboardType = KeyboardType.Password),
-            modifier = Modifier.fillMaxWidth()
-        )
+        if (conContrasena) {
+            Spacer(Modifier.height(EspacioNormal))
+            Campo(
+                valor = contrasena,
+                alCambiar = { contrasena = it },
+                marcador = "Tu contraseña",
+                oculto = true,
+                teclado = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
         Spacer(Modifier.height(EspacioHolgado))
         BotonPrimario(
-            texto = "Eliminar mi cuenta",
-            habilitado = contrasena.isNotEmpty(),
-            alClicar = { alConfirmar(contrasena) },
+            texto = if (conContrasena) "Eliminar mi cuenta" else "Confirmar con Google y eliminar",
+            habilitado = !conContrasena || contrasena.isNotEmpty(),
+            alClicar = { if (conContrasena) alConfirmar(contrasena) else alConfirmarConGoogle() },
             modifier = Modifier.fillMaxWidth()
         )
     }

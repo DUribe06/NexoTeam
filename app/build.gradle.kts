@@ -7,16 +7,27 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+// Se definen en gradle.properties; ver backend/docs/despliegue.md
+val apiUrl = providers.gradleProperty("nexoApiUrl").get()
+val googleClientId = providers.gradleProperty("nexoGoogleClientId").get()
+
+require(apiUrl.startsWith("https://") && apiUrl.endsWith("/")) {
+    "nexoApiUrl debe empezar por https:// y terminar en /: la app no permite tráfico sin cifrar"
+}
+
 android {
     namespace = "com.grupo3.nexo"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.grupo3.nexo"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
+
+        buildConfigField("String", "API_URL", "\"$apiUrl\"")
+        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
     }
 
     // La llave de firma vive fuera del repositorio; solo se usa si estas variables existen
@@ -30,22 +41,7 @@ android {
     }
 
     buildTypes {
-        debug {
-            // 10.0.2.2 es el localhost de la máquina vista desde el emulador. Para un teléfono por WiFi, con la IP del PC:
-            // ./gradlew assembleDebug -PnexoApiUrl=http://192.168.x.x:8080/
-            val apiUrl = providers.gradleProperty("nexoApiUrl").getOrElse("http://10.0.2.2:8080/")
-            buildConfigField("String", "API_URL", "\"$apiUrl\"")
-            buildConfigField("Boolean", "USAR_API", "true")
-        }
         release {
-            // Para publicar: ./gradlew bundleRelease -PnexoApiUrlPublicacion=https://... (ver README).
-            // Sin esa propiedad sale con los datos simulados, como versión de demostración sin servidor.
-            val urlPublicacion = providers.gradleProperty("nexoApiUrlPublicacion").orNull
-            require(urlPublicacion == null || urlPublicacion.startsWith("https://")) {
-                "nexoApiUrlPublicacion debe ser https: la versión publicada no permite tráfico sin cifrar"
-            }
-            buildConfigField("String", "API_URL", "\"${urlPublicacion ?: "https://api.nexo.invalid/"}\"")
-            buildConfigField("Boolean", "USAR_API", (urlPublicacion != null).toString())
             signingConfigs.findByName("publicacion")?.let { signingConfig = it }
             isMinifyEnabled = true
             proguardFiles(
@@ -53,19 +49,6 @@ android {
                 "proguard-rules.pro"
             )
         }
-        // La versión final, reducida con R8, pero contra el servidor del PC: comprueba que R8 no rompa nada antes de publicar
-        create("validacion") {
-            initWith(getByName("release"))
-            val apiUrl = providers.gradleProperty("nexoApiUrl").getOrElse("http://10.0.2.2:8080/")
-            buildConfigField("String", "API_URL", "\"$apiUrl\"")
-            buildConfigField("Boolean", "USAR_API", "true")
-            signingConfig = signingConfigs.getByName("debug")
-            matchingFallbacks += "release"
-        }
-    }
-    sourceSets.getByName("validacion") {
-        manifest.srcFile("src/debug/AndroidManifest.xml")
-        res.srcDir("src/debug/res")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -80,12 +63,25 @@ android {
     }
 }
 
+// Una versión para publicar nunca sale apuntando a la dirección de relleno o sin el cliente de Google
+tasks.matching { it.name == "bundleRelease" || it.name == "assembleRelease" }.configureEach {
+    doFirst {
+        check(!apiUrl.contains(".invalid")) { "Define nexoApiUrl en gradle.properties con la dirección del servidor" }
+        check(googleClientId.isNotBlank()) { "Define nexoGoogleClientId en gradle.properties con el cliente Web de Google" }
+    }
+}
+
 // Hilt genera código con kapt: evita errores de tipos sin resolver
 kapt {
     correctErrorTypes = true
 }
 
 dependencies {
+    // Inicio con Google
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play)
+    implementation(libs.googleid)
+
     // Núcleo Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

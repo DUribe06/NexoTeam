@@ -18,7 +18,8 @@ data class PerfilPropioDto(
     val carrera: String? = null,
     val bio: String? = null,
     val materias: List<String> = emptyList(),
-    val precioHora: Double? = null
+    val precioHora: Double? = null,
+    val tieneContrasena: Boolean = true
 )
 
 @Serializable
@@ -29,7 +30,7 @@ data class SolicitudCambiarModo(val modo: RolDto)
 data class SolicitudEditarMaterias(val materias: List<String>)
 
 @Serializable
-data class SolicitudEliminarCuenta(val contrasena: String)
+data class SolicitudEliminarCuenta(val contrasena: String? = null, val tokenGoogle: String? = null)
 
 @Serializable
 data class ResumenActividadDto(

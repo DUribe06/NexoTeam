@@ -46,7 +46,11 @@ private class CuentasDePrueba : AuthRepository {
     var alReenviar: () -> Unit = {}
     var alRecuperar: () -> Unit = {}
     var alRestablecer: () -> Unit = {}
-    var alGoogle: () -> Boolean = { true }
+    val llamadasGoogle = mutableListOf<Pair<String, Boolean>>()
+    var alGoogle: (String, Boolean) -> ResultadoAcceso = { token, acepta ->
+        llamadasGoogle += token to acepta
+        ResultadoAcceso.Entro
+    }
     val codigosRecibidos = mutableListOf<String>()
     var reenvios = 0
 
@@ -64,11 +68,13 @@ private class CuentasDePrueba : AuthRepository {
         alRecuperar()
     }
     override suspend fun restablecerContrasena(correo: String, codigo: String, nueva: String) = alRestablecer()
-    override suspend fun iniciarSesionGoogle() = alGoogle()
+    override suspend fun iniciarSesionGoogle(tokenId: String, aceptaCondiciones: Boolean) =
+        alGoogle(tokenId, aceptaCondiciones)
     override suspend fun cambiarModo(rol: Rol) = Unit
     override suspend fun definirMaterias(materias: List<String>) = Unit
     override fun cerrarSesion() = Unit
     override suspend fun eliminarCuenta(contrasena: String) = Unit
+    override suspend fun eliminarCuentaConGoogle(tokenGoogle: String) = Unit
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -150,14 +156,100 @@ class FlujosCuentaTest {
     }
 
     @Test
-    fun `google no disponible se avisa y el boton sigue habilitado`() = runTest(despachador) {
-        cuentas.alGoogle = { throw ErrorApi(CodigoError.GOOGLE_NO_DISPONIBLE, "x") }
+    fun `google entra con el token que entrega el selector`() = runTest(despachador) {
         val vm = login()
 
-        vm.entrarGoogle()
+        vm.entrarGoogle { ResultadoGoogle.Token("token") }
         runCurrent()
 
-        assertEquals("Inicio con Google disponible pronto.", vm.estado.value.error)
+        assertEquals(listOf("token" to false), cuentas.llamadasGoogle)
+        assertTrue(vm.estado.value.autenticado)
+        assertFalse(vm.estado.value.cargando)
+    }
+
+    @Test
+    fun `cerrar el selector de google no muestra ningun error`() = runTest(despachador) {
+        val vm = login()
+
+        vm.entrarGoogle { ResultadoGoogle.Cancelado }
+        runCurrent()
+
+        assertTrue(cuentas.llamadasGoogle.isEmpty())
+        assertNull(vm.estado.value.error)
+        assertFalse(vm.estado.value.cargando)
+    }
+
+    @Test
+    fun `sin cuentas de google lo explica`() = runTest(despachador) {
+        val vm = login()
+
+        vm.entrarGoogle { ResultadoGoogle.SinCuentas }
+        runCurrent()
+
+        assertEquals(MENSAJE_GOOGLE_SIN_CUENTAS, vm.estado.value.error)
+    }
+
+    @Test
+    fun `la primera vez con google pide las condiciones y reintenta con el mismo token`() = runTest(despachador) {
+        cuentas.alGoogle = { token, acepta ->
+            cuentas.llamadasGoogle += token to acepta
+            if (acepta) ResultadoAcceso.Entro else ResultadoAcceso.FaltaAceptarCondiciones
+        }
+        val vm = login()
+
+        vm.entrarGoogle { ResultadoGoogle.Token("token") }
+        runCurrent()
+        assertTrue(vm.estado.value.pedirCondicionesGoogle)
+        assertFalse(vm.estado.value.autenticado)
+
+        vm.aceptarCondicionesGoogle()
+        runCurrent()
+
+        assertEquals(listOf("token" to false, "token" to true), cuentas.llamadasGoogle)
+        assertFalse(vm.estado.value.pedirCondicionesGoogle)
+        assertTrue(vm.estado.value.autenticado)
+    }
+
+    @Test
+    fun `no aceptar las condiciones de google no crea la cuenta`() = runTest(despachador) {
+        cuentas.alGoogle = { token, acepta ->
+            cuentas.llamadasGoogle += token to acepta
+            ResultadoAcceso.FaltaAceptarCondiciones
+        }
+        val vm = login()
+
+        vm.entrarGoogle { ResultadoGoogle.Token("token") }
+        runCurrent()
+        vm.cancelarCondicionesGoogle()
+        vm.aceptarCondicionesGoogle()
+        runCurrent()
+
+        assertEquals(listOf("token" to false), cuentas.llamadasGoogle)
+        assertFalse(vm.estado.value.pedirCondicionesGoogle)
+        assertFalse(vm.estado.value.autenticado)
+    }
+
+    @Test
+    fun `quien ya marco las condiciones del registro no las vuelve a ver`() = runTest(despachador) {
+        val vm = login()
+        vm.alternarModo()
+        vm.cambiarCondiciones(true)
+
+        vm.entrarGoogle { ResultadoGoogle.Token("token") }
+        runCurrent()
+
+        assertEquals(listOf("token" to true), cuentas.llamadasGoogle)
+    }
+
+    @Test
+    fun `un error del servidor con google se avisa y el boton sigue habilitado`() = runTest(despachador) {
+        cuentas.alGoogle = { _, _ -> throw ErrorApi(CodigoError.GOOGLE_NO_DISPONIBLE, "x") }
+        val vm = login()
+
+        vm.entrarGoogle { ResultadoGoogle.Token("token") }
+        runCurrent()
+
+        assertEquals("El inicio con Google no está disponible en este momento. Entra con tu correo.", vm.estado.value.error)
         assertFalse(vm.estado.value.cargando)
         assertFalse(vm.estado.value.autenticado)
     }

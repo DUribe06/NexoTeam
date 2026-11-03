@@ -24,7 +24,7 @@ import javax.inject.Singleton
 @Retention(AnnotationRetention.BINARY)
 annotation class SinSesion
 
-/** Cliente HTTP hacia el backend. La URL base sale de BuildConfig (debug: emulador → localhost). */
+/** Cliente HTTP hacia el backend. La URL base sale de `nexoApiUrl` en gradle.properties. */
 @Module
 @InstallIn(SingletonComponent::class)
 object RedModule {

@@ -92,11 +92,12 @@ class ObtenerAutenticadoUseCase @Inject constructor(
     operator fun invoke(): kotlinx.coroutines.flow.StateFlow<Boolean> = repositorio.autenticado
 }
 
-/** Inicia sesión con Google (flujo simplificado para el prototipo). */
+/** Inicia sesión con el token que entregó Google. */
 class IniciarSesionGoogleUseCase @Inject constructor(
     private val repositorio: AuthRepository
 ) {
-    suspend operator fun invoke(): Boolean = repositorio.iniciarSesionGoogle()
+    suspend operator fun invoke(tokenId: String, aceptaCondiciones: Boolean): ResultadoAcceso =
+        repositorio.iniciarSesionGoogle(tokenId, aceptaCondiciones)
 }
 
 /** Guarda las materias que enseña el tutor (RF4). */
@@ -125,6 +126,8 @@ class EliminarCuentaUseCase @Inject constructor(
     private val repositorio: AuthRepository
 ) {
     suspend operator fun invoke(contrasena: String) = repositorio.eliminarCuenta(contrasena)
+
+    suspend fun conGoogle(tokenGoogle: String) = repositorio.eliminarCuentaConGoogle(tokenGoogle)
 }
 
 /** Usuario en sesión (para personalizar la interfaz según su rol). */

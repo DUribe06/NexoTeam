@@ -84,6 +84,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalUriHandler
@@ -110,7 +111,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.grupo3.nexo.BuildConfig
 import com.grupo3.nexo.R
 import com.grupo3.nexo.ui.components.BotonPrimario
 import com.grupo3.nexo.ui.components.BotonTexto
@@ -228,6 +228,7 @@ fun PantallaLogin(
 
     IconosClarosEnBarraDeEstado()
 
+    val contexto = LocalContext.current
     ContenidoAcceso(
         estado = estado,
         alCambiarNombre = viewModel::cambiarNombre,
@@ -235,10 +236,18 @@ fun PantallaLogin(
         alCambiarContrasena = viewModel::cambiarContrasena,
         alCambiarCondiciones = viewModel::cambiarCondiciones,
         alEnviar = viewModel::entrar,
-        alEntrarConGoogle = viewModel::entrarGoogle,
+        alEntrarConGoogle = { viewModel.entrarGoogle { pedirTokenGoogle(contexto) } },
         alAlternarModo = viewModel::alternarModo,
         alOlvidarContrasena = { alOlvidarContrasena(estado.correo) }
     )
+
+    if (estado.pedirCondicionesGoogle) {
+        HojaCondiciones(
+            alCerrar = viewModel::cancelarCondicionesGoogle,
+            textoBoton = "Acepto y continúo",
+            alConfirmar = viewModel::aceptarCondicionesGoogle
+        )
+    }
 }
 
 @Composable
@@ -379,17 +388,14 @@ private fun ContenidoAcceso(
             modifier = Modifier.entrada(5, iniciado)
         )
 
-        // Con el servidor real falta la cuenta de Google del proyecto: un botón que no entra no se muestra
-        if (!BuildConfig.USAR_API) {
-            Spacer(Modifier.height(EspacioSeparadorAcceso))
-            SeparadorSocial(Modifier.entrada(6, iniciado))
-            Spacer(Modifier.height(EspacioCercano))
-            BotonGoogle(
-                habilitado = !estado.cargando,
-                alClicar = alEntrarConGoogle,
-                modifier = Modifier.entrada(6, iniciado)
-            )
-        }
+        Spacer(Modifier.height(EspacioSeparadorAcceso))
+        SeparadorSocial(Modifier.entrada(6, iniciado))
+        Spacer(Modifier.height(EspacioCercano))
+        BotonGoogle(
+            habilitado = !estado.cargando,
+            alClicar = alEntrarConGoogle,
+            modifier = Modifier.entrada(6, iniciado)
+        )
 
         Spacer(Modifier.height(EspacioAjustado))
         EnlaceAcceso(
@@ -774,7 +780,7 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
 
 /** Si cambia este texto, cambia también VERSION_TERMINOS en AuthRepositoryRemoto. */
 @Composable
-private fun HojaCondiciones(alCerrar: () -> Unit) {
+private fun HojaCondiciones(alCerrar: () -> Unit, textoBoton: String = "Entendido", alConfirmar: () -> Unit = alCerrar) {
     HojaNexo(titulo = "Condiciones de uso", alCerrar = alCerrar) {
         Spacer(Modifier.height(EspacioNormal))
         listOf(
@@ -789,12 +795,10 @@ private fun HojaCondiciones(alCerrar: () -> Unit) {
             Text(parrafo, color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(EspacioMedio))
         }
-        if (BuildConfig.USAR_API) {
-            val enlaces = LocalUriHandler.current
-            BotonTexto("Leer la política de privacidad", { enlaces.openUri(URL_PRIVACIDAD) })
-        }
+        val enlaces = LocalUriHandler.current
+        BotonTexto("Leer la política de privacidad", { enlaces.openUri(URL_PRIVACIDAD) })
         Spacer(Modifier.height(EspacioCorto))
-        BotonPrimario("Entendido", alCerrar)
+        BotonPrimario(textoBoton, alConfirmar)
     }
 }
 

@@ -32,6 +32,9 @@ interface NexoApi {
     @POST("api/auth/login")
     suspend fun login(@Body solicitud: SolicitudLogin): SesionDto
 
+    @POST("api/auth/google")
+    suspend fun iniciarSesionGoogle(@Body solicitud: SolicitudGoogle): SesionDto
+
     /** Sin `suspend`: el `Authenticator` de OkHttp corre en un hilo de red y espera la respuesta ahí mismo. */
     @POST("api/auth/refrescar")
     fun refrescar(@Body solicitud: SolicitudRefrescar): Call<SesionDto>

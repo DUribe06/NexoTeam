@@ -31,6 +31,9 @@ class MensajesCuentaTest {
             CodigoError.TOKEN_INVALIDO,
             CodigoError.NO_AUTENTICADO,
             CodigoError.GOOGLE_NO_DISPONIBLE,
+            CodigoError.TOKEN_GOOGLE_INVALIDO,
+            CodigoError.GOOGLE_CUENTA_DISTINTA,
+            CodigoError.GOOGLE_NO_COINCIDE,
             CodigoError.CUENTA_NO_USA_APP,
             CodigoError.ADMIN_SIN_MODOS,
             CodigoError.NO_ES_TUTOR,
@@ -81,9 +84,9 @@ class MensajesCuentaTest {
     }
 
     @Test
-    fun `google se anuncia como disponible pronto`() {
+    fun `google no disponible invita a entrar con el correo`() {
         assertEquals(
-            "Inicio con Google disponible pronto.",
+            "El inicio con Google no está disponible en este momento. Entra con tu correo.",
             mensajeDeError(ErrorApi(CodigoError.GOOGLE_NO_DISPONIBLE, "x"))
         )
     }

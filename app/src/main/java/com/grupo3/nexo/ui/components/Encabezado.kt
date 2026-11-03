@@ -112,9 +112,7 @@ fun CabeceraSeccion(
                         style = MaterialTheme.typography.headlineMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .semantics { heading() }
-                            .interruptorDeRevision()
+                        modifier = Modifier.semantics { heading() }
                     )
                     if (subtitulo != null) {
                         Spacer(Modifier.height(EspacioMicro))

@@ -5,3 +5,7 @@
 # la clase y la llamada falla aunque el servidor haya respondido bien. Pasó con ReporteDto.
 -keep class com.grupo3.nexo.data.remote.** { *; }
 -keep class com.grupo3.nexo.data.avisos.FotoNovedades** { *; }
+
+# Credential Manager busca por nombre su proveedor de Play Services
+-if class androidx.credentials.CredentialManager
+-keep class androidx.credentials.playservices.** { *; }

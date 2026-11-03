@@ -43,6 +43,9 @@ data class SolicitudCorreo(val correo: String)
 data class SolicitudLogin(val correo: String, val contrasena: String)
 
 @Serializable
+data class SolicitudGoogle(val tokenId: String, val aceptaTerminos: Boolean = false, val versionTerminos: String? = null)
+
+@Serializable
 data class SolicitudRefrescar(val tokenRefresco: String)
 
 @Serializable

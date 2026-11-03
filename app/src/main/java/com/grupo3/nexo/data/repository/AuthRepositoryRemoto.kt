@@ -8,6 +8,7 @@ import com.grupo3.nexo.data.remote.SesionDto
 import com.grupo3.nexo.data.remote.SolicitudCambiarModo
 import com.grupo3.nexo.data.remote.SolicitudEditarMaterias
 import com.grupo3.nexo.data.remote.SolicitudCorreo
+import com.grupo3.nexo.data.remote.SolicitudGoogle
 import com.grupo3.nexo.data.remote.SolicitudLogin
 import com.grupo3.nexo.data.remote.SolicitudEliminarCuenta
 import com.grupo3.nexo.data.remote.SolicitudRefrescar
@@ -139,9 +140,22 @@ class AuthRepositoryRemoto @Inject constructor(
     override suspend fun restablecerContrasena(correo: String, codigo: String, nueva: String) =
         errores.sinCuerpo { api.restablecer(SolicitudRestablecer(correo, codigo, nueva)) }
 
-    /** El backend aún no tiene inicio con Google; la UI lo muestra como "disponible pronto". */
-    override suspend fun iniciarSesionGoogle(): Boolean =
-        throw ErrorApi(CodigoError.GOOGLE_NO_DISPONIBLE, "Inicio con Google disponible pronto.")
+    override suspend fun iniciarSesionGoogle(tokenId: String, aceptaCondiciones: Boolean): ResultadoAcceso =
+        try {
+            val solicitud = SolicitudGoogle(
+                tokenId = tokenId,
+                aceptaTerminos = aceptaCondiciones,
+                versionTerminos = VERSION_TERMINOS.takeIf { aceptaCondiciones }
+            )
+            abrirSesion(errores.llamar { api.iniciarSesionGoogle(solicitud) })
+            ResultadoAcceso.Entro
+        } catch (e: ErrorApi) {
+            when (e.codigo) {
+                CodigoError.TERMINOS_REQUERIDOS -> ResultadoAcceso.FaltaAceptarCondiciones
+                CodigoError.CUENTA_SUSPENDIDA -> ResultadoAcceso.CuentaSuspendida
+                else -> throw e
+            }
+        }
 
     /** La primera vez que pasa a Tutor el servidor crea el perfil de tutor. Si falla, el modo sigue igual. */
     override suspend fun cambiarModo(rol: Rol) {
@@ -161,7 +175,12 @@ class AuthRepositoryRemoto @Inject constructor(
     }
 
     override suspend fun eliminarCuenta(contrasena: String) {
-        errores.sinCuerpo { api.eliminarCuenta(SolicitudEliminarCuenta(contrasena)) }
+        errores.sinCuerpo { api.eliminarCuenta(SolicitudEliminarCuenta(contrasena = contrasena)) }
+        almacen.borrar()
+    }
+
+    override suspend fun eliminarCuentaConGoogle(tokenGoogle: String) {
+        errores.sinCuerpo { api.eliminarCuenta(SolicitudEliminarCuenta(tokenGoogle = tokenGoogle)) }
         almacen.borrar()
     }
 
@@ -228,6 +247,7 @@ private fun SesionDto.aDominio(datos: PerfilPropioDto?): Usuario {
         universidad = propio?.universidad.orEmpty(),
         carrera = propio?.carrera.orEmpty(),
         bio = propio?.bio.orEmpty(),
-        materias = propio?.materias.orEmpty()
+        materias = propio?.materias.orEmpty(),
+        tieneContrasena = propio?.tieneContrasena ?: true
     )
 }

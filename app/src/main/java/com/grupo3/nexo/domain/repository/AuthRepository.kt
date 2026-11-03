@@ -19,7 +19,7 @@ interface AuthRepository {
     val usuarioActual: StateFlow<Usuario>
     suspend fun iniciarSesion(correo: String, contrasena: String): ResultadoAcceso
 
-    /** Con el servidor real devuelve [ResultadoAcceso.FaltaVerificarCorreo]: la sesión se abre al confirmar el código. */
+    /** Devuelve [ResultadoAcceso.FaltaVerificarCorreo]: la sesión se abre al confirmar el código. */
     suspend fun registrarse(nombre: String, correo: String, contrasena: String): ResultadoAcceso
 
     /** Si el código es correcto, confirma el correo y abre la sesión. */
@@ -29,9 +29,11 @@ interface AuthRepository {
     /** Pide el código para restablecer; responde igual exista o no la cuenta. */
     suspend fun recuperarContrasena(correo: String)
     suspend fun restablecerContrasena(correo: String, codigo: String, nueva: String)
-    suspend fun iniciarSesionGoogle(): Boolean
 
-    /** Si falla lanza la excepción y el modo no cambia: con el servidor real, el modo guardado es el suyo. */
+    /** [tokenId] lo entrega Google. La primera vez, sin [aceptaCondiciones], responde [ResultadoAcceso.FaltaAceptarCondiciones]. */
+    suspend fun iniciarSesionGoogle(tokenId: String, aceptaCondiciones: Boolean): ResultadoAcceso
+
+    /** Si falla lanza la excepción y el modo no cambia: el modo guardado es el del servidor. */
     suspend fun cambiarModo(rol: Rol)
     /** Reemplaza las materias que enseña el tutor; el servidor exige al menos una. */
     suspend fun definirMaterias(materias: List<String>)
@@ -39,4 +41,7 @@ interface AuthRepository {
 
     /** Si la contraseña no coincide o quedan tutorías agendadas lanza el error y la cuenta sigue igual. */
     suspend fun eliminarCuenta(contrasena: String)
+
+    /** Para la cuenta que solo entra con Google, que no tiene contraseña: confirma con un token recién pedido. */
+    suspend fun eliminarCuentaConGoogle(tokenGoogle: String)
 }

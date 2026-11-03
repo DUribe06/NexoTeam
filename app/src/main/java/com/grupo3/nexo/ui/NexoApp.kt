@@ -34,7 +34,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.grupo3.nexo.BuildConfig
 import com.grupo3.nexo.ui.auth.PantallaConfirmarCorreo
 import com.grupo3.nexo.ui.auth.PantallaLogin
 import com.grupo3.nexo.ui.auth.PantallaRecuperarContrasena
@@ -157,7 +156,7 @@ fun NexoApp() {
     // no la de la composición: al cerrar sesión desde el Perfil la navegación ya ocurrió y aquí no hay nada que hacer
     val cuentaViewModel: CuentaViewModel = hiltViewModel()
     val autenticado by cuentaViewModel.autenticado.collectAsStateWithLifecycle()
-    if (BuildConfig.USAR_API) PedirPermisoAvisos(autenticado)
+    PedirPermisoAvisos(autenticado)
     LaunchedEffect(autenticado) {
         val ruta = controlador.currentDestination?.route ?: return@LaunchedEffect
         if (autenticado && ruta in rutasDeAcceso) {
