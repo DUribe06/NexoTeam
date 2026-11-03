@@ -1,0 +1,48 @@
+# Despliegue en Render: New > Blueprint y elegir este repositorio. Los valores con sync: false los pide Render al crearlo.
+# Render entrega HTTPS, la base y sus copias automáticas. Pasos completos en backend/docs/despliegue.md.
+services:
+  - type: web
+    name: nexo-backend
+    runtime: docker
+    plan: starter
+    region: virginia
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    branch: main
+    healthCheckPath: /api/salud
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: NEXO_DB_HOST
+        fromDatabase: { name: nexo-db, property: host }
+      - key: NEXO_DB_PUERTO
+        fromDatabase: { name: nexo-db, property: port }
+      - key: NEXO_DB_NOMBRE
+        fromDatabase: { name: nexo-db, property: database }
+      - key: NEXO_DB_USUARIO
+        fromDatabase: { name: nexo-db, property: user }
+      - key: NEXO_DB_CLAVE
+        fromDatabase: { name: nexo-db, property: password }
+      - key: NEXO_JWT_SECRETO
+        generateValue: true
+      - key: NEXO_ADMIN_CORREO
+        sync: false
+      - key: NEXO_ADMIN_CONTRASENA
+        sync: false
+      - key: NEXO_SMTP_HOST
+        sync: false
+      - key: NEXO_SMTP_USUARIO
+        sync: false
+      - key: NEXO_SMTP_CLAVE
+        sync: false
+      - key: NEXO_CORREO_REMITENTE
+        sync: false
+
+databases:
+  - name: nexo-db
+    databaseName: nexo
+    user: nexo
+    plan: basic-256mb
+    region: virginia
+    postgresMajorVersion: "18"
