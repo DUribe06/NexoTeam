@@ -45,6 +45,7 @@ erDiagram
 | Regla | Restricción | Respuesta de la API |
 | --- | --- | --- |
 | Correo único | `uq_usuarios_correo` | 409 `CORREO_DUPLICADO` |
+| Una cuenta de Google por usuario | `uq_usuarios_google_sub` | 409 `GOOGLE_CUENTA_DISTINTA` |
 | Un reporte abierto por persona y tutor | `uq_reportes_abierto` (parcial) | 409 `REPORTE_DUPLICADO` |
 | Sin repetir una solicitud viva con el mismo tutor y hora | `uq_solicitudes_activa` (parcial) | 409 `SOLICITUD_DUPLICADA` |
 | Una persona no está en dos sesiones a la vez, sea tutor o estudiante en cada una | `tg_sesiones_agenda`, con las exclusiones `ex_sesiones_*_sin_solape` como segunda barrera | 409 `HORA_NO_DISPONIBLE` |
@@ -220,7 +221,7 @@ sudo -u postgres psql -c "CREATE ROLE nexo LOGIN PASSWORD 'nexo'" -c "CREATE DAT
 cd backend && ./gradlew test
 ```
 
-Las pruebas trabajan en los esquemas `pruebas` y `pruebas_semilla`, nunca en `public`: una guarda en
+Las pruebas trabajan en el esquema `pruebas`, nunca en `public`: una guarda en
 `PruebasConBaseLimpia` se niega a limpiar cualquier esquema cuyo nombre no empiece por `pruebas`. La CI levanta PostgreSQL 18
 como servicio.
 
@@ -228,18 +229,20 @@ como servicio.
 
 Comprobado en este PC con PostgreSQL 18.6:
 
-- 326 pruebas del backend en verde; las de concurrencia se repitieron 5 veces más sin fallos.
-- Las migraciones V8 a V11 se aplicaron sobre una base existente en V7 con datos demo, y sobre esquemas vacíos.
-- Recorrido en la app (emulador) contra el servidor local, con la base hasta V9: iniciar sesión, buscar, solicitar, aceptar, rechazar con motivo, chatear en los dos sentidos, editar disponibilidad y calificar.
+- 348 pruebas del backend en verde; las de concurrencia se repitieron 5 veces más sin fallos.
+- Las migraciones V8 a V11 se aplicaron sobre una base existente en V7 con datos de prueba, y sobre esquemas vacíos.
+- Recorrido en la app (emulador) con la base hasta V9: iniciar sesión, buscar, solicitar, aceptar, rechazar con motivo, chatear en los dos sentidos, editar disponibilidad y calificar.
 
 Con V10 aplicada, en la misma app: cancelar, cambiar a modo Tutor, crear una cuenta nueva con su código (también uno errado), el aviso de Google y el servidor apagado (avisa y permite reintentar, sin sacar a nadie de su cuenta).
+
+Con V15 aplicada, en la versión final con R8 y `targetSdk` 36: iniciar sesión, Inicio, Solicitudes, Chats y Perfil. El inicio con Google real necesita un cliente OAuth propio: está probado con tokens firmados en las pruebas, no contra Google.
 
 Sin comprobar:
 
 - La CI con el servicio de PostgreSQL: solo se ejecuta al subir el código a GitHub.
 - Carga con muchos usuarios simultáneos.
 - Otras versiones de PostgreSQL.
-- Migrar una base con datos reales: `DROP TABLE resenas` (V9) solo es seguro porque hasta ahora las reseñas son datos demo. Si alguien ya tiene reseñas que quiera conservar, hay que revisarlo antes de aplicar V9.
+- Migrar una base con datos reales: `DROP TABLE resenas` (V9) solo es seguro porque hasta ahora las reseñas son datos de prueba. Si alguien ya tiene reseñas que quiera conservar, hay que revisarlo antes de aplicar V9.
 - `CREATE EXTENSION btree_gist` requiere permiso de crear en la base (extensión de confianza desde PostgreSQL 13): revisarlo con el proveedor al desplegar.
 
 Límites conocidos de las pruebas:

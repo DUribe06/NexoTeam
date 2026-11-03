@@ -4,21 +4,29 @@ Aplicación Android que conecta a estudiantes universitarios de Bucaramanga con 
 
 Proyecto de Ingeniería de Software de la Universidad Industrial de Santander (UIS), Grupo 3.
 
-> **Estado:** la app funciona contra el backend de `backend/` (Spring Boot y PostgreSQL). En `debug`, `USAR_API` está en `true`; con `false` usa los datos simulados de `data/mock/MockData.kt`. El servidor está listo para desplegar, pero todavía no hay uno publicado: los pasos están en [`backend/docs/despliegue.md`](backend/docs/despliegue.md).
+> **Estado:** app y servidor listos para publicar. Los pasos están en [`backend/docs/despliegue.md`](backend/docs/despliegue.md).
 
-## Correr todo en local
+## Cómo está armado
 
-Hace falta PostgreSQL con la base y el usuario `nexo` (clave `nexo`):
+| Parte | Tecnología | Dónde corre |
+|---|---|---|
+| App | Kotlin y Jetpack Compose | Google Play |
+| API REST | Spring Boot | Oracle Cloud, en Docker |
+| Base de datos | PostgreSQL 18 | Oracle Cloud, en Docker |
+| HTTPS | Caddy y Let's Encrypt | Oracle Cloud, en Docker |
+| Inicio con Google | Credential Manager y OAuth | Google Cloud |
+| Correo | SMTP | Brevo |
+
+El contrato de la API está en [`nexo-api.yaml`](backend/src/main/resources/static/openapi/nexo-api.yaml) y el diseño de la base en [`base-de-datos.md`](backend/docs/base-de-datos.md).
+
+## Pruebas
 
 ```bash
-sudo -u postgres psql -c "CREATE ROLE nexo LOGIN PASSWORD 'nexo'" -c "CREATE DATABASE nexo OWNER nexo"
-./gradlew installDebug         # app en el emulador, que llega al PC por 10.0.2.2
+./gradlew test               # app
+cd backend && ./gradlew test # servidor; necesita PostgreSQL 18
 ```
 
-
-Para probar en un teléfono por WiFi, con el servidor en el PC: compila con `./gradlew assembleDebug -PnexoApiUrl=http://IP_DEL_PC:8080/`, instala `app/build/outputs/apk/debug/app-debug.apk` y permite el puerto 8080 en el firewall del PC para tu red. El teléfono y el PC deben estar en la misma red, y si la IP del PC cambia hay que volver a compilar.
-
-Pruebas: `./gradlew test` para la app y `cd backend && ./gradlew test` para el backend, que también necesita ese PostgreSQL. El diseño de la base está en [`backend/docs/base-de-datos.md`](backend/docs/base-de-datos.md).
+Las pruebas del servidor usan PostgreSQL real porque las reglas importantes viven en la base. La configuración de esa base está en [`base-de-datos.md`](backend/docs/base-de-datos.md).
 
 ## Tecnologías
 
@@ -26,7 +34,7 @@ Pruebas: `./gradlew test` para la app y `cd backend && ./gradlew test` para el b
 - Arquitectura en capas: UI (Compose + ViewModel) → casos de uso → repositorios → implementación
 - Hilt para inyección de dependencias
 - Navigation Compose
-- minSdk 26, targetSdk 34, Java 17
+- minSdk 26, targetSdk 36, Java 17
 
 ## Requisitos
 
@@ -34,28 +42,19 @@ Pruebas: `./gradlew test` para la app y `cd backend && ./gradlew test` para el b
 - JDK 17 o superior (el JDK que trae Android Studio sirve)
 - Emulador con API 26 o superior, o un teléfono con depuración USB activada
 
-## Ejecutar el proyecto
+## Ejecutar la app
 
 1. En Android Studio: **File ▸ Open** y selecciona la carpeta que contiene `settings.gradle.kts`.
-2. Espera a que termine el *Gradle Sync*. La primera vez necesita internet.
+2. En `gradle.properties`, pon en `nexoApiUrl` la dirección del servidor y en `nexoGoogleClientId` el ID del cliente de Google.
 3. Elige un dispositivo y pulsa **Run 'app'**.
 
-Desde la terminal:
-
-```bash
-./gradlew assembleDebug
-```
-
-### Credenciales de prueba
-
-
-La versión de datos simulados (`USAR_API` en `false`) acepta cualquier correo con "@" y una contraseña de 4 caracteres o más.
+La app solo se conecta por `https`.
 
 ## Funcionalidades
 
 | Pantalla | Qué permite |
 |---|---|
-| Acceso | Entrar con correo y contraseña; registro (HU-01, HU-02) |
+| Acceso | Entrar con correo y contraseña o con Google; registro (HU-01, HU-02) |
 | Inicio | Próxima sesión, accesos por área de estudio y tutores disponibles |
 | Buscar | Filtrar por materia, modalidad (virtual o presencial), franja horaria y "en línea"; ordenado por calificación (HU-05) |
 | Perfil del tutor | Tarifa, modalidades, horario semanal y reseñas (HU-06) |
@@ -75,7 +74,7 @@ Una sola cuenta puede actuar como estudiante y como tutor.
 
 ```
 app/src/main/java/com/grupo3/nexo/
-├── data/            # Implementaciones de repositorios y datos simulados (mock)
+├── data/            # Repositorios contra la API y sesión guardada
 ├── di/              # Módulos de Hilt
 ├── domain/
 │   ├── model/       # Modelos del dominio
@@ -96,7 +95,7 @@ app/src/main/java/com/grupo3/nexo/
     └── tutor/
 ```
 
-Las pantallas no llaman a los datos directamente: pasan por un ViewModel, que usa casos de uso, que a su vez usan las interfaces de los repositorios. Así, cuando exista el backend, solo cambia la implementación.
+Las pantallas no llaman a los datos directamente: pasan por un ViewModel, que usa casos de uso, que a su vez usan las interfaces de los repositorios.
 
 ## Diseño
 
@@ -109,11 +108,10 @@ Las pantallas no llaman a los datos directamente: pasan por un ViewModel, que us
 
 - Desplegar el servidor y publicar la app ([pasos](backend/docs/despliegue.md)).
 - Avisos al instante con Firebase; hoy pueden tardar 15 minutos o más.
-- Inicio con Google.
 
 ## Contribuir
 
 - La rama `main` debe compilar.
 - Trabaja en ramas por tarea, por ejemplo `feature/inicio-tokens`, y abre un *pull request* para revisión.
 - Haz commits pequeños con mensajes claros, en español o inglés, pero consistentes.
-- No subas claves, tokens ni archivos `local.properties`.
+- No subas claves, tokens, archivos `.env` ni `local.properties`.

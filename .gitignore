@@ -12,6 +12,10 @@ app/build/
 *.apk
 *.aab
 
+# Secretos y copias de la base en el servidor
+/despliegue/.env
+/despliegue/copias/
+
 # Material personal del equipo: no se sube (documentos, plan, capturas y herramientas)
 /docs/
 /frontend/

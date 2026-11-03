@@ -19,6 +19,16 @@ jobs:
       - name: Pruebas y compilación
         run: ./gradlew test assembleDebug
 
+  despliegue:
+    name: Imagen y configuración de despliegue
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: La configuración es válida
+        run: docker compose -f despliegue/docker-compose.yml --env-file despliegue/.env.ejemplo config --quiet
+      - name: La imagen del servidor se construye
+        run: docker build backend
+
   backend:
     name: Backend Spring Boot
     runs-on: ubuntu-24.04
