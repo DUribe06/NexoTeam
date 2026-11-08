@@ -2,6 +2,11 @@
 spring:
   datasource:
     url: ${NEXO_DB_URL}
+    hikari:
+      # Sin conexiones ociosas, Neon se duerme a los 5 minutos y no gasta sus horas gratis
+      minimum-idle: 0
+      idle-timeout: 120000
+      maximum-pool-size: 5
   mail:
     host: ${NEXO_SMTP_HOST}
     port: ${NEXO_SMTP_PUERTO:587}
@@ -23,6 +28,9 @@ server:
     include-stacktrace: never
 
 nexo:
+  mantener-activo:
+    # Render la define sola; ver MantenerActivo
+    url: ${RENDER_EXTERNAL_URL:}
   correo:
     remitente: ${NEXO_CORREO_REMITENTE}
     verificar-mx: true

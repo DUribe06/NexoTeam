@@ -11,9 +11,8 @@ Proyecto de Ingeniería de Software de la Universidad Industrial de Santander (U
 | Parte | Tecnología | Dónde corre |
 |---|---|---|
 | App | Kotlin y Jetpack Compose | Google Play |
-| API REST | Spring Boot | Oracle Cloud, en Docker |
-| Base de datos | PostgreSQL 18 | Oracle Cloud, en Docker |
-| HTTPS | Caddy y Let's Encrypt | Oracle Cloud, en Docker |
+| API REST y HTTPS | Spring Boot en Docker | Render, plan gratis |
+| Base de datos | PostgreSQL 18 | Neon, plan gratis |
 | Inicio con Google | Credential Manager y OAuth | Google Cloud |
 | Correo | SMTP | Brevo |
 

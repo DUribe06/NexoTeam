@@ -1,20 +1,21 @@
 # Publicar Nexo
 
-La API y la base de datos corren en un servidor gratuito de Oracle Cloud, el correo sale por Brevo, el inicio de sesión usa Google y la app se publica en Google Play. El orden importa: la app se genera al final porque necesita la dirección del servidor y el ID de Google.
+La API corre en Render y la base de datos en Neon, ambas en su plan gratis. El correo sale por Brevo, el inicio de sesión usa Google y la app se publica en Google Play. El orden importa: la app se genera al final porque necesita la dirección del servidor y el ID de Google.
 
-Revisa los límites y precios vigentes de cada servicio antes de empezar: cambian con el tiempo y ninguno de los planes gratuitos garantiza disponibilidad.
+Revisa los límites vigentes de cada servicio antes de empezar: cambian con el tiempo y ninguno de los planes gratuitos garantiza disponibilidad.
 
 ## 1. Antes de empezar
 
 - En `backend/src/main/resources/static/privacidad.html`, cambia `[CORREO DE CONTACTO]` por un correo del equipo y haz revisar la política. No es una opinión legal.
 - Une el trabajo a `main` y comprueba que la integración continua pase: construye también la imagen del servidor.
+- Render necesita acceso al repositorio. Quien administra `DUribe06/NexoTeam` debe autorizarlo, o puedes desplegar desde un fork propio.
 
 ## 2. Correo (Brevo, plan gratis)
 
 El servidor envía el código para confirmar la cuenta y el de recuperar la contraseña.
 
 1. Crea la cuenta y verifica el remitente.
-2. En **SMTP & API**, copia el servidor, el usuario y la clave SMTP para el paso 4.
+2. En **SMTP & API**, copia el usuario y la clave SMTP para el paso 5. El servidor y el puerto ya están en `render.yaml`: el plan gratis de Render bloquea el puerto 587, por eso se usa el 2525.
 
 ## 3. Inicio con Google (Google Cloud Console)
 
@@ -22,69 +23,74 @@ El servidor envía el código para confirmar la cuenta y el de recuperar la cont
 2. En **Credenciales**, crea un cliente OAuth tipo **Web**. Su ID va en `NEXO_GOOGLE_CLIENT_ID` y en `nexoGoogleClientId`. No hace falta su secreto.
 3. Crea un cliente OAuth tipo **Android** con el paquete `com.grupo3.nexo` y el SHA-1 de la llave de firma. Haz uno por cada llave:
    - La de depuración, para probar desde Android Studio.
-   - La de publicación del paso 5.
+   - La de publicación del paso 6.
    - La de **Play App Signing**, que aparece en Play Console después de subir la primera versión. Si falta, Google funciona en tus pruebas y falla a quien instale desde Play.
 
 Para ver el SHA-1 de una llave: `keytool -list -v -keystore ARCHIVO -alias ALIAS`.
 
-## 4. API y base de datos (Oracle Cloud, Always Free)
+## 4. Base de datos (Neon, plan gratis)
 
-Oracle pide una tarjeta para verificar la identidad. **La región principal no se puede cambiar después**, y las instancias gratuitas se crean en ella.
+1. Crea un proyecto con **PostgreSQL 18** en la región **AWS US East (N. Virginia)**, la misma del servidor.
+2. Copia los datos de conexión con **Connection pooling desactivado**: el servidor no debe usar la dirección que contiene `-pooler`, porque fija opciones de sesión en cada conexión.
+3. Neon los muestra como `postgresql://USUARIO:CLAVE@SERVIDOR/BASE?sslmode=require`. Para el paso 5, sepáralos así:
 
-### Crear el servidor
+| Variable | Valor |
+|---|---|
+| `NEXO_DB_URL` | `jdbc:postgresql://SERVIDOR/BASE?sslmode=require` |
+| `NEXO_DB_USUARIO` | `USUARIO` |
+| `NEXO_DB_CLAVE` | `CLAVE` |
 
-1. Crea una instancia `VM.Standard.A1.Flex` con Ubuntu 24.04, **1 OCPU y 6 GB**, marcada como *Always Free*. Si la región no tiene capacidad, inténtalo más tarde.
-2. Reserva una IP pública para que no cambie.
-3. En la red de la instancia, permite la entrada a los puertos 80 y 443. Las imágenes de Oracle también los bloquean dentro del servidor:
+Las tablas se crean solas cuando el servidor arranca por primera vez.
 
-   ```bash
-   sudo iptables -I INPUT 6 -p tcp -m multiport --dports 80,443 -j ACCEPT
-   sudo iptables -I INPUT 6 -p udp --dport 443 -j ACCEPT
-   sudo apt install -y iptables-persistent && sudo netfilter-persistent save
-   ```
+## 5. API (Render, plan gratis)
 
-4. Crea un subdominio gratuito en [DuckDNS](https://www.duckdns.org) que apunte a esa IP.
+1. En Render: **New ▸ Blueprint**, elige el repositorio y la rama. Render lee `render.yaml` y crea el servicio.
+2. Escribe los valores que pide:
 
-### Instalar Nexo
-
-```bash
-curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker "$USER" && newgrp docker
-git clone https://github.com/DUribe06/NexoTeam.git nexo
-cd nexo/despliegue
-cp .env.ejemplo .env && chmod 600 .env
-nano .env   # cambia cada valor
-docker compose up -d --build
-```
+| Variable | Valor |
+|---|---|
+| `NEXO_DB_URL`, `NEXO_DB_USUARIO`, `NEXO_DB_CLAVE` | Los del paso 4 |
+| `NEXO_ADMIN_CORREO` | El correo con el que entrarás al panel |
+| `NEXO_ADMIN_CONTRASENA` | Una contraseña larga, solo tuya |
+| `NEXO_SMTP_USUARIO`, `NEXO_SMTP_CLAVE` | Los del paso 2 |
+| `NEXO_CORREO_REMITENTE` | Ejemplo: `Nexo <remitente-verificado@ejemplo.com>` |
+| `NEXO_GOOGLE_CLIENT_ID` | El ID del cliente Web del paso 3 |
 
 ### Comprobar
 
-1. `https://TU-DOMINIO/api/salud` responde `{"estado":"ok",...}`.
-2. `https://TU-DOMINIO/admin` deja entrar con la cuenta del panel.
-3. Al registrarte con un correo real, llega el código.
+1. `https://TU-SERVICIO.onrender.com/api/salud` responde `{"estado":"ok",...}`.
+2. `https://TU-SERVICIO.onrender.com/admin` deja entrar con la cuenta del panel.
+3. Al registrarte con un correo real, llega el código. Si no llega, mira el registro del servicio en Render: el puerto 2525 todavía no se ha probado desde allí.
+
+### Cómo se mantiene encendido
+
+Render apaga el servicio tras 15 minutos sin peticiones entrantes. Si pasan 13 sin ninguna, el propio servidor se llama por su dirección pública (`MantenerActivo`), y esa llamada cuenta como una petición más. Con actividad real no envía nada.
+
+- **Solo un servicio gratis en el espacio de trabajo.** Render da 750 horas gratis al mes por espacio de trabajo, y este servicio consume hasta 744. Si se agotan, Render suspende el servicio hasta el mes siguiente.
+- **Render puede reiniciarlo cuando quiera.** Si queda apagado, la siguiente petición lo enciende, pero tarda: la app puede mostrar un error de conexión en ese primer intento.
+- **Los archivos no se conservan.** El servidor guarda todo en la base, así que esto no le afecta hoy.
 
 ### Copias de seguridad
 
-Programa una copia diaria con `crontab -e`:
-
-```cron
-0 3 * * * /home/ubuntu/nexo/despliegue/copia-base.sh >> /home/ubuntu/copias.log 2>&1
-```
-
-Guarda las copias fuera del servidor: instala [rclone](https://rclone.org), configura un destino y ponlo en `NEXO_COPIAS_DESTINO`. **Restaura una copia de prueba al menos una vez**; una copia que nunca se ha restaurado no está comprobada.
+El plan gratis no incluye copias que puedas guardar. Sácalas desde tu computador, con el cliente de PostgreSQL 18, usando la dirección `postgresql://...` del paso 4:
 
 ```bash
-gunzip -c copias/nexo-FECHA.sql.gz | docker compose exec -T base psql -U nexo nexo
+pg_dump "postgresql://USUARIO:CLAVE@SERVIDOR/BASE?sslmode=require" | gzip > nexo-$(date +%F).sql.gz
+```
+
+Guárdalas fuera del repositorio. **Restaura una copia de prueba al menos una vez** en otro proyecto de Neon; una copia que nunca se ha restaurado no está comprobada:
+
+```bash
+gunzip -c nexo-FECHA.sql.gz | psql "postgresql://...PROYECTO-DE-PRUEBA..."
 ```
 
 ### Mantenimiento
 
-- **Actualizar Nexo:** `git pull && docker compose up -d --build`. Las migraciones se aplican solas al arrancar.
-- **Ver qué pasa:** `docker compose ps` y `docker compose logs -f api`.
-- **Parches del sistema:** `sudo apt install unattended-upgrades`.
-- **Inactividad:** Oracle puede reclamar una instancia si en 7 días la CPU, la red y la memoria quedan por debajo del 20 %. La API reserva 1,5 GB para superar ese límite de memoria: compruébalo con `free -h`.
+- **Actualizar Nexo:** al subir a la rama elegida, Render vuelve a desplegar. Las migraciones se aplican solas al arrancar.
+- **Límites de Neon:** vigila en su panel el almacenamiento y las horas de cómputo. Si se agotan las horas, la base se detiene hasta el mes siguiente.
+- **Si Nexo crece:** cambia `plan: free` por `plan: starter` y `NEXO_SMTP_PUERTO` por `587`. El servidor deja de apagarse aunque `MantenerActivo` siga funcionando.
 
-## 5. App (Google Play, pago único)
+## 6. App (Google Play, pago único)
 
 Crea la llave una sola vez y guárdala fuera del repositorio. Si se pierde, no se puede actualizar la app con ella:
 
@@ -95,7 +101,7 @@ keytool -genkeypair -v -keystore ~/nexo-publicacion.jks -alias nexo -keyalg RSA 
 En `gradle.properties`, pon la dirección del servidor y el ID del cliente Web:
 
 ```properties
-nexoApiUrl=https://TU-DOMINIO/
+nexoApiUrl=https://TU-SERVICIO.onrender.com/
 nexoGoogleClientId=TU-ID.apps.googleusercontent.com
 ```
 
@@ -108,7 +114,7 @@ export NEXO_LLAVE_ARCHIVO=~/nexo-publicacion.jks NEXO_LLAVE_ALIAS=nexo NEXO_LLAV
 
 Queda en `app/build/outputs/bundle/release/`. Sube cada versión nueva con un `versionCode` mayor en `app/build.gradle.kts`.
 
-En Play Console, la política de privacidad es `https://TU-DOMINIO/privacidad.html`. Una cuenta personal debe hacer una prueba cerrada con al menos 12 evaluadores durante 14 días seguidos antes de pedir acceso a producción.
+En Play Console, la política de privacidad es `https://TU-SERVICIO.onrender.com/privacidad.html`. Una cuenta personal debe hacer una prueba cerrada con al menos 12 evaluadores durante 14 días seguidos antes de pedir acceso a producción.
 
 ## Lo que falta para más adelante
 
