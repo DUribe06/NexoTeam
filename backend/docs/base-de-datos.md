@@ -235,7 +235,7 @@ Comprobado en este PC con PostgreSQL 18.6:
 
 Con V10 aplicada, en la misma app: cancelar, cambiar a modo Tutor, crear una cuenta nueva con su código (también uno errado), el aviso de Google y el servidor apagado (avisa y permite reintentar, sin sacar a nadie de su cuenta).
 
-Con V15 aplicada, en la versión final con R8 y `targetSdk` 36: iniciar sesión, Inicio, Solicitudes, Chats y Perfil. El inicio con Google real necesita un cliente OAuth propio: está probado con tokens firmados en las pruebas, no contra Google.
+Con V15 aplicada, en la versión de publicación con R8 y `targetSdk` 36: iniciar sesión, Inicio, Solicitudes, Chats y Perfil. El inicio con Google real necesita un cliente OAuth propio: está probado con tokens firmados en las pruebas, no contra Google.
 
 Sin comprobar:
 

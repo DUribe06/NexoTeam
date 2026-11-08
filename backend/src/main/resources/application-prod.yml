@@ -8,8 +8,8 @@ spring:
       idle-timeout: 120000
       maximum-pool-size: 5
   mail:
-    host: ${NEXO_SMTP_HOST}
-    port: ${NEXO_SMTP_PUERTO:587}
+    host: ${NEXO_SMTP_HOST:smtp-relay.brevo.com}
+    port: ${NEXO_SMTP_PUERTO:2525}
     username: ${NEXO_SMTP_USUARIO}
     password: ${NEXO_SMTP_CLAVE}
     properties:
