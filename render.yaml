@@ -2,7 +2,7 @@
 # La base vive en Neon porque la gratis de Render vence a los 30 días. Pasos completos en backend/docs/despliegue.md.
 services:
   - type: web
-    name: nexo-backend
+    name: nexo-team
     runtime: docker
     plan: free
     # La misma región de la base en Neon
