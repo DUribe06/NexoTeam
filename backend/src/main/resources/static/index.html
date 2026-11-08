@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nexo · Tutorías universitarias en Bucaramanga</title>
+<meta name="description" content="Nexo conecta a estudiantes universitarios de Bucaramanga con tutores de apoyo académico. Busca por materia, modalidad y horario, y coordina la sesión desde la app.">
+<meta name="theme-color" content="#06241A">
+<meta property="og:title" content="Nexo · Tutorías universitarias en Bucaramanga">
+<meta property="og:description" content="Encuentra tutor por materia, modalidad y horario, y coordina la sesión desde la app.">
+<meta property="og:image" content="/web/logo.png">
+<link rel="icon" type="image/png" href="/web/icono.png">
+<style>
+@font-face { font-family: "Instrument Sans"; src: url("/web/instrument-sans.ttf") format("truetype"); font-weight: 400 700; font-display: swap; }
+:root {
+  --bosque-profundo: #06241A; --bosque: #0F2E20; --acento: #1B5E3F; --salvia: #5C7F6B;
+  --lienzo: #F6F8F6; --superficie: #FFFFFF; --superficie-clara: #EDF2EE; --tinte: #E1ECE5;
+  --texto: #06241A; --texto-2: #587966; --borde: rgba(15,46,32,.10); --menta: #00B872; --miel: #BF8500;
+  --radio: 20px; --ancho: 1120px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--lienzo); color: var(--texto); font: 17px/1.6 "Instrument Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+img { max-width: 100%; height: auto; display: block; }
+a { color: inherit; }
+.envoltura { max-width: var(--ancho); margin: 0 auto; padding: 0 24px; }
+svg.ic { width: 24px; height: 24px; fill: currentColor; flex: none; }
+
+/* Encabezado */
+.cabecera { position: absolute; inset: 0 0 auto; z-index: 2; }
+.cabecera .envoltura { display: flex; align-items: center; justify-content: space-between; height: 76px; }
+.marca { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; font-weight: 700; font-size: 22px; letter-spacing: -.01em; }
+.marca span.chip { width: 40px; height: 40px; border-radius: 12px; background: #fff; display: grid; place-items: center; }
+.marca img { width: 26px; height: 26px; }
+.cabecera nav { display: flex; gap: 28px; align-items: center; }
+.cabecera nav a { color: rgba(255,255,255,.86); text-decoration: none; font-size: 15px; font-weight: 500; }
+.cabecera nav a:hover { color: #fff; }
+.cabecera nav a.boton { color: var(--bosque-profundo); }
+
+/* Botones */
+.boton { display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px; border-radius: 999px; font-weight: 600; font-size: 16px; text-decoration: none; transition: transform .15s ease, background .15s ease; }
+.boton:active { transform: scale(.98); }
+.boton-claro { background: #fff; color: var(--bosque-profundo); }
+.boton-claro:hover { background: var(--tinte); }
+.boton-oscuro { background: var(--bosque-profundo); color: #fff; }
+.boton-oscuro:hover { background: var(--acento); }
+.boton svg.ic { width: 20px; height: 20px; }
+
+/* Portada */
+.portada { position: relative; color: #fff; background: var(--bosque-profundo); overflow: hidden; }
+.portada::before { content: ""; position: absolute; inset: 0; background: url("/web/fondo.jpg") center/cover; opacity: .28; }
+.portada::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, rgba(6,36,26,.96) 30%, rgba(6,36,26,.55)); }
+.portada .envoltura { position: relative; z-index: 1; display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; padding-top: 140px; padding-bottom: 0; }
+.portada .texto { padding-bottom: 96px; }
+.etiqueta { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: #8FE0B8; margin-bottom: 20px; }
+.etiqueta i { width: 8px; height: 8px; border-radius: 50%; background: var(--menta); }
+h1 { font-size: clamp(38px, 5.4vw, 60px); line-height: 1.05; letter-spacing: -.025em; margin: 0 0 20px; font-weight: 700; }
+.portada p.lead { font-size: 19px; color: rgba(255,255,255,.82); max-width: 520px; margin: 0 0 32px; }
+.nota { font-size: 14px; color: rgba(255,255,255,.62); margin-top: 14px; }
+.telefono { justify-self: center; width: min(320px, 78vw); border-radius: 44px 44px 0 0; padding: 12px 12px 0; background: #0b1f17; box-shadow: 0 40px 80px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.08); }
+.telefono img { border-radius: 34px 34px 0 0; aspect-ratio: 1080/1700; object-fit: cover; object-position: top; }
+
+/* Secciones */
+section { padding: 96px 0; }
+.titulo-seccion { max-width: 640px; margin-bottom: 48px; }
+.titulo-seccion small { display: block; font-size: 14px; font-weight: 600; color: var(--acento); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 10px; }
+h2 { font-size: clamp(30px, 3.6vw, 40px); line-height: 1.12; letter-spacing: -.02em; margin: 0 0 14px; }
+.titulo-seccion p { color: var(--texto-2); margin: 0; font-size: 18px; }
+
+.pasos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; list-style: none; padding: 0; margin: 0; counter-reset: paso; }
+.pasos li { background: var(--superficie); border: 1px solid var(--borde); border-radius: var(--radio); padding: 28px 24px; }
+.pasos .icono { width: 48px; height: 48px; border-radius: 14px; background: var(--tinte); color: var(--acento); display: grid; place-items: center; margin-bottom: 20px; }
+.pasos h3, .confianza h3 { font-size: 19px; margin: 0 0 8px; letter-spacing: -.01em; }
+.pasos h3::before { counter-increment: paso; content: counter(paso) ". "; color: var(--salvia); }
+.pasos p, .confianza p { margin: 0; color: var(--texto-2); font-size: 16px; }
+
+.tutores { background: var(--superficie); border-block: 1px solid var(--borde); }
+.tutores .envoltura { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+.lista { list-style: none; padding: 0; margin: 28px 0 36px; display: grid; gap: 18px; }
+.lista li { display: flex; gap: 14px; align-items: flex-start; }
+.lista svg.ic { color: var(--acento); margin-top: 2px; }
+.lista strong { display: block; }
+.lista span { color: var(--texto-2); font-size: 16px; }
+.capturas { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.capturas img { border-radius: 28px; border: 1px solid var(--borde); box-shadow: 0 24px 48px rgba(6,36,26,.10); aspect-ratio: 1080/2000; object-fit: cover; object-position: top; }
+.capturas img:last-child { margin-top: 48px; }
+
+.confianza { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.confianza article { padding: 28px 24px; border-radius: var(--radio); background: var(--superficie-clara); }
+.confianza svg.ic { width: 28px; height: 28px; color: var(--acento); margin-bottom: 16px; }
+
+.cierre { background: var(--bosque-profundo); color: #fff; border-radius: 32px; padding: 64px 48px; display: flex; justify-content: space-between; align-items: center; gap: 32px; }
+.cierre h2 { margin: 0 0 8px; }
+.cierre p { margin: 0; color: rgba(255,255,255,.74); }
+
+footer { padding: 40px 0 56px; color: var(--texto-2); font-size: 15px; }
+footer .envoltura { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+footer nav { display: flex; gap: 24px; flex-wrap: wrap; }
+footer a { text-decoration: none; }
+footer a:hover { color: var(--texto); text-decoration: underline; }
+
+a:focus-visible { outline: 3px solid var(--menta); outline-offset: 3px; }
+
+@media (max-width: 960px) {
+  .pasos { grid-template-columns: 1fr 1fr; }
+  .confianza { grid-template-columns: 1fr; }
+  .tutores .envoltura { grid-template-columns: 1fr; gap: 40px; }
+}
+@media (max-width: 760px) {
+  body { font-size: 16px; }
+  .envoltura { padding: 0 16px; }
+  .cabecera nav a:not(.boton) { display: none; }
+  .portada .envoltura { grid-template-columns: 1fr; padding-top: 112px; gap: 40px; }
+  .portada .texto { padding-bottom: 0; }
+  section { padding: 64px 0; }
+  .pasos { grid-template-columns: 1fr; }
+  .cierre { flex-direction: column; align-items: flex-start; padding: 40px 24px; }
+  .capturas { gap: 12px; }
+  .capturas img { border-radius: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .boton { transition: none; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="ic-lupa" viewBox="0 0 256 256"><path d="M232.49 215.51L185 168a92.12 92.12 0 1 0-17 17l47.53 47.54a12 12 0 0 0 17-17ZM44 112a68 68 0 1 1 68 68a68.07 68.07 0 0 1-68-68"/></symbol><symbol id="ic-calendario_check" viewBox="0 0 256 256"><path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Zm-38.34-85.66a8,8,0,0,1,0,11.32l-48,48a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L116,164.69l42.34-42.35A8,8,0,0,1,169.66,122.34Z"/></symbol><symbol id="ic-chat" viewBox="0 0 256 256"><path d="M128 24a104 104 0 0 0-91.82 152.88l-11.35 34.05a16 16 0 0 0 20.24 20.24l34.05-11.35A104 104 0 1 0 128 24m0 192a87.87 87.87 0 0 1-44.06-11.81a8 8 0 0 0-6.54-.67L40 216l12.47-37.4a8 8 0 0 0-.66-6.54A88 88 0 1 1 128 216"/></symbol><symbol id="ic-estrella" viewBox="0 0 256 256"><path d="M234.29,114.85l-45,38.83L203,211.75a16.4,16.4,0,0,1-24.5,17.82L128,198.49,77.47,229.57A16.4,16.4,0,0,1,53,211.75l13.76-58.07-45-38.83A16.46,16.46,0,0,1,31.08,86l59-4.76,22.76-55.08a16.36,16.36,0,0,1,30.27,0l22.75,55.08,59,4.76a16.46,16.46,0,0,1,9.37,28.86Z"/></symbol><symbol id="ic-sello" viewBox="0 0 256 256"><path d="M225.86,102.82c-3.77-3.94-7.67-8-9.14-11.57-1.36-3.27-1.44-8.69-1.52-13.94-.15-9.76-.31-20.82-8-28.51s-18.75-7.85-28.51-8c-5.25-.08-10.67-.16-13.94-1.52-3.56-1.47-7.63-5.37-11.57-9.14C146.28,23.51,138.44,16,128,16s-18.27,7.51-25.18,14.14c-3.94,3.77-8,7.67-11.57,9.14C88,40.64,82.56,40.72,77.31,40.8c-9.76.15-20.82.31-28.51,8S41,67.55,40.8,77.31c-.08,5.25-.16,10.67-1.52,13.94-1.47,3.56-5.37,7.63-9.14,11.57C23.51,109.72,16,117.56,16,128s7.51,18.27,14.14,25.18c3.77,3.94,7.67,8,9.14,11.57,1.36,3.27,1.44,8.69,1.52,13.94.15,9.76.31,20.82,8,28.51s18.75,7.85,28.51,8c5.25.08,10.67.16,13.94,1.52,3.56,1.47,7.63,5.37,11.57,9.14C109.72,232.49,117.56,240,128,240s18.27-7.51,25.18-14.14c3.94-3.77,8-7.67,11.57-9.14,3.27-1.36,8.69-1.44,13.94-1.52,9.76-.15,20.82-.31,28.51-8s7.85-18.75,8-28.51c.08-5.25.16-10.67,1.52-13.94,1.47-3.56,5.37-7.63,9.14-11.57C232.49,146.28,240,138.44,240,128S232.49,109.73,225.86,102.82Zm-11.55,39.29c-4.79,5-9.75,10.17-12.38,16.52-2.52,6.1-2.63,13.07-2.73,19.82-.1,7-.21,14.33-3.32,17.43s-10.39,3.22-17.43,3.32c-6.75.1-13.72.21-19.82,2.73-6.35,2.63-11.52,7.59-16.52,12.38S132,224,128,224s-9.15-4.92-14.11-9.69-10.17-9.75-16.52-12.38c-6.1-2.52-13.07-2.63-19.82-2.73-7-.1-14.33-.21-17.43-3.32s-3.22-10.39-3.32-17.43c-.1-6.75-.21-13.72-2.73-19.82-2.63-6.35-7.59-11.52-12.38-16.52S32,132,32,128s4.92-9.15,9.69-14.11,9.75-10.17,12.38-16.52c2.52-6.1,2.63-13.07,2.73-19.82.1-7,.21-14.33,3.32-17.43S70.51,56.9,77.55,56.8c6.75-.1,13.72-.21,19.82-2.73,6.35-2.63,11.52-7.59,16.52-12.38S124,32,128,32s9.15,4.92,14.11,9.69,10.17,9.75,16.52,12.38c6.1,2.52,13.07,2.63,19.82,2.73,7,.1,14.33.21,17.43,3.32s3.22,10.39,3.32,17.43c.1,6.75.21,13.72,2.73,19.82,2.63,6.35,7.59,11.52,12.38,16.52S224,124,224,128,219.08,137.15,214.31,142.11ZM173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34Z"/></symbol><symbol id="ic-bandera" viewBox="0 0 256 256"><path d="M42.76,50A8,8,0,0,0,40,56V224a8,8,0,0,0,16,0V179.77c26.79-21.16,49.87-9.75,76.45,3.41,16.4,8.11,34.06,16.85,53,16.85,13.93,0,28.54-4.75,43.82-18a8,8,0,0,0,2.76-6V56A8,8,0,0,0,218.76,50c-28,24.23-51.72,12.49-79.21-1.12C111.07,34.76,78.78,18.79,42.76,50ZM216,172.25c-26.79,21.16-49.87,9.74-76.45-3.41-25-12.35-52.81-26.13-83.55-8.4V59.79c26.79-21.16,49.87-9.75,76.45,3.4,25,12.35,52.82,26.13,83.55,8.4Z"/></symbol><symbol id="ic-reloj" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z"/></symbol><symbol id="ic-graduacion" viewBox="0 0 256 256"><path d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,117.87v48.42a15.91,15.91,0,0,0,4.06,10.65C49.16,191.53,78.51,216,128,216a130,130,0,0,0,48-8.76V240a8,8,0,0,0,16,0V199.51a115.63,115.63,0,0,0,27.94-22.57A15.91,15.91,0,0,0,224,166.29V117.87l27.76-14.81a8,8,0,0,0,0-14.12ZM128,200c-43.27,0-68.72-21.14-80-33.71V126.4l76.24,40.66a8,8,0,0,0,7.52,0L176,143.47v46.34C163.4,195.69,147.52,200,128,200Zm80-33.75a97.83,97.83,0,0,1-16,14.25V134.93l16-8.53ZM188,118.94l-.22-.13-56-29.87a8,8,0,0,0-7.52,14.12L171,128l-43,22.93L25,96,128,41.07,231,96Z"/></symbol><symbol id="ic-maletin" viewBox="0 0 256 256"><path d="M216,56H176V48a24,24,0,0,0-24-24H104A24,24,0,0,0,80,48v8H40A16,16,0,0,0,24,72V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V72A16,16,0,0,0,216,56ZM96,48a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96ZM216,72v41.61A184,184,0,0,1,128,136a184.07,184.07,0,0,1-88-22.38V72Zm0,128H40V131.64A200.19,200.19,0,0,0,128,152a200.25,200.25,0,0,0,88-20.37V200ZM104,112a8,8,0,0,1,8-8h32a8,8,0,0,1,0,16H112A8,8,0,0,1,104,112Z"/></symbol><symbol id="ic-check_circulo" viewBox="0 0 256 256"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/></symbol><symbol id="ic-video" viewBox="0 0 256 256"><path d="M251.77 73a8 8 0 0 0-8.21.39L208 97.05V72a16 16 0 0 0-16-16H32a16 16 0 0 0-16 16v112a16 16 0 0 0 16 16h160a16 16 0 0 0 16-16v-25l35.56 23.71A8 8 0 0 0 248 184a8 8 0 0 0 8-8V80a8 8 0 0 0-4.23-7M192 184H32V72h160zm48-22.95l-32-21.33v-23.44L240 95Z"/></symbol><symbol id="ic-ubicacion" viewBox="0 0 256 256"><path d="M128 64a40 40 0 1 0 40 40a40 40 0 0 0-40-40m0 64a24 24 0 1 1 24-24a24 24 0 0 1-24 24m0-112a88.1 88.1 0 0 0-88 88c0 31.4 14.51 64.68 42 96.25a254.2 254.2 0 0 0 41.45 38.3a8 8 0 0 0 9.18 0a254.2 254.2 0 0 0 41.37-38.3c27.45-31.57 42-64.85 42-96.25a88.1 88.1 0 0 0-88-88m0 206c-16.53-13-72-60.75-72-118a72 72 0 0 1 144 0c0 57.23-55.47 105-72 118"/></symbol><symbol id="ic-flecha" viewBox="0 0 256 256"><path d="m224.49 136.49l-72 72a12 12 0 0 1-17-17L187 140H40a12 12 0 0 1 0-24h147l-51.49-51.52a12 12 0 0 1 17-17l72 72a12 12 0 0 1-.02 17.01"/></symbol><symbol id="ic-historial" viewBox="0 0 256 256"><path d="M136,80v43.47l36.12,21.67a8,8,0,0,1-8.24,13.72l-40-24A8,8,0,0,1,120,128V80a8,8,0,0,1,16,0Zm-8-48A95.44,95.44,0,0,0,60.08,60.15C52.81,67.51,46.35,74.59,40,82V64a8,8,0,0,0-16,0v40a8,8,0,0,0,8,8H72a8,8,0,0,0,0-16H49c7.15-8.42,14.27-16.35,22.39-24.57a80,80,0,1,1,1.66,114.75,8,8,0,1,0-11,11.64A96,96,0,1,0,128,32Z"/></symbol><symbol id="ic-descargar" viewBox="0 0 256 256"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40a8,8,0,0,0-11.32-11.32L136,124.69V32a8,8,0,0,0-16,0v92.69L93.66,98.34a8,8,0,0,0-11.32,11.32Z"/></symbol></svg>
+
+<header class="cabecera">
+  <div class="envoltura">
+    <a class="marca" href="/" aria-label="Nexo, inicio"><span class="chip"><img src="/web/logo.png" alt=""></span>Nexo</a>
+    <nav aria-label="Principal">
+      <a href="#como-funciona">Cómo funciona</a>
+      <a href="#tutores">Para tutores</a>
+      <a href="#confianza">Confianza</a>
+      <a class="boton boton-claro" href="https://github.com/DUribe06/NexoTeam/releases/latest/download/nexo.apk" style="padding:10px 18px;font-size:15px">Descargar</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="portada">
+    <div class="envoltura">
+      <div class="texto">
+        <div class="etiqueta"><i></i>Para estudiantes universitarios de Bucaramanga</div>
+        <h1>El tutor que necesitas, a la hora que puedes.</h1>
+        <p class="lead">Nexo conecta a estudiantes con tutores de apoyo académico. Busca por materia, modalidad y horario, solicita la sesión y coordínala desde el chat.</p>
+        <a class="boton boton-claro" href="https://github.com/DUribe06/NexoTeam/releases/latest/download/nexo.apk"><svg class="ic"><use href="#ic-descargar"/></svg>Descargar para Android</a>
+        <div class="nota">Gratis · Android 8.0 o superior</div>
+      </div>
+      <div class="telefono"><img src="/web/03_inicio_estudiante.jpg" alt="Pantalla de inicio de Nexo con el buscador de tutores y las áreas de estudio" width="540" height="850"></div>
+    </div>
+  </div>
+
+  <section id="como-funciona">
+    <div class="envoltura">
+      <div class="titulo-seccion">
+        <small>Cómo funciona</small>
+        <h2>De la duda a la sesión en cuatro pasos</h2>
+        <p>Sin grupos de chat ni mensajes perdidos: todo pasa en un solo lugar.</p>
+      </div>
+      <ol class="pasos">
+        <li><div class="icono"><svg class="ic"><use href="#ic-lupa"/></svg></div><h3>Busca</h3><p>Filtra por materia, modalidad virtual o presencial y franja horaria. Los tutores aparecen ordenados por calificación.</p></li>
+        <li><div class="icono"><svg class="ic"><use href="#ic-calendario_check"/></svg></div><h3>Solicita</h3><p>Elige el tema, el día y una hora libre del horario del tutor. Tiene 24 horas para responderte.</p></li>
+        <li><div class="icono"><svg class="ic"><use href="#ic-chat"/></svg></div><h3>Coordina</h3><p>Cuando el tutor acepta, se abre un chat para acordar los detalles. Nexo te recuerda la sesión.</p></li>
+        <li><div class="icono"><svg class="ic"><use href="#ic-estrella"/></svg></div><h3>Califica</h3><p>Al terminar, deja estrellas y una reseña. Así los siguientes estudiantes eligen mejor.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="tutores" class="tutores">
+    <div class="envoltura">
+      <div>
+        <div class="titulo-seccion" style="margin-bottom:0">
+          <small>Para tutores</small>
+          <h2>Enseña lo que dominas, cuando puedes</h2>
+          <p>Con la misma cuenta cambias entre modo estudiante y modo tutor.</p>
+        </div>
+        <ul class="lista">
+          <li><svg class="ic"><use href="#ic-reloj"/></svg><div><strong>Tu horario, hora por hora</strong><span>Marca cada hora como virtual, presencial o ambas.</span></div></li>
+          <li><svg class="ic"><use href="#ic-check_circulo"/></svg><div><strong>Tú decides qué aceptar</strong><span>Revisa cada solicitud y acéptala o recházala con un motivo.</span></div></li>
+          <li><svg class="ic"><use href="#ic-estrella"/></svg><div><strong>Una reputación que crece</strong><span>Tus calificaciones y reseñas te ponen primero en las búsquedas.</span></div></li>
+        </ul>
+        <a class="boton boton-oscuro" href="https://github.com/DUribe06/NexoTeam/releases/latest/download/nexo.apk"><svg class="ic"><use href="#ic-descargar"/></svg>Empezar como tutor</a>
+      </div>
+      <div class="capturas">
+        <img src="/web/r_perfil_tutor.jpg" alt="Perfil de tutor con calificación, materias y reseñas" width="540" height="1000" loading="lazy">
+        <img src="/web/r_solic_tutor.jpg" alt="Lista de solicitudes recibidas con botones para aceptar o rechazar" width="540" height="1000" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <section id="confianza">
+    <div class="envoltura">
+      <div class="titulo-seccion">
+        <small>Confianza</small>
+        <h2>Una comunidad que se cuida</h2>
+        <p>Las reglas son claras para estudiantes y tutores.</p>
+      </div>
+      <div class="confianza">
+        <article><svg class="ic"><use href="#ic-sello"/></svg><h3>Tutores verificados</h3><p>Solo los tutores verificados aparecen en las búsquedas y reciben solicitudes.</p></article>
+        <article><svg class="ic"><use href="#ic-bandera"/></svg><h3>Reportes atendidos</h3><p>Puedes reportar a cualquier usuario. La administración de Nexo revisa cada caso.</p></article>
+        <article><svg class="ic"><use href="#ic-historial"/></svg><h3>Cumplir tiene sentido</h3><p>Faltar sin avisar o un mal comportamiento trae penalizaciones de 7, 14 o 30 días.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="envoltura">
+      <div class="cierre">
+        <div><h2>Tu próxima tutoría empieza aquí</h2><p>Descarga Nexo y crea tu cuenta con tu correo o con Google.</p></div>
+        <a class="boton boton-claro" href="https://github.com/DUribe06/NexoTeam/releases/latest/download/nexo.apk"><svg class="ic"><use href="#ic-descargar"/></svg>Descargar para Android</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="envoltura">
+    <div>Nexo · Grupo 3 · Ingeniería de Software · Universidad Industrial de Santander</div>
+    <nav aria-label="Legal y contacto">
+      <a href="/privacidad.html">Política de privacidad</a>
+      <a href="mailto:team.nexo.ia@gmail.com">team.nexo.ia@gmail.com</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

@@ -11,7 +11,7 @@ Proyecto de Ingeniería de Software de la Universidad Industrial de Santander (U
 | Parte | Tecnología | Dónde corre |
 |---|---|---|
 | App | Kotlin y Jetpack Compose | Teléfonos Android (APK) |
-| API REST y HTTPS | Spring Boot en Docker | Render, plan gratis |
+| Página web y API REST | Spring Boot en Docker | Render, plan gratis (`https://nexo-team.onrender.com`) |
 | Base de datos | PostgreSQL 18 | Neon, plan gratis |
 | Inicio con Google | Credential Manager y OAuth | Google Cloud |
 | Correo | SMTP | Brevo |

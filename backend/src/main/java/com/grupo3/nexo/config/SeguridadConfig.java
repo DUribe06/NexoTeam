@@ -46,7 +46,7 @@ public class SeguridadConfig {
             .authorizeHttpRequests(a -> a
                 // /error: cuando una petición falla, el contenedor la reenvía ahí; si no es pública, todo error se vería como 401
                 .requestMatchers("/error").permitAll()
-                .requestMatchers("/api/salud", "/openapi/**", "/admin", "/admin/", "/admin/**", "/privacidad.html").permitAll()
+                .requestMatchers("/", "/index.html", "/web/**", "/api/salud", "/openapi/**", "/admin", "/admin/", "/admin/**", "/privacidad.html").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/registro", "/api/auth/verificar-correo",
                     "/api/auth/reenviar-codigo", "/api/auth/login", "/api/auth/google", "/api/auth/refrescar",
                     "/api/auth/recuperar", "/api/auth/restablecer").permitAll()
