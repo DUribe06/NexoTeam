@@ -4,7 +4,7 @@ Aplicación Android que conecta a estudiantes universitarios de Bucaramanga con 
 
 Proyecto de Ingeniería de Software de la Universidad Industrial de Santander (UIS), Grupo 3.
 
-> **Estado:** versión final. Cómo se publica el servidor y se genera la app: [`backend/docs/despliegue.md`](backend/docs/despliegue.md).
+Cómo se publica el servidor y se genera la app: [`backend/docs/despliegue.md`](backend/docs/despliegue.md).
 
 ## Cómo está armado
 
