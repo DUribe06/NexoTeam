@@ -12,14 +12,5 @@ app/build/
 *.apk
 *.aab
 
-# Material personal del equipo: no se sube (documentos, plan, capturas y herramientas)
-/docs/
-/frontend/
-/.claude/
-/.impeccable/
-/skills-lock.json
-/PRODUCT.md
-
-# Archivos locales del gestor de archivos y del escritorio
-/.smartfs.db
+# Archivos locales del escritorio
 .directory
