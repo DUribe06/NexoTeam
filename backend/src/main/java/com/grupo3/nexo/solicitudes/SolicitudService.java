@@ -53,7 +53,7 @@ public class SolicitudService {
     private static final String CONSULTA = """
         SELECT so.id, so.tutor_id, t.nombre AS nombre_tutor, so.estudiante_id, e.nombre AS nombre_estudiante,
                so.materia, so.tema, so.inicio, so.modalidad, so.estado, so.mensaje, so.motivo_rechazo,
-               so.enviada_en, so.vence_en, fn_penalizaciones_recientes(so.estudiante_id, FALSE) AS penalizaciones_estudiante
+               so.enviada_en, so.vence_en, so.precio_propuesto, fn_penalizaciones_recientes(so.estudiante_id, FALSE) AS penalizaciones_estudiante
         FROM solicitudes so
         JOIN usuarios t ON t.id = so.tutor_id
         JOIN usuarios e ON e.id = so.estudiante_id
@@ -117,10 +117,11 @@ public class SolicitudService {
         Instant enviada = reloj.instant().truncatedTo(ChronoUnit.MICROS);
         Instant vence = enviada.plus(PLAZO).isBefore(inicio) ? enviada.plus(PLAZO) : inicio;
         jdbc.sql("""
-            INSERT INTO solicitudes (id, estudiante_id, tutor_id, materia, tema, inicio, modalidad, mensaje, enviada_en, vence_en)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO solicitudes (id, estudiante_id, tutor_id, materia, tema, inicio, modalidad, mensaje, enviada_en, vence_en,
+                                     precio_propuesto)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """).params(id, yo, tutor.getId(), materia, s.tema().trim(), momento(inicio), s.modalidad().name(),
-                s.mensaje() == null ? "" : s.mensaje().trim(), momento(enviada), momento(vence)).update();
+                s.mensaje() == null ? "" : s.mensaje().trim(), momento(enviada), momento(vence), s.precioPropuesto()).update();
         return buscar(id).orElseThrow();
     }
 
@@ -295,6 +296,6 @@ public class SolicitudService {
             rs.getString("mensaje"), rs.getString("motivo_rechazo"),
             HoraColombia.momento(rs.getObject("enviada_en", OffsetDateTime.class).toInstant()),
             HoraColombia.momento(rs.getObject("vence_en", OffsetDateTime.class).toInstant()),
-            rs.getInt("penalizaciones_estudiante"));
+            rs.getInt("penalizaciones_estudiante"), rs.getBigDecimal("precio_propuesto"));
     }
 }
