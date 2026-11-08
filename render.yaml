@@ -1,0 +1,41 @@
+# Despliegue en Render, plan gratis: New > Blueprint y elegir este repositorio. Los valores con sync: false los pide Render al crearlo.
+# La base vive en Neon porque la gratis de Render vence a los 30 días. Pasos completos en backend/docs/despliegue.md.
+services:
+  - type: web
+    name: nexo-team
+    runtime: docker
+    plan: free
+    # La misma región de la base en Neon
+    region: virginia
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/salud
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: NEXO_DB_URL
+        sync: false
+      - key: NEXO_DB_USUARIO
+        sync: false
+      - key: NEXO_DB_CLAVE
+        sync: false
+      - key: NEXO_JWT_SECRETO
+        generateValue: true
+      - key: NEXO_ADMIN_CORREO
+        sync: false
+      - key: NEXO_ADMIN_CONTRASENA
+        sync: false
+      - key: NEXO_SMTP_HOST
+        value: smtp-relay.brevo.com
+      # El plan gratis bloquea la salida por los puertos 25, 465 y 587
+      - key: NEXO_SMTP_PUERTO
+        value: "2525"
+      - key: NEXO_SMTP_USUARIO
+        sync: false
+      - key: NEXO_SMTP_CLAVE
+        sync: false
+      - key: NEXO_CORREO_REMITENTE
+        sync: false
+      - key: NEXO_GOOGLE_CLIENT_ID
+        sync: false

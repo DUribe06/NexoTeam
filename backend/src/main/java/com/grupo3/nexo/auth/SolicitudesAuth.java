@@ -25,6 +25,10 @@ public final class SolicitudesAuth {
         }
     }
 
+    /** Las condiciones solo hacen falta la primera vez; si faltan, el servidor responde `TERMINOS_REQUERIDOS`. */
+    public record Google(@NotBlank String tokenId, Boolean aceptaTerminos, @Size(max = 30) String versionTerminos) {
+    }
+
     public record SoloCorreo(@NotBlank @Email @Size(max = 254) String correo) {
         public SoloCorreo {
             correo = normalizar(correo);
@@ -33,6 +37,15 @@ public final class SolicitudesAuth {
 
     public record Login(@NotBlank @Email @Size(max = 254) String correo, @NotBlank @Size(max = 72) String contrasena) {
         public Login {
+            correo = normalizar(correo);
+        }
+    }
+
+    public record Restablecer(
+        @NotBlank @Email @Size(max = 254) String correo,
+        @NotBlank @Pattern(regexp = "^[0-9]{6}$", message = "debe tener exactamente 6 dígitos") String codigo,
+        @NotBlank @Size(min = 8, max = 72, message = "debe tener entre 8 y 72 caracteres") String nuevaContrasena) {
+        public Restablecer {
             correo = normalizar(correo);
         }
     }

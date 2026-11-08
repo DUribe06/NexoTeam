@@ -22,13 +22,18 @@ public class AuthController {
     private final VerificacionCorreoService verificacion;
     private final LoginService login;
     private final SesionService sesiones;
+    private final RecuperacionContrasenaService recuperacion;
+    private final InicioGoogleService google;
 
     public AuthController(RegistroService registro, VerificacionCorreoService verificacion, LoginService login,
-                          SesionService sesiones) {
+                          SesionService sesiones, RecuperacionContrasenaService recuperacion,
+                          InicioGoogleService google) {
         this.registro = registro;
         this.verificacion = verificacion;
         this.login = login;
         this.sesiones = sesiones;
+        this.recuperacion = recuperacion;
+        this.google = google;
     }
 
     @PostMapping("/registro")
@@ -53,6 +58,11 @@ public class AuthController {
         return login.iniciarSesion(s.correo(), s.contrasena());
     }
 
+    @PostMapping("/google")
+    public SesionDto iniciarSesionConGoogle(@Valid @RequestBody SolicitudesAuth.Google s) {
+        return google.iniciarSesion(s);
+    }
+
     @PostMapping("/refrescar")
     public SesionDto refrescar(@Valid @RequestBody SolicitudesAuth.Refrescar s) {
         return sesiones.refrescar(s.tokenRefresco());
@@ -62,5 +72,17 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void cerrarSesion(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody SolicitudesAuth.Refrescar s) {
         sesiones.cerrar(UUID.fromString(jwt.getSubject()), s.tokenRefresco());
+    }
+
+    @PostMapping("/recuperar")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void recuperar(@Valid @RequestBody SolicitudesAuth.SoloCorreo s) {
+        recuperacion.recuperar(s.correo());
+    }
+
+    @PostMapping("/restablecer")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void restablecer(@Valid @RequestBody SolicitudesAuth.Restablecer s) {
+        recuperacion.restablecer(s.correo(), s.codigo(), s.nuevaContrasena());
     }
 }

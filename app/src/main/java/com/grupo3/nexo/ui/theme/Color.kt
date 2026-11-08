@@ -18,6 +18,12 @@ val ErrorBosque = Color(0xFFBA1A1A)
 
 /** Menta: solo micro-indicadores (punto "en línea", insignias de no leídos, confirmaciones). */
 val Menta = Color(0xFF00B872)
+/** Punto de presencia cuando la persona no está en línea. */
+val PuntoDesconectado = Color(0xFFB9C6BE)
+/** Trazo de los eslabones de la barra de navegación. */
+val TrazoEslabon = Color(0xFF153A28)
+/** Menta clara para el texto de la miga sobre fondo oscuro. */
+val TextoMigaClaro = Color(0xFF8FE0B8)
 
 /* Superficies */
 val Fondo = Lienzo
@@ -29,27 +35,60 @@ val TinteBosque = Color(0xFFE1ECE5)
 
 /* Texto */
 val TextoPrimario = BosqueProfundo
-val TextoSecundario = Salvia
+/** Salvia oscurecida para texto: 4.5:1 sobre blanco y sobre el lienzo (Salvia queda para formas e ilustración). */
+val TextoSecundario = Color(0xFF587966)
 /** Metadatos de menor jerarquía; cumple 4.5:1 sobre blanco y sobre el lienzo. */
-val TextoTercero = Color(0xFF6B8577)
-val Marcador = Bosque.copy(alpha = 0.42f)
-
-val Acento = BosqueAcento
+val TextoTercero = Color(0xFF60776B)
+val Marcador = Bosque.copy(alpha = 0.64f)
 
 /* Borde fino de 1 dp (mismo que los campos del acceso). */
 val BordeSutil = Bosque.copy(alpha = 0.10f)
 val Divisor = Bosque.copy(alpha = 0.07f)
+/** Borde de botones secundarios, campos y opciones en reposo. */
+val BordeMarcado = Bosque.copy(alpha = 0.16f)
+/** Borde verdoso de las tarjetas con acento (esqueleto, disponibilidad, sesión). */
+val BordeAcento = BosqueAcento.copy(alpha = 0.14f)
 
 /* Estados */
 val Rojo = ErrorBosque
+/** Rojo de las acciones destructivas en texto e íconos secundarios. */
+val RojoSuave = Rojo.copy(alpha = 0.85f)
 val Miel = Color(0xFFD69A1E)
+/** Miel para las estrellas de calificación: 3:1 sobre blanco, sin perder la calidez de Miel. */
+val MielFuerte = Color(0xFFBF8500)
+/** Estrella de calificación sin llenar: 3,08:1 sobre blanco (mínimo 3:1 para componentes gráficos). */
+val EstrellaVacia = Bosque.copy(alpha = 0.50f)
 val MielOscura = Color(0xFF8A5A00)
-val MielFondo = Color(0xFFF8EDD5)
 val VerdeEstado = Color(0xFF0D6B43)
-val VerdeFondo = Color(0xFFDDF2E6)
-val RojoFondo = Color(0xFFFBE4E1)
-val GrisEstado = Color(0xFF6E7A73)
-val GrisFondo = Color(0xFFEDF0EE)
+val GrisEstado = Color(0xFF66716B)
+
+/* Alfas que se repiten entre pantallas, con nombre. */
+/** Borde de la opción elegida (modalidad, día, materia, tarjeta de selección). */
+val BordeSeleccion = BosqueAcento.copy(alpha = 0.55f)
+/** Relleno tenue del botón deshabilitado y de los bloques sin acción. */
+val RellenoTenue = Bosque.copy(alpha = 0.07f)
+/** Ícono secundario dentro de un campo o tarjeta (lupa, campana, borrar texto): 3,08:1 sobre blanco. */
+val IconoSecundario = Bosque.copy(alpha = 0.5f)
+/** Hora sin publicar en Disponibilidad. */
+val TextoHoraInactiva = BosqueMedio.copy(alpha = 0.8f)
+/** Fondo tenue de acento (divisor de la tarjeta de próxima sesión). */
+val FondoAcentoTenue = BosqueAcento.copy(alpha = 0.18f)
+/** Capas apiladas de las sesiones siguientes en el Inicio: la segunda y la tercera. */
+val TintePilaCerca = TinteBosque.copy(alpha = 0.62f)
+val TintePilaLejos = TinteBosque.copy(alpha = 0.34f)
+/** Fondo de la franja de horario elegida en la hoja de solicitud. */
+val FondoSuperficieMedia = SuperficieClara.copy(alpha = 0.5f)
+/** Contorno de radios y casillas sin marcar: 3:1 sobre el lienzo. */
+val BordeRadio = Bosque.copy(alpha = 0.52f)
+/** Contorno tenue de las materias que enseña el tutor, sin llegar a ser un control. */
+val BordeMateria = BosqueAcento.copy(alpha = 0.22f)
+/** Fondo de la fila elegida en las listas de opciones. */
+val TinteFilaElegida = TinteBosque.copy(alpha = 0.5f)
+/** Punto de estado apagado (sin conexión, cancelada). */
+val GrisEstadoSuave = GrisEstado.copy(alpha = 0.6f)
+/** Sombra de las tarjetas elevadas: luz ambiente y luz puntual. */
+val SombraAmbiente = BosqueProfundo.copy(alpha = 0.22f)
+val SombraPuntual = BosqueProfundo.copy(alpha = 0.38f)
 
 /** Gradiente satinado del botón "Vincularse": botones primarios y estados activos. */
 val pincelBosque: Brush
@@ -79,3 +118,70 @@ val tonosAvatar = listOf(
     Color(0xFF2E4B3F) to Color(0xFF4A6B5D),
     Color(0xFF0F3D33) to Color(0xFF22594C)
 )
+
+/* Logo animado (ilustración) */
+val LogoAzulPower = Color(0xFF9CC4FF)
+val LogoFondoOscuro = Color(0xFF020B07)
+val LogoFondoMedio = Color(0xFF0B3324)
+val LogoFondoClaro = Color(0xFF17573C)
+val LogoLenguaBorde = Color(0xFF1F8A5B)
+val LogoLengua1 = Color(0xFF3CCB8B)
+val LogoLengua2 = Color(0xFF7FDDB0)
+val LogoLengua3 = Color(0xFFA8EBCB)
+val LogoLenguaSurco = Color(0xFF2A9E6A)
+val LogoMigaSombra = Color(0xFFC9A46A)
+val LogoMiga = Color(0xFFF3E3C3)
+
+/* Escena dibujada de la barra de sesión del Inicio. */
+val CalOscuro = Color(0xFF264435)
+val CalSalvia = Color(0xFF898F78)
+val CalDia = Color(0xFF8C9584)
+val CalCuerpo = Color(0xFFE6EAE7)
+val CalCelda = Color(0xFFF3F4F1)
+val CalLinea = Color(0xFFA3A89F)
+val VerdeMarca = Color(0xFF3FA874)
+val SombraSuelo = Color(0xFFD5DBD4)
+
+/** Texto pequeño sobre TinteBosque: Salvia y TextoSecundario no llegan a 4,5:1 ahí. */
+val TextoSobreTinte = Color(0xFF4A6B59)
+/** Texto e íconos sobre el verde y sobre la foto. */
+val SobreOscuro = Color.White
+/** Texto secundario sobre el verde y sobre la foto (subtítulos de cabecera). */
+/** Borde del botón de acción de peligro (rojo suave sobre superficie clara). */
+val BordeRojoPeligro = Rojo.copy(alpha = 0.30f)
+/** Borde del botón de cerrar sesión (RojoSuave ya atenuado, de ahí el alfa menor). */
+val BordeRojoSalir = RojoSuave.copy(alpha = 0.28f)
+val SobreOscuroSuave = SobreOscuro.copy(alpha = 0.88f)
+/** Anillo del avatar sobre la foto de la cabecera. */
+val AnilloSobreOscuro = SobreOscuro.copy(alpha = 0.9f)
+
+/* Ajustes de transparencia de componentes y del acceso (cada uno sobre su color base). */
+/** Sombra de la barra de navegación inferior. */
+val SombraBarra = BosqueProfundo.copy(alpha = 0.09f)
+/** Fondo oscurecido tras las hojas inferiores. */
+val VeloHoja = BosqueProfundo.copy(alpha = 0.45f)
+/** Ícono de un campo de texto sin foco. */
+val IconoCampoReposo = Bosque.copy(alpha = 0.45f)
+/** Texto de una opción sin seleccionar. */
+val TextoOpcionReposo = BosqueProfundo.copy(alpha = 0.78f)
+/** Velo bajo la barra de estado cuando el contenido se desplaza. */
+val VeloBarraEstado = Lienzo.copy(alpha = 0.96f)
+/** Velo de la foto del acceso: arriba, centro y abajo. */
+val VeloAccesoArriba = BosqueProfundo.copy(alpha = 0.60f)
+val VeloAccesoCentro = BosqueProfundo.copy(alpha = 0.25f)
+val VeloAccesoAbajo = BosqueProfundo.copy(alpha = 0.55f)
+/** Sombra puntual de la tarjeta del logo del acceso. */
+val SombraPuntualLogoAcceso = BosqueProfundo.copy(alpha = 0.35f)
+/** Borde de la tarjeta del logo del acceso. */
+val BordeLogoAcceso = Superficie.copy(alpha = 0.95f)
+/** Ícono de los campos del acceso sin foco. */
+val IconoCampoAcceso = Bosque.copy(alpha = 0.55f)
+/** Sombras de los campos del acceso. */
+val SombraAmbienteCampoAcceso = BosqueProfundo.copy(alpha = 0.4f)
+val SombraPuntualCampoAcceso = BosqueProfundo.copy(alpha = 0.18f)
+/** Sombra puntual del botón principal del acceso. */
+val SombraPuntualBotonAcceso = BosqueProfundo.copy(alpha = 0.6f)
+/** Líneas a los lados de "O conéctate con". */
+val LineaSeparadorAcceso = Bosque.copy(alpha = 0.15f)
+/** Contorno del botón de Google. */
+val BordeBotonGoogle = Bosque.copy(alpha = 0.18f)

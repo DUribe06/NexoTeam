@@ -38,7 +38,9 @@ out/
 
 ### Secretos y configuración local de Nexo ###
 .env
-application-local.yml
-application-local.properties
 *.pem
 *.key
+
+# Configuración local (secreto JWT y clave de la base)
+.env*
+

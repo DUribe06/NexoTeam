@@ -21,4 +21,10 @@ class ConfiguracionPruebas {
     VerificadorDominioCorreo verificadorDeDominio() {
         return dominio -> !dominio.equals("sin-mx.test");
     }
+
+    @Bean
+    @Primary
+    VerificadorTokenGoogle verificadorGoogleFalso() {
+        return new VerificadorGoogleFalso();
+    }
 }

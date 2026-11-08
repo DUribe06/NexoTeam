@@ -19,9 +19,33 @@ jobs:
       - name: Pruebas y compilación
         run: ./gradlew test assembleDebug
 
+  despliegue:
+    name: Imagen del servidor
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: La imagen del servidor se construye
+        run: docker build backend
+
   backend:
     name: Backend Spring Boot
     runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: nexo
+          POSTGRES_USER: nexo
+          POSTGRES_PASSWORD: nexo
+          # La misma collation que la base local, para que el orden de los textos no cambie entre ambas
+          POSTGRES_INITDB_ARGS: --locale=C.UTF-8
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nexo -d nexo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     defaults:
       run:
         working-directory: backend

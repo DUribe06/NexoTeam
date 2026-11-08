@@ -1,6 +1,6 @@
 package com.grupo3.nexo.ui.components
 
-import android.provider.Settings
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
@@ -33,9 +33,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,15 +44,14 @@ import androidx.compose.ui.geometry.lerp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
@@ -63,13 +62,13 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.R
 import com.grupo3.nexo.ui.navigation.Rutas
-import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.theme.BosqueProfundo
+import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
+import com.grupo3.nexo.ui.theme.RellenoTenue
 import com.grupo3.nexo.ui.theme.Salvia
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
+import com.grupo3.nexo.ui.theme.Superficie
+import com.grupo3.nexo.ui.theme.TrazoEslabon
+import com.grupo3.nexo.ui.theme.SombraBarra
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -81,6 +80,10 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlin.math.sin
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 private data class Destino(
     val ruta: String,
@@ -104,7 +107,7 @@ private val ALTO_BARRA = 52.dp
 private val ALTO_DISENO_ONDA = 86.dp
 private val TAM_ESLABON = 34.dp
 /** Color y grosor del trazo de los eslabones (medidos en eslabon_1.png / eslabon_2.png). */
-private val ColorEslabon = Color(0xFF153A28)
+private val ColorEslabon = TrazoEslabon
 private const val GROSOR_BRAZO = 2.75f
 
 /** Separación (dp) entre las caras de los dos brazos con los eslabones juntos: hasta ahí la liga aún no existe. */
@@ -311,10 +314,7 @@ fun BarraNavegacion(
     if (indiceRuta >= 0) ultimoIndice.intValue = indiceRuta
     val activo = ultimoIndice.intValue
 
-    val contexto = LocalContext.current
-    val sinAnimaciones = remember {
-        Settings.Global.getFloat(contexto.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
-    }
+    val sinAnimaciones = LocalAnimacionesReducidas.current
     val haptica = LocalHapticFeedback.current
 
     val e1 = remember { Pieza() }
@@ -438,7 +438,7 @@ fun BarraNavegacion(
                 Paint().asFrameworkPaint().apply {
                     isAntiAlias = true
                     color = android.graphics.Color.WHITE
-                    setShadowLayer(14f * dp, 0f, -2f * dp, BosqueProfundo.copy(alpha = 0.09f).toArgb())
+                    setShadowLayer(14f * dp, 0f, -2f * dp, SombraBarra.toArgb())
                 }
             }
             Canvas(Modifier.fillMaxSize()) {
@@ -474,7 +474,7 @@ fun BarraNavegacion(
                     close()
                 }
                 drawIntoCanvas { it.nativeCanvas.drawPath(relleno.asAndroidPath(), pinturaFondo) }
-                drawPath(borde, Bosque.copy(alpha = 0.07f), style = Stroke(width = 1.dp.toPx()))
+                drawPath(borde, RellenoTenue, style = Stroke(width = 1.dp.toPx()))
             }
 
             // La liga: una curva suave que pasa por los puntos de la cuerda. Nace centrada en la cara cortada de cada
@@ -551,7 +551,7 @@ fun BarraNavegacion(
                     }
                     val descripcion = buildString {
                         append(destino.etiqueta)
-                        if (insignia > 0) append(", $insignia ${if (destino.ruta == Rutas.Chat.ruta) "sin leer" else "pendientes"}")
+                        if (insignia > 0) append(", $insignia ${if (destino.ruta == Rutas.Chat.ruta) "sin leer" else plural(insignia, "pendiente", "pendientes")}")
                     }
                     Box(
                         contentAlignment = Alignment.Center,
@@ -568,7 +568,7 @@ fun BarraNavegacion(
                             .semantics { contentDescription = descripcion }
                     ) {
                         val p = iconos[i]
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(48.dp)) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(AreaTactilMinima)) {
                             Icon(
                                 painterResource(destino.icono),
                                 contentDescription = null,
@@ -634,7 +634,7 @@ fun BarraNavegacion(
         Box(
             Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(Superficie)
                 .windowInsetsBottomHeight(WindowInsets.navigationBars)
         )
     }

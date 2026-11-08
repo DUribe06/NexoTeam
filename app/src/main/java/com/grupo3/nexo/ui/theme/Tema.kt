@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
@@ -50,10 +51,12 @@ private val Formas = Shapes(
  */
 @Composable
 fun NexoTema(contenido: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = EsquemaBosque,
-        typography = Tipografia,
-        shapes = Formas,
-        content = contenido
-    )
+    CompositionLocalProvider(LocalAnimacionesReducidas provides leerAnimacionesReducidas()) {
+        MaterialTheme(
+            colorScheme = EsquemaBosque,
+            typography = Tipografia,
+            shapes = Formas,
+            content = contenido
+        )
+    }
 }

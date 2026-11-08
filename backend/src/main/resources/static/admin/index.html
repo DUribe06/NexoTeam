@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="robots" content="noindex">
+<title>Nexo · Administración</title>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+<main id="acceso" class="acceso">
+  <h1>Nexo</h1>
+  <p>Panel de administración</p>
+  <form id="formAcceso">
+    <label for="correo">Correo</label>
+    <input id="correo" type="email" autocomplete="username" required>
+    <label for="contrasena">Contraseña</label>
+    <input id="contrasena" type="password" autocomplete="current-password" required>
+    <button type="submit" class="primario">Entrar</button>
+    <p id="errorAcceso" class="error" role="alert" hidden></p>
+  </form>
+</main>
+<div id="panel" hidden>
+  <header>
+    <strong>Nexo · Administración</strong>
+    <nav role="tablist" aria-label="Secciones">
+      <button role="tab" data-seccion="revisiones" aria-selected="true">Revisiones <span id="numRevisiones" class="numero"></span></button>
+      <button role="tab" data-seccion="reportes" aria-selected="false">Reportes <span id="numReportes" class="numero"></span></button>
+      <button role="tab" data-seccion="usuarios" aria-selected="false">Cuentas</button>
+    </nav>
+    <button id="salir">Salir</button>
+  </header>
+  <main>
+    <p id="aviso" class="aviso" role="status" hidden></p>
+    <section id="revisiones"></section>
+    <section id="reportes" hidden></section>
+    <section id="usuarios" hidden>
+      <input id="buscar" type="search" placeholder="Buscar por nombre o correo" aria-label="Buscar cuentas">
+      <div id="listaUsuarios"></div>
+    </section>
+  </main>
+</div>
+<script src="panel.js"></script>
+</body>
+</html>

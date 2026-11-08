@@ -1,14 +1,10 @@
 package com.grupo3.nexo.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -17,14 +13,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.res.vectorResource
 import com.grupo3.nexo.R
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.ui.theme.BosqueAcento
 import com.grupo3.nexo.ui.theme.BosqueProfundo
-import com.grupo3.nexo.ui.theme.TinteBosque
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.IconoPequeno
 
 /** Ícono Phosphor de cada modalidad (cámara o ubicación), la familia de toda la app. */
 val Modalidad.icono: ImageVector
@@ -46,8 +43,8 @@ fun EtiquetaModalidad(modalidad: Modalidad, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
     ) {
-        Icon(modalidad.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(14.dp))
-        Spacer(Modifier.width(5.dp))
+        Icon(modalidad.icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(IconoPequeno))
+        Spacer(Modifier.width(EspacioMinimo))
         Text(modalidad.etiqueta, color = BosqueProfundo, style = MaterialTheme.typography.labelMedium)
     }
 }
@@ -60,7 +57,7 @@ fun IconosModalidad(
     tamano: Dp = 14.dp,
     color: Color = BosqueAcento
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = modifier) {
+    Row(horizontalArrangement = Arrangement.spacedBy(EspacioMinimo), modifier = modifier) {
         Modalidad.entries.filter { it in modalidades }.forEach {
             Icon(it.icono, contentDescription = it.etiqueta, tint = color, modifier = Modifier.size(tamano))
         }

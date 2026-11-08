@@ -21,13 +21,13 @@ import jakarta.persistence.EntityManager;
 @AutoConfigureMockMvc
 @Import(ConfiguracionPruebas.class)
 @Transactional
-abstract class PruebaAuthBase {
+public abstract class PruebaAuthBase {
 
-    static final String CLAVE = "Clave2026seg";
+    protected static final String CLAVE = "Clave2026seg";
 
-    @Autowired MockMvc mvc;
-    @Autowired JdbcTemplate jdbc;
-    @Autowired EntityManager em;
+    @Autowired protected MockMvc mvc;
+    @Autowired protected JdbcTemplate jdbc;
+    @Autowired protected EntityManager em;
     @Autowired EnviadorCorreoEnMemoria correos;
 
     ResultActions enviar(String ruta, String cuerpo) throws Exception {
@@ -40,10 +40,10 @@ abstract class PruebaAuthBase {
     }
 
     /** Registra un estudiante y devuelve el código que se "envió" a su correo. */
-    String registrar(String correo) throws Exception {
+    protected String registrar(String correo) throws Exception {
         enviar("/api/auth/registro", """
-            {"nombre":"Valeria Ríos","correo":"%s","contrasena":"%s","rol":"ESTUDIANTE",
-             "documentoIdentidad":"1098765432","aceptaTerminos":true,"versionTerminos":"2026-10-18"}
+            {"nombre":"Valeria Ríos","correo":"%s","contrasena":"%s",
+             "aceptaTerminos":true,"versionTerminos":"2026-10-18"}
             """.formatted(correo, CLAVE)).andReturn();
         return correos.ultimoCodigo.get(correo);
     }
@@ -56,22 +56,22 @@ abstract class PruebaAuthBase {
         return enviar("/api/auth/reenviar-codigo", "{\"correo\":\"%s\"}".formatted(correo));
     }
 
-    ResultActions login(String correo, String contrasena) throws Exception {
+    protected ResultActions login(String correo, String contrasena) throws Exception {
         return enviar("/api/auth/login", "{\"correo\":\"%s\",\"contrasena\":\"%s\"}".formatted(correo, contrasena));
     }
 
     /** Registra y verifica un estudiante; devuelve la respuesta de la sesión abierta. */
-    String cuentaActiva(String correo) throws Exception {
+    protected String cuentaActiva(String correo) throws Exception {
         String codigo = registrar(correo);
         return verificar(correo, codigo).andReturn().getResponse().getContentAsString();
     }
 
-    static String campo(String json, String ruta) {
+    protected static String campo(String json, String ruta) {
         return JsonPath.read(json, ruta);
     }
 
     /** Ejecuta SQL directo (para mover fechas) y limpia el contexto de JPA para que vea el cambio. */
-    void sql(String instruccion, Object... argumentos) {
+    protected void sql(String instruccion, Object... argumentos) {
         em.flush();
         jdbc.update(instruccion, argumentos);
         em.clear();

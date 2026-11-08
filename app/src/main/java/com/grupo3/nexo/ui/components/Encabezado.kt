@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,10 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
@@ -34,10 +28,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.grupo3.nexo.R
-import com.grupo3.nexo.ui.theme.Fondo
-import com.grupo3.nexo.ui.theme.TextoPrimario
-import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.BosqueMedio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMicro
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.Fondo
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.SobreOscuroSuave
 import com.grupo3.nexo.ui.theme.veloCabecera
 
 /**
@@ -79,64 +79,56 @@ fun CabeceraBosque(
     }
 }
 
-/** Título de las pestañas principales: grande, como "Enlace directo", con subtítulo en salvia. */
+/**
+ * Cabecera baja de las pantallas secundarias: la foto del Inicio bajo el velo, el título en blanco
+ * y la misma onda que corta la foto. Con `alVolver` lleva la flecha a la izquierda.
+ */
 @Composable
-fun TituloPantalla(
+fun CabeceraSeccion(
     titulo: String,
     modifier: Modifier = Modifier,
     subtitulo: String? = null,
+    alVolver: (() -> Unit)? = null,
     acciones: @Composable RowScope.() -> Unit = {}
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(start = 20.dp, end = 12.dp, top = 18.dp, bottom = 6.dp)
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                titulo,
-                color = TextoPrimario,
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.semantics { heading() }
-            )
-            if (subtitulo != null) {
-                Spacer(Modifier.height(2.dp))
-                Text(subtitulo, color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
+    // La foto es oscura: íconos claros en la barra de estado mientras la cabecera está a la vista
+    IconosClarosEnBarraDeEstado()
+    Box(modifier) {
+        CabeceraBosque(conFoto = true, alturaOnda = 24.dp) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = if (alVolver != null) EspacioCorto else EspacioMargen, end = EspacioMedio, top = EspacioCercano, bottom = EspacioMinimo)
+            ) {
+                if (alVolver != null) {
+                    BotonIcono(IconosNexo.Atras, "Volver", alVolver, sobreOscuro = true)
+                    Spacer(Modifier.width(EspacioMinimo))
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        titulo,
+                        color = SobreOscuro,
+                        style = MaterialTheme.typography.headlineMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.semantics { heading() }
+                    )
+                    if (subtitulo != null) {
+                        Spacer(Modifier.height(EspacioMicro))
+                        Text(subtitulo, color = SobreOscuroSuave, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+                acciones()
             }
         }
-        acciones()
+        Onda(
+            Fondo,
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(32.dp)
+        )
     }
 }
 
-/** Barra de las pantallas de detalle: volver + título, sobre el lienzo. */
-@Composable
-fun BarraSuperior(
-    titulo: String,
-    alVolver: () -> Unit,
-    modifier: Modifier = Modifier,
-    acciones: @Composable RowScope.() -> Unit = {}
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-    ) {
-        BotonIcono(Icons.AutoMirrored.Rounded.ArrowBack, "Volver", alVolver)
-        Spacer(Modifier.width(8.dp))
-        Text(
-            titulo,
-            color = TextoPrimario,
-            style = MaterialTheme.typography.headlineSmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .weight(1f)
-                .semantics { heading() }
-        )
-        acciones()
-    }
-}

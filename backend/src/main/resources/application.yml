@@ -2,9 +2,15 @@ spring:
   application:
     name: nexo-backend
   datasource:
-    url: ${NEXO_DB_URL:jdbc:postgresql://localhost:5432/nexo}
-    username: ${NEXO_DB_USUARIO:nexo}
-    password: ${NEXO_DB_CLAVE:}
+    url: ${NEXO_DB_URL}
+    username: ${NEXO_DB_USUARIO}
+    password: ${NEXO_DB_CLAVE}
+    hikari:
+      # Una transacción colgada no debe frenar todas las demás: la espera termina en 409 CONFLICTO
+      connection-init-sql: SET lock_timeout = '5s'
+      data-source-properties:
+        # Sin esto, el `Detail` de un error de PostgreSQL llega a los registros con la fila completa (correo, hash...)
+        logServerErrorDetail: false
   jpa:
     hibernate:
       # El esquema lo gestiona Flyway; Hibernate solo lo valida
@@ -18,13 +24,20 @@ server:
 
 nexo:
   correo:
-    # consola: escribe el código en el log (solo desarrollo). Aún no hay envío real.
-    modo: consola
+    # Envío real por SMTP; los datos del servidor de correo están en el perfil prod
+    modo: smtp
     # Consulta DNS (registro MX) para comprobar que el dominio recibe correo
     verificar-mx: true
+  google:
+    # El ID del cliente OAuth tipo Web de Google Cloud. Sin él, el inicio con Google responde GOOGLE_NO_DISPONIBLE.
+    client-id: ${NEXO_GOOGLE_CLIENT_ID:}
   jwt:
     # Obligatorio: mínimo 32 caracteres, desde la variable de entorno NEXO_JWT_SECRETO. No hay valor por defecto a propósito.
     secreto: ${NEXO_JWT_SECRETO}
+  admin:
+    # Sin estos dos valores no se crea la cuenta de administrador
+    correo: ${NEXO_ADMIN_CORREO:}
+    contrasena: ${NEXO_ADMIN_CONTRASENA:}
   login:
     maximo-intentos: 5
     minutos-de-bloqueo: 15

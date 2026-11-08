@@ -45,14 +45,13 @@ public class SesionService {
         this.reloj = reloj;
     }
 
-    /** Abre una sesión nueva para el usuario. */
+    /** Abre una sesión nueva. El token no lleva el rol ni el modo: pueden cambiar mientras vive, se leen de la base. */
     public SesionDto iniciar(Usuario usuario) {
         Instant ahora = reloj.instant();
         JwtClaimsSet claims = JwtClaimsSet.builder()
             .subject(usuario.getId().toString())
             .issuedAt(ahora)
             .expiresAt(ahora.plus(VIGENCIA_ACCESO))
-            .claim("rol", usuario.getRol().name())
             .claim("correo", usuario.getCorreo())
             .build();
         String acceso = jwt.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))
@@ -61,6 +60,8 @@ public class SesionService {
         byte[] aleatorio = new byte[32];
         azar.nextBytes(aleatorio);
         String refresco = Base64.getUrlEncoder().withoutPadding().encodeToString(aleatorio);
+        // Sin proceso programado: cada inicio de sesión limpia los vencidos de esa cuenta
+        tokens.borrarVencidos(usuario.getId(), ahora);
         tokens.save(new TokenRefresco(usuario.getId(), hash(refresco), ahora.plus(VIGENCIA_REFRESCO), ahora));
 
         return new SesionDto(acceso, refresco, (int) VIGENCIA_ACCESO.toSeconds(), UsuarioDto.de(usuario));
@@ -73,7 +74,7 @@ public class SesionService {
     @Transactional(noRollbackFor = ErrorNegocio.class)
     public SesionDto refrescar(String tokenRefresco) {
         Instant ahora = reloj.instant();
-        TokenRefresco guardado = tokens.findByTokenHash(hash(tokenRefresco)).orElseThrow(SesionService::tokenInvalido);
+        TokenRefresco guardado = tokens.buscarParaConsumir(hash(tokenRefresco)).orElseThrow(SesionService::tokenInvalido);
         if (guardado.estaRevocado()) {
             revocarTodos(guardado.getUsuarioId(), ahora);
             throw tokenInvalido();
@@ -97,6 +98,12 @@ public class SesionService {
         tokens.findByTokenHash(hash(tokenRefresco))
             .filter(t -> t.getUsuarioId().equals(usuarioId))
             .ifPresent(t -> t.revocar(reloj.instant()));
+    }
+
+    /** Cierra todas las sesiones de la cuenta, por ejemplo al cambiar la contraseña. */
+    @Transactional
+    public void cerrarTodas(UUID usuarioId) {
+        revocarTodos(usuarioId, reloj.instant());
     }
 
     private void revocarTodos(UUID usuarioId, Instant ahora) {

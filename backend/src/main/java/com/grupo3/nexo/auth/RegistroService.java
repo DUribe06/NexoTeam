@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.grupo3.nexo.error.ErrorNegocio;
-import com.grupo3.nexo.usuarios.Rol;
+import com.grupo3.nexo.usuarios.GeneradorHandle;
 import com.grupo3.nexo.usuarios.Usuario;
 import com.grupo3.nexo.usuarios.UsuarioRepository;
 
@@ -21,22 +21,23 @@ public class RegistroService {
     private final PoliticaContrasena politicaContrasena;
     private final PasswordEncoder encriptador;
     private final CodigoVerificacionService codigos;
+    private final GeneradorHandle handles;
     private final Clock reloj;
 
     public RegistroService(UsuarioRepository usuarios, ValidadorCorreo validadorCorreo,
                            PoliticaContrasena politicaContrasena, PasswordEncoder encriptador,
-                           CodigoVerificacionService codigos, Clock reloj) {
+                           CodigoVerificacionService codigos, GeneradorHandle handles, Clock reloj) {
         this.usuarios = usuarios;
         this.validadorCorreo = validadorCorreo;
         this.politicaContrasena = politicaContrasena;
         this.encriptador = encriptador;
         this.codigos = codigos;
+        this.handles = handles;
         this.reloj = reloj;
     }
 
     @Transactional
     public RespuestaRegistro registrar(SolicitudRegistro s) {
-        validarRolYDatosDeTutor(s);
         politicaContrasena.validar(s.contrasena(), s.correo());
         validadorCorreo.validarDominioNoDesechable(s.correo());
         if (usuarios.existsByCorreo(s.correo())) {
@@ -44,12 +45,9 @@ public class RegistroService {
         }
         validadorCorreo.validarQueElDominioRecibeCorreo(s.correo());
 
-        Usuario usuario = Usuario.nuevo(s.nombre().trim(), s.correo(), encriptador.encode(s.contrasena()), s.rol(),
-            s.documentoIdentidad().trim(), s.versionTerminos(), reloj.instant());
-        if (s.rol() == Rol.TUTOR) {
-            s.datosTutor().materias().forEach(m -> usuario.getMaterias().add(m.trim()));
-            usuario.getModalidades().addAll(s.datosTutor().modalidades());
-        }
+        String nombre = s.nombre().trim();
+        Usuario usuario = Usuario.nuevo(nombre, s.correo(), encriptador.encode(s.contrasena()),
+            handles.paraNombre(nombre), textoOpcional(s.documentoIdentidad()), s.versionTerminos(), reloj.instant());
         usuarios.saveAndFlush(usuario);
         codigos.emitirYEnviar(usuario, PropositoCodigo.VERIFICAR_CORREO);
 
@@ -57,16 +55,8 @@ public class RegistroService {
             (int) CodigoVerificacionService.VIGENCIA.toSeconds());
     }
 
-    private void validarRolYDatosDeTutor(SolicitudRegistro s) {
-        if (s.rol() == Rol.ADMIN) {
-            throw ErrorNegocio.datosInvalidos("rol", "solo se puede registrar un estudiante o un tutor");
-        }
-        if (s.rol() == Rol.TUTOR && s.datosTutor() == null) {
-            throw ErrorNegocio.datosInvalidos("datosTutor", "es obligatorio para un tutor");
-        }
-        if (s.rol() == Rol.ESTUDIANTE && s.datosTutor() != null) {
-            throw ErrorNegocio.datosInvalidos("datosTutor", "solo aplica a tutores");
-        }
+    private static String textoOpcional(String texto) {
+        return texto == null || texto.isBlank() ? null : texto.trim();
     }
 
     private static ErrorNegocio correoDuplicado() {

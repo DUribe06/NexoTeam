@@ -1,13 +1,12 @@
 package com.grupo3.nexo.ui.perfil
 
+import com.grupo3.nexo.ui.theme.TamanoAvatarNormal
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
+import com.grupo3.nexo.ui.components.plural
+import com.grupo3.nexo.ui.components.textoDePenalizacionesRecientes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,10 +16,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,123 +28,144 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.grupo3.nexo.R
-import com.grupo3.nexo.domain.model.EstadoVerificacion
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.ResumenActividad
 import com.grupo3.nexo.domain.model.Rol
+import com.grupo3.nexo.ui.auth.MENSAJE_GOOGLE_NO_DISPONIBLE
+import com.grupo3.nexo.ui.auth.MENSAJE_GOOGLE_SIN_CUENTAS
+import com.grupo3.nexo.ui.auth.ResultadoGoogle
+import com.grupo3.nexo.ui.auth.pedirTokenGoogle
 import com.grupo3.nexo.domain.model.Usuario
-import com.grupo3.nexo.domain.usecase.CambiarModoUseCase
-import com.grupo3.nexo.domain.usecase.CerrarSesionUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerMisResenasUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerResumenActividadUseCase
-import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
-import com.grupo3.nexo.ui.components.Avatar
+import com.grupo3.nexo.ui.components.AvisoNexo
+import com.grupo3.nexo.ui.components.BotonPrimario
+import com.grupo3.nexo.ui.components.BotonTexto
+import com.grupo3.nexo.ui.components.Campo
+import com.grupo3.nexo.ui.components.HojaNexo
+import com.grupo3.nexo.ui.components.URL_PRIVACIDAD
 import com.grupo3.nexo.ui.components.CabeceraBosque
-import com.grupo3.nexo.ui.components.CifrasTabulares
+import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.DialogoConfirmacion
 import com.grupo3.nexo.ui.components.EncabezadoSeccion
-import com.grupo3.nexo.ui.components.Estrellas
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Star
+import com.grupo3.nexo.ui.components.ErrorDeLista
+import com.grupo3.nexo.ui.components.Esqueleto
+import com.grupo3.nexo.ui.components.EstadoVacio
+import com.grupo3.nexo.ui.components.Hueso
 import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
+import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.components.LineaHueso
+import com.grupo3.nexo.ui.components.ListaResenas
 import com.grupo3.nexo.ui.components.Onda
-import com.grupo3.nexo.ui.components.TextoLinea
 import com.grupo3.nexo.ui.components.VeloBarraEstado
 import com.grupo3.nexo.ui.components.aparicion
+import com.grupo3.nexo.ui.components.avisoFallo
+import com.grupo3.nexo.ui.components.cargaDe
+import com.grupo3.nexo.ui.components.enumerar
+import com.grupo3.nexo.ui.components.diaYMes
+import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.components.formatoHoras
 import com.grupo3.nexo.ui.components.formatoValoracion
+import com.grupo3.nexo.ui.components.mostrarError
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
-import com.grupo3.nexo.ui.components.universidadCorta
+import com.grupo3.nexo.ui.theme.BordeAcento
+import com.grupo3.nexo.ui.theme.BordeRojoSalir
+import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.BosqueAcento
+import com.grupo3.nexo.ui.theme.BosqueMedio
+import com.grupo3.nexo.ui.theme.BordeRojoPeligro
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
+import com.grupo3.nexo.ui.theme.EnfasisMedio
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioAmplio
+import com.grupo3.nexo.ui.theme.EspacioCercano
+import com.grupo3.nexo.ui.theme.EspacioCorto
+import com.grupo3.nexo.ui.theme.EspacioExtenso
+import com.grupo3.nexo.ui.theme.EspacioHolgado
+import com.grupo3.nexo.ui.theme.EspacioFino
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import kotlinx.coroutines.launch
+import com.grupo3.nexo.ui.theme.EspacioMedio
+import com.grupo3.nexo.ui.theme.EspacioMicro
+import com.grupo3.nexo.ui.theme.EspacioMinimo
+import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EspacioSuelto
 import com.grupo3.nexo.ui.theme.Fondo
-import com.grupo3.nexo.ui.theme.Miel
-import com.grupo3.nexo.ui.theme.MielOscura
-import com.grupo3.nexo.ui.theme.Rojo
-import com.grupo3.nexo.ui.theme.Salvia
+import com.grupo3.nexo.ui.theme.FormaBoton
+import com.grupo3.nexo.ui.theme.FormaCampoAlto
+import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.IconoCuerpo
+import com.grupo3.nexo.ui.theme.IconoMediano
+import com.grupo3.nexo.ui.theme.IconoNormal
+import com.grupo3.nexo.ui.theme.IconoSecundario
+import com.grupo3.nexo.ui.theme.MielFuerte
+import com.grupo3.nexo.ui.theme.RojoSuave
+import com.grupo3.nexo.ui.theme.SobreOscuro
+import com.grupo3.nexo.ui.theme.SobreOscuroSuave
+import com.grupo3.nexo.ui.theme.SombraAmbiente
+import com.grupo3.nexo.ui.theme.SombraPuntual
+import com.grupo3.nexo.ui.theme.Superficie
+import com.grupo3.nexo.ui.theme.TextoCifraResumen
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoSecundario
+import com.grupo3.nexo.ui.theme.TextoSobreTinte
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
+import com.grupo3.nexo.ui.theme.cambioContenido
+import com.grupo3.nexo.ui.theme.especColor
 import com.grupo3.nexo.ui.theme.pincelBosque
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import javax.inject.Inject
+import com.grupo3.nexo.ui.theme.resorteIndicador
+import com.grupo3.nexo.ui.theme.ElevacionTarjeta
 
-/* ==================== ViewModel ==================== */
-
-@HiltViewModel
-class PerfilViewModel @Inject constructor(
-    obtenerUsuario: ObtenerUsuarioUseCase,
-    obtenerResumen: ObtenerResumenActividadUseCase,
-    obtenerMisResenas: ObtenerMisResenasUseCase,
-    private val cambiarModo: CambiarModoUseCase,
-    private val cerrarSesion: CerrarSesionUseCase
-) : ViewModel() {
-
-    data class Estado(
-        val usuario: Usuario,
-        /** null mientras llegan las sesiones: las cifras muestran guiones en vez de ceros falsos. */
-        val resumen: ResumenActividad? = null,
-        val resenas: List<Resena> = emptyList()
-    ) {
-        val esTutor get() = usuario.rol == Rol.TUTOR
-    }
-
-    private val usuario = obtenerUsuario()
-
-    val estado = combine(usuario, obtenerResumen(), obtenerMisResenas()) { u, resumen, resenas ->
-        Estado(u, resumen, resenas)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado(usuario.value))
-
-    fun elegirModo(rol: Rol) = cambiarModo(rol)
-    fun salir() = cerrarSesion()
-}
 
 /* ==================== Pantalla ==================== */
+
+/** Alto aproximado del nombre y la carrera sobre el selector, con dos líneas de nombre. */
+private val ALTO_NOMBRE_SOBRE_SELECTOR = 130.dp
 
 /**
  * Perfil propio, derivado del Inicio: foto con el nombre como saludo, el selector de modo montado
@@ -157,15 +177,25 @@ fun PantallaPerfil(
     alCerrarSesion: () -> Unit,
     alAbrirHistorial: () -> Unit,
     alAbrirDisponibilidad: () -> Unit,
+    alAbrirResenas: () -> Unit,
+    alAbrirMaterias: () -> Unit,
     viewModel: PerfilViewModel = hiltViewModel()
 ) {
-    val estado by viewModel.estado.collectAsState()
+    val estado by viewModel.estado.collectAsStateWithLifecycle()
     val usuario = estado.usuario
     val desplazamiento = rememberScrollState()
-    val cabeceraVisible by remember { derivedStateOf { desplazamiento.value < 300 } }
+    // El velo aparece cuando el selector llega a la barra de estado, sea cual sea el alto de la foto
+    val altoBarra = WindowInsets.statusBars.getTop(LocalDensity.current)
+    var arribaSelector by remember { mutableFloatStateOf(Float.MAX_VALUE) }
+    // El nombre queda por encima del selector: el velo debe cubrirlo antes de que llegue a la barra
+    val altoNombre = with(LocalDensity.current) { ALTO_NOMBRE_SOBRE_SELECTOR.roundToPx() }
+    val cabeceraVisible by remember { derivedStateOf { arribaSelector > altoBarra + altoNombre } }
     IconosClarosEnBarraDeEstado(activo = cabeceraVisible)
     val iniciado = rememberPrimeraVez()
     var confirmarSalida by remember { mutableStateOf(false) }
+    var eliminando by remember { mutableStateOf(false) }
+    val avisos = remember { SnackbarHostState() }
+    val alcance = rememberCoroutineScope()
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val altoPantalla = maxHeight
@@ -177,57 +207,99 @@ fun PantallaPerfil(
                 .verticalScroll(desplazamiento),
             cabecera = { Cabecera(usuario, iniciado) }
         ) {
-            Column(Modifier.padding(bottom = 28.dp)) {
+            Column(Modifier.padding(bottom = EspacioExtenso)) {
                 // El selector ocupa el lugar del buscador: montado sobre la onda, con la única sombra
                 SelectorModo(
                     actual = usuario.rol,
-                    alElegir = viewModel::elegirModo,
+                    alElegir = { rol ->
+                        viewModel.elegirModo(rol) { fallo ->
+                            alcance.launch { avisos.mostrarError(avisoFallo("cambiar de modo", fallo)) }
+                        }
+                    },
                     modifier = Modifier
                         .solaparHaciaArriba(30.dp)
-                        .padding(horizontal = 20.dp)
+                        .onGloballyPositioned { arribaSelector = it.positionInRoot().y }
+                        .padding(horizontal = EspacioMargen)
                         .aparicion(1, iniciado)
                 )
 
                 // Lo propio de cada modo se funde al cambiar, sin saltos de la cabecera ni del selector
                 AnimatedContent(
                     targetState = estado.esTutor,
-                    transitionSpec = { fadeIn(tween(260, delayMillis = 60)) togetherWith fadeOut(tween(140)) },
+                    transitionSpec = { cambioContenido() },
                     label = "contenidoModo",
                     modifier = Modifier.aparicion(2, iniciado)
                 ) { esTutor ->
                     Column(Modifier.fillMaxWidth()) {
+                        estado.resumen?.let {
+                            AvisoPenalizaciones(it, esTutor, Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto))
+                        }
                         // Lo accionable va primero; las cifras y materias quedan como contexto
                         if (esTutor) {
-                            Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp)) {
-                                Verificacion(usuario.verificacion)
-                                Spacer(Modifier.height(10.dp))
-                                TarjetaDisponibilidad(usuario.puedeEnsenar, alAbrirDisponibilidad)
+                            Column(Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto)) {
+                                TarjetaDisponibilidad(alAbrirDisponibilidad)
                             }
-                            Cifras(estado.resumen, true, Modifier.padding(horizontal = 20.dp, vertical = 18.dp))
-                            BloqueTutor(usuario, estado.resenas, alVerTodas = alAbrirHistorial)
+                            Cifras(estado.resumen, true, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto))
+                            BloqueTutor(usuario, estado.resenas, cargando = estado.resumen == null, error = estado.error, alReintentar = viewModel::reintentar, alVerTodas = alAbrirResenas, alVerHistorial = alAbrirHistorial, alEditarMaterias = alAbrirMaterias)
                         } else {
                             val pendientes = estado.resumen?.porCalificar ?: 0
                             if (pendientes > 0) {
-                                AvisoPorCalificar(pendientes, alAbrirHistorial, Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp))
+                                AvisoPorCalificar(pendientes, alAbrirHistorial, Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto))
                             }
-                            Cifras(estado.resumen, false, Modifier.padding(horizontal = 20.dp, vertical = 18.dp))
+                            Cifras(estado.resumen, false, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto))
+                            if (estado.error) {
+                                ErrorDeLista(titulo = "No pudimos cargar tu actividad", alReintentar = viewModel::reintentar)
+                            }
                             estado.resumen?.materias?.takeIf { it.isNotEmpty() }?.let {
-                                Materias("Has estudiado", it, Modifier.padding(horizontal = 20.dp))
+                                Materias("Has estudiado", it, Modifier.padding(horizontal = EspacioMargen))
                             }
                         }
-                        Spacer(Modifier.height(24.dp))
-                        Menu(alAbrirHistorial = alAbrirHistorial, alSalir = { confirmarSalida = true })
+                        Spacer(Modifier.height(EspacioAmplio))
+                        Menu(
+                            esTutor = esTutor,
+                            alAbrirHistorial = alAbrirHistorial,
+                            alSalir = { confirmarSalida = true },
+                            alEliminar = { eliminando = true }
+                        )
                     }
                 }
             }
         }
         VeloBarraEstado(visible = !cabeceraVisible)
+        AvisoNexo(avisos, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = EspacioMedio))
+    }
+
+    if (eliminando) {
+        val alTerminar: (Throwable?) -> Unit = { fallo ->
+            if (fallo == null) alCerrarSesion()
+            else alcance.launch { avisos.mostrarError(avisoFallo("eliminar tu cuenta", fallo)) }
+        }
+        val contexto = LocalContext.current
+        HojaEliminarCuenta(
+            conContrasena = usuario.tieneContrasena,
+            alCerrar = { eliminando = false },
+            alConfirmar = { contrasena ->
+                viewModel.eliminarCuenta(contrasena, alTerminar)
+                eliminando = false
+            },
+            alConfirmarConGoogle = {
+                alcance.launch {
+                    when (val cuenta = pedirTokenGoogle(contexto)) {
+                        is ResultadoGoogle.Token -> viewModel.eliminarCuentaConGoogle(cuenta.valor, alTerminar)
+                        ResultadoGoogle.Cancelado -> Unit
+                        ResultadoGoogle.SinCuentas -> avisos.mostrarError(MENSAJE_GOOGLE_SIN_CUENTAS)
+                        ResultadoGoogle.NoDisponible -> avisos.mostrarError(MENSAJE_GOOGLE_NO_DISPONIBLE)
+                    }
+                    eliminando = false
+                }
+            }
+        )
     }
 
     if (confirmarSalida) {
         DialogoConfirmacion(
             titulo = "¿Cerrar sesión?",
-            mensaje = "Tendrás que volver a ingresar tu correo y contraseña.",
+            mensaje = "Tendrás que volver a iniciar sesión para entrar.",
             confirmar = "Cerrar sesión",
             alConfirmar = {
                 confirmarSalida = false
@@ -240,7 +312,7 @@ fun PantallaPerfil(
 }
 
 /**
- * Pone la [cabecera] sobre el [contenido] y le da el alto que sobra en pantalla (entre 270 y 430 dp),
+ * Pone la [cabecera] sobre el [contenido] y le da el alto que sobra en pantalla (entre 270 y 430 dp; más con letra grande),
  * así el perfil siempre llena la pantalla y solo se desplaza cuando el contenido lo exige.
  */
 @Composable
@@ -253,8 +325,10 @@ private fun CabeceraAjustable(
     Layout(contents = listOf(cabecera, contenido), modifier = modifier) { (medCabecera, medContenido), restricciones ->
         val ancho = restricciones.maxWidth
         val resto = medContenido.first().measure(Constraints(maxWidth = ancho))
+        // Con letra grande el nombre y el correo necesitan más alto: el mínimo crece con la letra
+        val minimo = (270.dp.roundToPx() * fontScale.coerceIn(1f, 1.5f)).toInt()
         val altoCabecera = (altoPantalla.roundToPx() - resto.height)
-            .coerceIn(270.dp.roundToPx(), 430.dp.roundToPx())
+            .coerceIn(minimo, maxOf(minimo, 430.dp.roundToPx()))
         val cab = medCabecera.first().measure(Constraints.fixed(ancho, altoCabecera))
         layout(ancho, altoCabecera + resto.height) {
             cab.place(0, 0)
@@ -265,19 +339,16 @@ private fun CabeceraAjustable(
 
 /* ==================== Piezas ==================== */
 
-/** Esquinas amplias como la tarjeta de la próxima sesión del Inicio y los campos del acceso. */
-private val FormaOrganica = RoundedCornerShape(22.dp)
-
-/** Botón circular verde bosque con flecha, el mismo "ir" del buscador del Inicio. */
+/** Botón circular verde bosque con flecha, parecido al "ir" del buscador del Inicio, pero de 36 dp y en verde liso (el del Inicio mide 40 dp y lleva degradado). */
 @Composable
 private fun BotonIr(modifier: Modifier = Modifier) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .size(36.dp)
-            .background(pincelBosque, CircleShape)
+            .background(BosqueMedio, CircleShape)
     ) {
-        Icon(painterResource(R.drawable.ph_flecha), contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+        Icon(IconosNexo.Flecha, contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(IconoCuerpo))
     }
 }
 
@@ -293,34 +364,37 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
                 contentAlignment = Alignment.CenterStart,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 24.dp, end = 16.dp, top = 8.dp)
+                    .padding(start = EspacioAmplio, end = EspacioNormal, top = EspacioCorto)
                     .height(52.dp)
             ) {
                 Text(
                     "Perfil",
-                    color = Color.White.copy(alpha = 0.88f),
+                    color = SobreOscuroSuave,
                     style = MaterialTheme.typography.titleMedium
                 )
             }
             Spacer(Modifier.weight(1f).heightIn(min = 40.dp))
             Column(
                 Modifier
-                    .padding(start = 24.dp, end = 24.dp, bottom = 20.dp)
+                    .padding(start = EspacioAmplio, end = EspacioAmplio, bottom = EspacioMargen)
                     .aparicion(0, iniciado)
             ) {
                 Text(
                     usuario.nombre,
-                    color = Color.White,
+                    color = SobreOscuro,
                     style = MaterialTheme.typography.displaySmall,
                     maxLines = 2,
                     modifier = Modifier.semantics { heading() }
                 )
-                Spacer(Modifier.height(2.dp))
-                val detalle = listOf(usuario.carrera, universidadCorta(usuario.universidad)).filter { it.isNotBlank() }
+                Spacer(Modifier.height(EspacioMicro))
+                // Con letra grande no caben en una línea: el correo baja a la suya en vez de cortarse
+                val apilado = LocalDensity.current.fontScale > 1.3f
                 Text(
-                    detalle.joinToString(" · ").ifBlank { usuario.correo },
-                    color = Color.White.copy(alpha = 0.88f),
-                    style = MaterialTheme.typography.bodyLarge
+                    if (apilado) "${usuario.handle}\n${usuario.correo}" else "${usuario.handle} · ${usuario.correo}",
+                    color = SobreOscuroSuave,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = if (apilado) 3 else 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             }
@@ -330,57 +404,81 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(48.dp)
+                .height(AreaTactilMinima)
         )
     }
 }
 
 /**
  * Tres cifras sin contenedor, separadas por líneas finas, con la tipografía de la hora del Inicio.
- * Estudiante: sesiones, horas, por calificar. Tutor: promedio recibido, sesiones dadas, estudiantes.
+ * Estudiante: sesiones, horas, por calificar. Tutor: promedio recibido, sesiones dadas, horas dadas (mapa, sección 3).
  */
 @Composable
 private fun Cifras(resumen: ResumenActividad?, esTutor: Boolean, modifier: Modifier = Modifier) {
     val cifras: List<Triple<String, String, Boolean>> = when {
-        resumen == null -> listOf(Triple("–", "sesiones", false), Triple("–", "horas", false), Triple("–", "", false))
+        resumen == null && esTutor -> listOf(Triple("–", "calificación", false), Triple("–", "sesiones dadas", false), Triple("–", "dadas", false))
+        resumen == null -> listOf(Triple("–", "sesiones", false), Triple("–", "de estudio", false), Triple("–", "tutores", false))
         esTutor -> listOf(
             Triple(resumen.promedioRecibido?.let(::formatoValoracion) ?: "–", "calificación", resumen.promedioRecibido != null),
-            Triple("${resumen.sesiones}", if (resumen.sesiones == 1) "sesión dada" else "sesiones dadas", false),
-            Triple("${resumen.personas}", if (resumen.personas == 1) "estudiante" else "estudiantes", false)
+            Triple("${resumen.sesiones}", plural(resumen.sesiones, "sesión dada", "sesiones dadas"), false),
+            Triple(formatoHoras(resumen.horas), "dadas", false)
         )
         else -> listOf(
-            Triple("${resumen.sesiones}", if (resumen.sesiones == 1) "sesión" else "sesiones", false),
+            Triple("${resumen.sesiones}", plural(resumen.sesiones, "sesión", "sesiones"), false),
             Triple(formatoHoras(resumen.horas), "de estudio", false),
-            Triple("${resumen.personas}", if (resumen.personas == 1) "tutor" else "tutores", false)
+            Triple("${resumen.personas}", plural(resumen.personas, "tutor", "tutores"), false)
         )
     }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-    ) {
-        cifras.forEachIndexed { i, (valor, etiqueta, conEstrella) ->
-            if (i > 0) Box(Modifier.padding(vertical = 6.dp).width(1.dp).fillMaxHeight().background(Divisor))
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics(mergeDescendants = true) { }
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        valor,
-                        color = BosqueProfundo,
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp).merge(CifrasTabulares)
-                    )
-                    if (conEstrella) {
-                        Spacer(Modifier.width(3.dp))
-                        Icon(Icons.Rounded.Star, contentDescription = null, tint = Miel, modifier = Modifier.size(18.dp))
-                    }
+    // Con letra muy grande las etiquetas se partirían a media palabra: una cifra por fila, sin divisores
+    if (LocalDensity.current.fontScale > 1.4f) {
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(EspacioMedio)) {
+            cifras.forEach { (valor, etiqueta, conEstrella) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics(mergeDescendants = true) { }
+                ) {
+                    ValorCifra(valor, conEstrella)
+                    Spacer(Modifier.width(EspacioCorto))
+                    Text(etiqueta, color = TextoTercero, style = MaterialTheme.typography.bodyMedium)
                 }
-                Text(etiqueta, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
             }
+        }
+    } else {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+        ) {
+            cifras.forEachIndexed { i, (valor, etiqueta, conEstrella) ->
+                if (i > 0) Box(Modifier.padding(vertical = EspacioFino).width(1.dp).fillMaxHeight().background(Divisor))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics(mergeDescendants = true) { }
+                ) {
+                    ValorCifra(valor, conEstrella)
+                    Text(etiqueta, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ValorCifra(valor: String, conEstrella: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            valor,
+            color = BosqueProfundo,
+            style = TextoCifraResumen
+        )
+        if (conEstrella) {
+            Spacer(Modifier.width(EspacioMinimo))
+            Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(IconoNormal))
         }
     }
 }
@@ -388,114 +486,95 @@ private fun Cifras(resumen: ResumenActividad?, esTutor: Boolean, modifier: Modif
 /** Modo tutor: verificación, materias que enseña y las últimas reseñas recibidas. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BloqueTutor(usuario: Usuario, resenas: List<Resena>, alVerTodas: () -> Unit) {
-    Column(Modifier.padding(horizontal = 20.dp)) {
+private fun BloqueTutor(
+    usuario: Usuario,
+    resenas: List<Resena>,
+    cargando: Boolean,
+    error: Boolean,
+    alReintentar: () -> Unit,
+    alVerTodas: () -> Unit,
+    alVerHistorial: () -> Unit,
+    alEditarMaterias: () -> Unit
+) {
+    val carga = cargaDe(cargando, resenas.isEmpty(), error)
+    Column(Modifier.padding(horizontal = EspacioMargen)) {
         if (usuario.materias.isNotEmpty()) {
-            Materias("Enseñas", usuario.materias)
+            Materias("Enseñas", usuario.materias, accion = "Editar", alAccion = alEditarMaterias)
+        } else {
+            EncabezadoSeccion("Enseñas")
+            Text("Aún no tienes materias publicadas.", color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
+            BotonTexto("Agregar materias", alEditarMaterias)
         }
         if (usuario.bio.isNotBlank()) {
             Text(
                 usuario.bio,
                 color = TextoSecundario,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 12.dp)
+                modifier = Modifier.padding(top = EspacioMedio)
             )
         }
 
-        if (resenas.isNotEmpty()) {
-            EncabezadoSeccion("Lo que dicen de ti", Modifier.padding(top = 10.dp), accion = "Ver todas", alAccion = alVerTodas)
-            Column(Modifier.fillMaxWidth().superficie(FormaOrganica)) {
-                resenas.take(2).forEachIndexed { i, r ->
-                    if (i > 0) Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(Divisor))
-                    FilaResena(r)
+        EncabezadoSeccion(
+            "Lo que dicen de ti",
+            Modifier.padding(top = EspacioAjustado),
+            accion = if (carga == Carga.LISTO) "Ver todas" else null,
+            alAccion = alVerTodas
+        )
+        when (carga) {
+            Carga.CARGANDO -> EsqueletoSinMargen(filas = 2)
+            Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus reseñas", alReintentar = alReintentar)
+            Carga.VACIO -> EstadoVacio(
+                icono = IconosNexo.Resena,
+                titulo = "Aún sin reseñas",
+                mensaje = "Aparecerán aquí cuando los estudiantes califiquen tus sesiones.",
+                accion = "Ver mi historial",
+                alAccion = alVerHistorial
+            )
+            Carga.LISTO -> ListaResenas(resenas.take(2))
+        }
+    }
+}
+
+/** [EsqueletoLista] ya trae margen lateral; dentro de un bloque con margen propio se pintan los huesos sin él. */
+@Composable
+private fun EsqueletoSinMargen(filas: Int) {
+    Esqueleto(
+        Modifier.fillMaxWidth().padding(vertical = EspacioNormal),
+        verticalArrangement = Arrangement.spacedBy(EspacioMedio)
+    ) {
+        repeat(filas) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Superficie, FormaOrganica)
+                    .border(1.dp, BordeSutil, FormaOrganica)
+                    .padding(EspacioNormal)
+            ) {
+                Hueso(Modifier.size(TamanoAvatarNormal), CircleShape)
+                Spacer(Modifier.width(EspacioMedio))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
+                    LineaHueso(0.55f, alto = 14.dp)
+                    LineaHueso(0.85f, alto = 10.dp)
+                    LineaHueso(0.4f, alto = 10.dp)
                 }
             }
         }
     }
 }
 
-/** Materias como texto con borde fino: píldoras sí, pero sin color de relleno ni más peso que los títulos. */
-@OptIn(ExperimentalLayoutApi::class)
+/** Materias como texto corrido, igual que en el perfil público: se leen de un vistazo y no recargan la pantalla. */
 @Composable
-private fun Materias(titulo: String, materias: List<String>, modifier: Modifier = Modifier) {
+private fun Materias(
+    titulo: String,
+    materias: List<String>,
+    modifier: Modifier = Modifier,
+    accion: String? = null,
+    alAccion: () -> Unit = {}
+) {
     Column(modifier) {
-        Text(
-            titulo,
-            color = TextoPrimario,
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier
-                .padding(bottom = 12.dp)
-                .semantics { heading() }
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            materias.forEach { materia ->
-                Text(
-                    materia,
-                    color = BosqueProfundo,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                    modifier = Modifier
-                        .border(1.dp, BosqueAcento.copy(alpha = 0.22f), RoundedCornerShape(50))
-                        .padding(horizontal = 12.dp, vertical = 5.dp)
-                )
-            }
-        }
-    }
-}
-
-/** Estado de la cuenta de tutor como una línea con ícono, sin pastilla de color. */
-@Composable
-private fun Verificacion(estado: EstadoVerificacion?) {
-    if (estado == null) return
-    val (color, detalle) = when (estado) {
-        EstadoVerificacion.VERIFICADO -> BosqueAcento to "Apareces en las búsquedas y recibes solicitudes."
-        EstadoVerificacion.PENDIENTE -> MielOscura to "Revisamos tus datos académicos; te avisaremos al terminar."
-        EstadoVerificacion.SUSPENDIDO -> Rojo to "Tu perfil no aparece en las búsquedas. Escríbenos para revisarlo."
-    }
-    // Tarjeta tintada con el color del estado; verificado es la más tenue
-    Row(
-        verticalAlignment = Alignment.Top,
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(if (estado == EstadoVerificacion.VERIFICADO) TinteBosque else color.copy(alpha = 0.10f), FormaOrganica)
-            .border(1.dp, color.copy(alpha = 0.16f), FormaOrganica)
-            .padding(start = 16.dp, end = 14.dp, top = 14.dp, bottom = 14.dp)
-    ) {
-        Icon(
-            painterResource(if (estado == EstadoVerificacion.PENDIENTE) R.drawable.ph_historial else R.drawable.ph_sello),
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.padding(top = 2.dp).size(22.dp)
-        )
-        Spacer(Modifier.width(10.dp))
-        Column {
-            Text(estado.etiqueta, color = color, style = MaterialTheme.typography.titleSmall)
-            Text(detalle, color = TextoTercero, style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@Composable
-private fun FilaResena(resena: Resena) {
-    Column(Modifier.padding(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Avatar(resena.autor, tamano = 32.dp)
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                TextoLinea(resena.autor, MaterialTheme.typography.titleSmall, TextoPrimario)
-                TextoLinea(resena.fecha, MaterialTheme.typography.bodySmall, TextoTercero)
-            }
-            Estrellas(resena.estrellas, tamano = 12.dp)
-        }
-        Text(
-            resena.texto,
-            color = TextoSecundario,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 3,
-            modifier = Modifier.padding(top = 8.dp)
-        )
+        EncabezadoSeccion(titulo, accion = accion, alAccion = alAccion)
+        Text(enumerar(materias), color = TextoPrimario, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
@@ -507,80 +586,152 @@ private fun AvisoPorCalificar(cantidad: Int, alCalificar: () -> Unit, modifier: 
         modifier = modifier
             .fillMaxWidth()
             .background(TinteBosque, FormaOrganica)
-            .border(1.dp, BosqueAcento.copy(alpha = 0.14f), FormaOrganica)
+            .border(1.dp, BordeAcento, FormaOrganica)
             .clip(FormaOrganica)
             .clickable(role = Role.Button, onClickLabel = "Calificar sesiones", onClick = alCalificar)
-            .padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 14.dp)
+            .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioCercano, bottom = EspacioCercano)
     ) {
-        Icon(Icons.Rounded.Star, contentDescription = null, tint = Miel, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.width(12.dp))
+        Icon(IconosNexo.Estrella, contentDescription = null, tint = MielFuerte, modifier = Modifier.size(IconoMediano))
+        Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
             Text(
-                if (cantidad == 1) "1 sesión por calificar" else "$cantidad sesiones por calificar",
+                plural(cantidad, "1 sesión por calificar", "$cantidad sesiones por calificar"),
                 color = BosqueProfundo,
                 style = MaterialTheme.typography.titleSmall
             )
-            Text("Tu opinión ayuda a otros a elegir tutor.", color = Salvia, style = MaterialTheme.typography.bodySmall)
+            Text("Tu opinión ayuda a otros a elegir tutor.", color = TextoSobreTinte, style = MaterialTheme.typography.bodySmall)
         }
         BotonIr()
     }
 }
 
+/** Solo aparece si hay algo que contar: la pausa manda y el contador la acompaña. */
 @Composable
-private fun Menu(alAbrirHistorial: () -> Unit, alSalir: () -> Unit) {
+private fun AvisoPenalizaciones(resumen: ResumenActividad, esTutor: Boolean, modifier: Modifier = Modifier) {
+    val hasta = resumen.suspendidaHasta
+    if (hasta == null && resumen.penalizaciones == 0) return
+    Column(
+        modifier
+            .fillMaxWidth()
+            .background(TinteBosque, FormaOrganica)
+            .border(1.dp, BordeRojoPeligro, FormaOrganica)
+            .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
+    ) {
+        if (hasta != null) {
+            Text(
+                "Tu cuenta está en pausa hasta el ${diaYMes(hasta.toLocalDate())}, ${formatoHora(hasta.toLocalTime())}",
+                color = BosqueProfundo,
+                style = MaterialTheme.typography.titleSmall
+            )
+            Text(
+                (if (esTutor) "No apareces en la búsqueda ni puedes aceptar solicitudes." else "No puedes enviar solicitudes.") +
+                    " Tus sesiones agendadas siguen en pie. ¿Fue un error? Pide revisión en el Historial.",
+                color = TextoSobreTinte,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        if (resumen.penalizaciones > 0) {
+            Text(
+                textoDePenalizacionesRecientes(resumen.penalizaciones) + if (esTutor) ", como tutor" else ", como estudiante",
+                color = if (hasta == null) BosqueProfundo else TextoSobreTinte,
+                style = if (hasta == null) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
+private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> Unit, alEliminar: () -> Unit) {
     // Tarjeta con los mismos márgenes que el resto del perfil, como la de reseñas
     Column(
         Modifier
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = EspacioMargen)
             .fillMaxWidth()
             .superficie(FormaOrganica)
     ) {
-        FilaMenu(painterResource(R.drawable.ph_historial), "Historial y calificaciones", alAbrirHistorial)
+        FilaMenu(IconosNexo.Historial, if (esTutor) "Tutorías dadas" else "Tus tutorías", alAbrirHistorial)
     }
     // Cerrar sesión es raro: píldora de borde fino, como "Continuar con Google" del acceso
-    val rojo = Rojo.copy(alpha = 0.85f)
+    val rojo = RojoSuave
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
         modifier = Modifier
-            .padding(start = 20.dp, end = 20.dp, top = 14.dp)
+            .padding(start = EspacioMargen, end = EspacioMargen, top = EspacioCercano)
             .fillMaxWidth()
-            .height(50.dp)
+            .heightIn(min = 50.dp)
             .clip(CircleShape)
-            .border(1.dp, rojo.copy(alpha = 0.28f), CircleShape)
+            .border(1.dp, BordeRojoSalir, CircleShape)
             .clickable(role = Role.Button, onClick = alSalir)
     ) {
-        Icon(painterResource(R.drawable.ph_salir), contentDescription = null, tint = rojo, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
+        Icon(IconosNexo.Salir, contentDescription = null, tint = rojo, modifier = Modifier.size(IconoNormal))
+        Spacer(Modifier.width(EspacioCorto))
         Text("Cerrar sesión", color = rojo, style = MaterialTheme.typography.titleSmall)
+    }
+    Column(Modifier.fillMaxWidth().padding(top = EspacioMinimo), horizontalAlignment = Alignment.CenterHorizontally) {
+        val enlaces = LocalUriHandler.current
+        BotonTexto("Política de privacidad", { enlaces.openUri(URL_PRIVACIDAD) }, color = TextoTercero)
+        BotonTexto("Eliminar mi cuenta", alEliminar, color = TextoTercero)
+    }
+}
+
+/**
+ * Pide la contraseña, o la cuenta de Google si no tiene: es lo único que distingue a la persona de quien encuentre
+ * el teléfono desbloqueado.
+ */
+@Composable
+private fun HojaEliminarCuenta(
+    conContrasena: Boolean,
+    alCerrar: () -> Unit,
+    alConfirmar: (String) -> Unit,
+    alConfirmarConGoogle: () -> Unit
+) {
+    var contrasena by remember { mutableStateOf("") }
+    HojaNexo(
+        titulo = "Eliminar tu cuenta",
+        subtitulo = "Se borran tu nombre, tu correo y tu perfil, y no se puede deshacer. Las tutorías pasadas, " +
+            "las reseñas y los mensajes se conservan sin tu nombre, porque también son de la otra persona.",
+        alCerrar = alCerrar
+    ) {
+        if (conContrasena) {
+            Spacer(Modifier.height(EspacioNormal))
+            Campo(
+                valor = contrasena,
+                alCambiar = { contrasena = it },
+                marcador = "Tu contraseña",
+                oculto = true,
+                teclado = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        Spacer(Modifier.height(EspacioHolgado))
+        BotonPrimario(
+            texto = if (conContrasena) "Eliminar mi cuenta" else "Confirmar con Google y eliminar",
+            habilitado = !conContrasena || contrasena.isNotEmpty(),
+            alClicar = { if (conContrasena) alConfirmar(contrasena) else alConfirmarConGoogle() },
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
 /** Modo tutor: acceso directo a la disponibilidad, lo que más usa quien enseña. */
 @Composable
-private fun TarjetaDisponibilidad(habilitada: Boolean, alAbrir: () -> Unit) {
+private fun TarjetaDisponibilidad(alAbrir: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .superficie(FormaOrganica)
-            .clickable(enabled = habilitada, role = Role.Button, onClick = alAbrir)
-            .padding(start = 16.dp, end = 12.dp, top = 14.dp, bottom = 14.dp)
-            .alpha(if (habilitada) 1f else 0.5f)
+            .clickable(role = Role.Button, onClick = alAbrir)
+            .padding(start = EspacioNormal, end = EspacioMedio, top = EspacioCercano, bottom = EspacioCercano)
     ) {
-        Icon(painterResource(R.drawable.ph_calendario), contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.width(12.dp))
+        Icon(IconosNexo.Calendario, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(IconoMediano))
+        Spacer(Modifier.width(EspacioMedio))
         Column(Modifier.weight(1f)) {
-            Text("Mi disponibilidad horaria", color = BosqueProfundo, style = MaterialTheme.typography.titleSmall)
-            Text(
-                if (habilitada) "Define cuándo puedes dar tutorías." else "Disponible cuando verifiquemos tu cuenta.",
-                color = Salvia,
-                style = MaterialTheme.typography.bodySmall
-            )
+            Text("Mi disponibilidad", color = BosqueProfundo, style = MaterialTheme.typography.titleSmall)
+            Text("Define cuándo puedes dar tutorías.", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
         }
-        if (habilitada) {
-            BotonIr()
-        }
+        BotonIr()
     }
 }
 
@@ -592,19 +743,19 @@ private fun TarjetaDisponibilidad(habilitada: Boolean, alAbrir: () -> Unit) {
 private fun SelectorModo(actual: Rol, alElegir: (Rol) -> Unit, modifier: Modifier = Modifier) {
     val opciones = Rol.entries
     val indice = opciones.indexOf(actual).coerceAtLeast(0)
-    val forma = RoundedCornerShape(27.dp)
+    val forma = FormaCampoAlto
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .height(54.dp)
-            .shadow(14.dp, forma, ambientColor = BosqueProfundo.copy(alpha = 0.22f), spotColor = BosqueProfundo.copy(alpha = 0.38f))
+            .shadow(ElevacionTarjeta, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
             .superficie(forma)
-            .padding(7.dp)
+            .padding(EspacioFino)
     ) {
         val anchoOpcion = maxWidth / opciones.size
         val desplazamiento by animateDpAsState(
             anchoOpcion * indice,
-            spring(dampingRatio = 0.78f, stiffness = 500f),
+            resorteIndicador(),
             label = "indicadorModo"
         )
         Box(
@@ -612,12 +763,12 @@ private fun SelectorModo(actual: Rol, alElegir: (Rol) -> Unit, modifier: Modifie
                 .offset(x = desplazamiento)
                 .width(anchoOpcion)
                 .fillMaxHeight()
-                .background(pincelBosque, RoundedCornerShape(20.dp))
+                .background(pincelBosque, FormaBoton)
         )
         Row(Modifier.fillMaxSize().selectableGroup()) {
             opciones.forEach { rol ->
                 val activo = rol == actual
-                val color by animateColorAsState(if (activo) Color.White else TextoSecundario, label = "textoModo")
+                val color by animateColorAsState(if (activo) SobreOscuro else TextoSecundario, especColor(), label = "textoModo")
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
@@ -639,43 +790,23 @@ private fun SelectorModo(actual: Rol, alElegir: (Rol) -> Unit, modifier: Modifie
 }
 
 @Composable
-private fun FilaMenu(
-    icono: Painter,
-    titulo: String,
-    alClicar: () -> Unit,
-    peligro: Boolean = false,
-    habilitada: Boolean = true,
-    detalle: String? = null
-) {
+private fun FilaMenu(icono: ImageVector, titulo: String, alClicar: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .clickable(enabled = habilitada, role = Role.Button, onClick = alClicar)
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-            .alpha(if (habilitada) 1f else 0.5f)
+            .clickable(role = Role.Button, onClick = alClicar)
+            .padding(horizontal = EspacioNormal, vertical = EspacioAjustado)
     ) {
-        // Rojo atenuado: avisa sin gritar en una pantalla sobria
-        val colorPeligro = Rojo.copy(alpha = 0.85f)
-        Icon(icono, contentDescription = null, tint = if (peligro) colorPeligro else BosqueAcento, modifier = Modifier.size(22.dp))
-        Spacer(Modifier.width(16.dp))
-        Column(Modifier.weight(1f)) {
-            Text(
-                titulo,
-                color = if (peligro) colorPeligro else TextoPrimario,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium)
-            )
-            detalle?.let { Text(it, color = TextoTercero, style = MaterialTheme.typography.bodySmall) }
-        }
-        if (!peligro && habilitada) {
-            Icon(painterResource(R.drawable.ph_caret), contentDescription = null, tint = Salvia.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
-        }
+        Icon(icono, contentDescription = null, tint = BosqueAcento, modifier = Modifier.size(IconoMediano))
+        Spacer(Modifier.width(EspacioNormal))
+        Text(
+            titulo,
+            color = TextoPrimario,
+            style = MaterialTheme.typography.titleMedium.merge(EnfasisMedio),
+            modifier = Modifier.weight(1f)
+        )
+        Icon(IconosNexo.Caret, contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(IconoNormal))
     }
-}
-
-@Composable
-private fun SeparadorMenu() {
-    // Sangrado hasta el texto (16 de margen + 22 de ícono + 16 de espacio)
-    Box(Modifier.fillMaxWidth().padding(start = 54.dp).height(1.dp).background(Divisor))
 }

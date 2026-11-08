@@ -1,13 +1,9 @@
 package com.grupo3.nexo.ui.inicio
 
-import android.provider.Settings
+import android.content.pm.ApplicationInfo
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -20,17 +16,20 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -39,6 +38,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
@@ -48,31 +49,58 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.imageResource
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
+import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.theme.BordeSutil
+import com.grupo3.nexo.ui.theme.BosqueAcento
+import com.grupo3.nexo.ui.theme.CalCelda
+import com.grupo3.nexo.ui.theme.CalCuerpo
+import com.grupo3.nexo.ui.theme.CalDia
+import com.grupo3.nexo.ui.theme.CalLinea
+import com.grupo3.nexo.ui.theme.CalOscuro
+import com.grupo3.nexo.ui.theme.CalSalvia
+import com.grupo3.nexo.ui.theme.CodigoEspaciado
+import com.grupo3.nexo.ui.theme.CurvaEstandar
 import com.grupo3.nexo.ui.theme.Divisor
+import com.grupo3.nexo.ui.theme.DuracionNormal
+import com.grupo3.nexo.ui.theme.EspacioAjustado
+import com.grupo3.nexo.ui.theme.EspacioMargen
+import com.grupo3.nexo.ui.theme.EspacioMicro
+import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.Menta
 import com.grupo3.nexo.ui.theme.Miel
 import com.grupo3.nexo.ui.theme.Salvia
+import com.grupo3.nexo.ui.theme.SombraSuelo
 import com.grupo3.nexo.ui.theme.Superficie
 import com.grupo3.nexo.ui.theme.SuperficieClara
 import com.grupo3.nexo.ui.theme.TextoPrimario
 import com.grupo3.nexo.ui.theme.TextoTercero
+import com.grupo3.nexo.ui.theme.VerdeMarca
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.asin
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Escena animada de la próxima sesión. Los personajes son títeres armados con las piezas de las hojas de
@@ -80,21 +108,40 @@ import kotlin.math.sin
  * así el cuerpo se mueve como una sola cosa. Los datos de cada escena están en EscenaDatos.kt.
  */
 
+/** Se reemplaza en el detalle por el tiempo que falta de verdad. */
+private const val FALTA = "{falta}"
+
+private fun String.conFalta(minutos: Long?): String = replace(
+    FALTA,
+    when (minutos) {
+        null -> "Falta poco"
+        1L -> "Falta 1 minuto"
+        else -> "Faltan $minutos minutos"
+    }
+)
+
 /**
  * Etapas del seguimiento de una sesión, como el de un pedido. Siguen los estados del producto: solicitud
  * pendiente (RF5), aceptada (RF6), el día, el arranque, la sesión y la calificación mutua (RF9).
- * "Ya casi" y "En sesión" cambian según la modalidad: presencial o virtual.
+ * "Ya casi" y "En sesión" cambian según la modalidad: presencial o virtual. En presencial, como al pedir un
+ * carro: primero el tutor va en camino y, cuando llega y envía el PIN, ella se lo dice para iniciar la sesión.
  */
-enum class FaseSesion(val titulo: String, val detalle: String) {
+enum class FaseSesion(
+    val titulo: String,
+    val detalle: String,
+    val tituloTutor: String = titulo,
+    val detalleTutor: String = detalle
+) {
     SOLA("Sin sesiones por ahora", "Cuando agendes una, la seguirás aquí paso a paso."),
-    ENVIADA("Solicitud enviada", "Esperando la respuesta del tutor."),
-    AGENDADA("Sesión agendada", "El tutor aceptó: ya está en tu calendario."),
+    ENVIADA("Solicitud enviada", "Esperando la respuesta del tutor.", "Solicitud recibida", "Un estudiante espera tu respuesta."),
+    AGENDADA("Sesión agendada", "El tutor aceptó: ya está en tu calendario.", detalleTutor = "Aceptaste la solicitud: ya está en tu calendario."),
     HOY("Hoy es tu sesión", "Revisa la hora y deja listo lo que necesitas."),
-    YA_CASI("Ya casi", "Faltan 30 minutos: tu tutor va en camino."),
+    YA_CASI("Ya casi", "$FALTA para tu sesión presencial."),
+    LLEGO("Tu tutor llegó", "Dile el PIN para empezar.", "PIN enviado", "Escribe el PIN que te diga el estudiante."),
     EN_SESION("Sesión en curso", "Concéntrate: el chat sigue abierto si lo necesitas."),
-    YA_CASI_VIRTUAL("Ya casi", "Faltan 30 minutos: la videollamada estará lista."),
-    EN_SESION_VIRTUAL("Sesión en curso", "Videollamada con tu tutor en curso."),
-    CALIFICAR("¿Cómo te fue?", "Califica la sesión para ayudar a otros estudiantes.");
+    YA_CASI_VIRTUAL("Ya casi", "$FALTA: la videollamada estará lista."),
+    EN_SESION_VIRTUAL("Sesión en curso", "Videollamada con tu tutor en curso.", detalleTutor = "Videollamada con tu estudiante en curso."),
+    CALIFICAR("¿Cómo te fue?", "Califica la sesión para ayudar a otros estudiantes.", detalleTutor = "Califica la sesión: tu opinión también cuenta.");
 
     fun siguiente() = entries[(ordinal + 1) % entries.size]
 }
@@ -155,7 +202,7 @@ private const val ALTO = 270f
  * Dibuja una escena: el suelo coincide con el borde inferior y todas las escenas comparten escala, así los
  * personajes miden lo mismo en todas las fases. Cada pieza hereda el giro y la opacidad de su padre.
  */
-private fun DrawScope.escena(r: Rig, bmps: List<ImageBitmap?>, t: Float, unDp: Float, mueve: Movimiento) {
+private fun DrawScope.escena(r: Rig, bmps: List<ImageBitmap?>, t: Float, unDp: Float, mueve: Movimiento, pin: List<TextLayoutResult> = emptyList()) {
     val sc = size.height / ALTO
     val x0 = (size.width - r.ancho * sc) / 2f
     val instante = Instante(t, size.width / sc / 2f)
@@ -168,6 +215,8 @@ private fun DrawScope.escena(r: Rig, bmps: List<ImageBitmap?>, t: Float, unDp: F
     fun raizDe(i: Int): Int = r.capas[i].padre.let { if (it >= 0) raizDe(it) else i }
     val raices = IntArray(r.capas.size) { raizDe(it) }
     val dp = unDp / sc
+    // Donde se juntan los dos fondos de "Ya casi": la calle a la izquierda, el parque a la derecha
+    val costura = r.capas.firstOrNull { it.n == "costura" }?.x
 
     fun DrawScope.enCadena(i: Int, bloque: DrawScope.() -> Unit) {
         val c = r.capas[i]
@@ -201,6 +250,10 @@ private fun DrawScope.escena(r: Rig, bmps: List<ImageBitmap?>, t: Float, unDp: F
             if (alfas[i] <= 0.01f) return@forEachIndexed
             val img = bmps[i]
             if (img == null && c.w <= 0f) return@forEachIndexed
+            if (c.n.startsWith("fondo_") && img != null) {
+                fondo(c, img, movs[i], alfas[i], costura, -x0 / sc, (size.width - x0) / sc)
+                return@forEachIndexed
+            }
             if (grupo < 0.99f && capa != raiz) {
                 drawContext.canvas.saveLayer(Rect(-ALTO, -ALTO, r.ancho + ALTO, 2 * ALTO), Paint().apply { alpha = grupo })
                 capa = raiz
@@ -213,15 +266,54 @@ private fun DrawScope.escena(r: Rig, bmps: List<ImageBitmap?>, t: Float, unDp: F
                     if (ancho == 1f) drawImage(img, alpha = a, filterQuality = FilterQuality.Medium)
                     else scale(ancho, 1f, Offset(img.width * movs[i].ancla, 0f)) { drawImage(img, alpha = a, filterQuality = FilterQuality.Medium) }
                 }
-                else vector(c, a, dp)
+                else vector(c, a, dp, pin)
             }
         }
         if (capa >= 0) drawContext.canvas.restore()
     }
 }
 
+/**
+ * Fondo que pasa: la tira (c.w = largo de lo que se repite) se dibuja una y otra vez hasta cubrir lo visible,
+ * corrida por m.dx. Con costura, la calle solo ocupa la mitad izquierda y el parque la derecha.
+ */
+private fun DrawScope.fondo(c: Capa, img: ImageBitmap, m: Mov, a: Float, costura: Float?, desde: Float, hasta: Float) {
+    val izq = if (costura != null && c.n == "fondo_parque") costura else desde
+    val der = if (costura != null && c.n == "fondo_calle") costura else hasta
+    val borde = 30f // el fondo se desvanece en sus extremos: no queda un corte seco contra el otro
+    clipRect(izq, -ALTO, der, 2 * ALTO) {
+        drawContext.canvas.saveLayer(Rect(izq, -ALTO, der, 2 * ALTO), Paint())
+        var x = c.x + m.dx
+        x -= ceil((x - izq) / c.w) * c.w
+        while (x < der) {
+            translate(x, c.y) { drawImage(img, alpha = a, filterQuality = FilterQuality.Medium) }
+            x += c.w
+        }
+        drawRect(
+            Brush.horizontalGradient(listOf(Color.Transparent, Color.Black), startX = izq, endX = izq + borde),
+            Offset(izq, -ALTO), Size(borde, 3 * ALTO), blendMode = BlendMode.DstIn
+        )
+        drawRect(
+            Brush.horizontalGradient(listOf(Color.Black, Color.Transparent), startX = der - borde, endX = der),
+            Offset(der - borde, -ALTO), Size(borde, 3 * ALTO), blendMode = BlendMode.DstIn
+        )
+        drawContext.canvas.restore()
+    }
+}
+
+/** Lo que se ve en la nube cuando se salta de fase a mano para revisar las escenas. */
+private const val PIN_MUESTRA = "4821"
+
+/** En la nube del tutor: él no conoce el PIN hasta que se lo digan. */
+private const val PIN_OCULTO = "••••"
+
+/* Cambio de escena: entra por la derecha y la anterior sale por la izquierda. */
+private const val ESCENA_RETRASO_MS = 120
+private const val ESCENA_PASO_MS = 460
+private const val ESCENA_SE_APAGA_MS = 200
+
 /** Elementos de interfaz de la escena: se dibujan en código con los colores de la app. */
-private fun DrawScope.vector(c: Capa, a: Float, dp: Float) {
+private fun DrawScope.vector(c: Capa, a: Float, dp: Float, pin: List<TextLayoutResult>) {
     val centro = Offset(c.x + c.w / 2f, c.y + c.h / 2f)
     when {
         c.n == "burbuja" -> {
@@ -236,6 +328,31 @@ private fun DrawScope.vector(c: Capa, a: Float, dp: Float) {
             drawPath(cola, Superficie, alpha = a)
             drawRoundRect(Superficie, Offset(c.x, c.y), Size(c.w, c.h), radio, alpha = a)
             drawRoundRect(BordeSutil, Offset(c.x, c.y), Size(c.w, c.h), radio, alpha = a, style = Stroke(dp))
+        }
+        c.n == "pin" -> {
+            // Nube de lo que ella le dice al tutor, con la colita hacia su boca, y el PIN en el centro
+            val cola = Path().apply {
+                moveTo(c.x + c.h * 0.3f, c.y + c.h * 0.62f)
+                lineTo(c.x - c.h * 0.3f, c.y + c.h * 0.84f)
+                lineTo(c.x + c.h * 0.55f, c.y + c.h * 0.9f)
+                close()
+            }
+            val radio = CornerRadius(c.h * 0.42f)
+            drawPath(cola, Superficie, alpha = a)
+            drawRoundRect(Superficie, Offset(c.x, c.y), Size(c.w, c.h), radio, alpha = a)
+            drawRoundRect(BordeSutil, Offset(c.x, c.y), Size(c.w, c.h), radio, alpha = a, style = Stroke(dp))
+        }
+        c.n.startsWith("pin") -> {
+            // Una cifra del PIN, centrada en su casilla
+            val cifra = pin.getOrNull(c.n.last().digitToInt()) ?: return
+            // La cifra se ajusta al alto de su casilla (el texto se mide en píxeles, la escena va en unidades)
+            val f = c.h / cifra.size.height
+            withTransform({
+                translate(centro.x, centro.y)
+                scale(f, f, Offset.Zero)
+            }) {
+                drawText(cifra, topLeft = Offset(-cifra.size.width / 2f, -cifra.size.height / 2f), alpha = a)
+            }
         }
         c.n == "tarjeta" -> {
             val radio = CornerRadius(c.h * 0.13f)
@@ -260,16 +377,8 @@ private fun DrawScope.vector(c: Capa, a: Float, dp: Float) {
 }
 
 // Colores del calendario de la referencia
-private val CalOscuro = Color(0xFF264435)
-private val CalSalvia = Color(0xFF898F78)
-private val CalDia = Color(0xFF8C9584)
-private val CalCuerpo = Color(0xFFE6EAE7)
-private val CalCelda = Color(0xFFF3F4F1)
-private val CalLinea = Color(0xFFA3A89F)
-private val VerdeMarca = Color(0xFF3FA874)
 
 /** Sombra suave del suelo bajo los muebles (como en las láminas de referencia). */
-private val SombraSuelo = Color(0xFFD5DBD4)
 
 /** Tarjeta de calendario: encabezado verde con su barra, nombres de los días y la cuadrícula con el fin de semana. */
 private fun DrawScope.calendario(c: Capa, a: Float) {
@@ -309,9 +418,6 @@ private fun estrella(centro: Offset, radio: Float) = Path().apply {
 }
 
 /* ==================== Gestos reutilizables ==================== */
-
-/** Ancho del torso de perfil: las piezas lo dibujan casi de frente y de lado se ve grueso. */
-private const val TORSO_PERFIL = 0.86f
 
 /** Torso que respira desde la cintura (sube un poco al inhalar, sin deformarse) y se mece apenas. */
 private fun respira(t: Float, fase: Float = 0f, inclina: Float = 0f, ancho: Float = 1f, ancla: Float = 0.5f) = Mov(
@@ -467,44 +573,101 @@ private val movHoy: Movimiento = { n, i ->
     }
 }
 
-private const val CICLO_CAMINO = 9.5f
-private const val LLEGA = 3.8f
-private const val ZANCADA = 58f
+/** Ritmo de cada uno: duración de un paso completo y lo que avanza el cuerpo en una pisada, en unidades de escena. */
+private class Ritmo(val paso: Float, val zancada: Float) {
+    /** Lo que pasa su fondo por segundo: lo mismo que avanzan los pies, así no patinan. */
+    val velocidad = 2f * zancada / paso
+}
+
+private val ritmoEstudiante = Ritmo(1.15f, 86f)
+private val ritmoTutor = Ritmo(1.28f, 94f) // más largo y pausado, como alguien que no tiene prisa
+
+/** Los fondos se ven tenues (son el lugar, no el tema) y pasan algo más lento que los pies: el fondo queda lejos. */
+private const val ALFA_FONDO = 0.55f
+private const val PROFUNDIDAD = 0.88f
 
 /**
- * Caminan uno hacia el otro desde los bordes: la zancada depende de la distancia recorrida (los pies no
- * patinan), el cuerpo sube y baja con cada paso, los brazos van al revés de las piernas y todo se calma al
- * frenar. Al encontrarse se dan la mano, la sacuden dos veces y se sueltan.
+ * Una pierna y un brazo de perfil al caminar. fase avanza 2π por paso completo; vel (0 a 1) calma el gesto al
+ * frenar; s = -1 para el personaje en espejo; inclina = cuánto se echa hacia adelante al caminar. La pierna que
+ * avanza dobla la rodilla y el brazo de su lado va al revés, con el codo doblándose al adelantarlo; el cuerpo
+ * sube cuando las piernas se cruzan y rebota un poco en cada pisada.
+ */
+private fun caminar(parte: String, fase: Float, vel: Float, s: Float, t: Float, inclina: Float = 2f): Mov? = when (parte) {
+    "raiz" -> Mov(dy = (-2.6f * cos(fase) * cos(fase) + 0.6f * abs(sin(fase))) * vel)
+    "torso" -> respira(t, inclina = s * inclina * vel)
+    "cabeza" -> Mov(grados = s * (-1.5f * vel + 0.8f * onda(t, 4.8f)))
+    "muslo" -> Mov(grados = s * -22f * sin(fase) * vel)
+    "muslo2" -> Mov(grados = s * 22f * sin(fase) * vel)
+    "pierna" -> Mov(grados = s * (4f + 38f * max(0f, cos(fase - 0.3f))) * vel)
+    "pierna2" -> Mov(grados = s * (4f + 38f * max(0f, -cos(fase - 0.3f))) * vel)
+    // El brazo se balancea ±30° (la mano pasa delante y detrás de la pierna) y el codo se dobla al adelantarlo
+    "brazo" -> Mov(grados = s * (30f * sin(fase) * vel - 3f * (1f - vel)))
+    "brazo2" -> Mov(grados = s * (-30f * sin(fase) * vel - 3f * (1f - vel)))
+    "ante" -> Mov(grados = s * -(10f + 30f * max(0f, -sin(fase)) * vel))
+    "ante2" -> Mov(grados = s * -(10f + 30f * max(0f, sin(fase)) * vel))
+    else -> null
+}
+
+/**
+ * Ya casi (faltan 30 minutos): cada uno camina sin parar en su mitad, ella por la calle y él por el parque, y
+ * su fondo pasa detrás al ritmo de sus pasos.
  */
 private val movYaCasi: Movimiento = { n, i ->
-    val t = i.t % CICLO_CAMINO
-    val tutor = n.startsWith("t_")
-    val s = if (tutor) -1f else 1f // el tutor está en espejo: sus giros van al revés
-    val inicio = -(i.mitad + 70f)
+    when (n) {
+        "fondo_calle" -> Mov(dx = -(ritmoEstudiante.velocidad * PROFUNDIDAD * i.t) % 100_000f, alfa = ALFA_FONDO)
+        "fondo_parque" -> Mov(dx = (ritmoTutor.velocidad * PROFUNDIDAD * i.t) % 100_000f, alfa = ALFA_FONDO)
+        else -> {
+            val tutor = n.startsWith("t_")
+            val r = if (tutor) ritmoTutor else ritmoEstudiante
+            val fase = DOS_PI * i.t / r.paso + if (tutor) 1.1f else 0f
+            caminar(n.substring(2), fase, 1f, if (tutor) -1f else 1f, i.t, if (tutor) 3.5f else 2f) ?: QUIETO
+        }
+    }
+}
+
+private const val LLEGA = 2.6f
+private const val ACERCA = 110f
+
+/**
+ * Llegó (faltan 2 minutos): los dos terminan de acercarse y frenan con un último paso corto, cara a cara. Ella
+ * sube la mirada hacia él y entonces le sale la nube con el PIN, cifra a cifra. Corre con el tiempo de la fase:
+ * la llegada pasa una vez y luego quedan quietos, respirando, con la nube flotando y el tutor asintiendo.
+ */
+private val movLlego: Movimiento = { n, i ->
+    val t = i.t
     val avance = frenada(t / LLEGA)
-    val distancia = abs(inicio) * avance
     val resto = 1f - (t / LLEGA).coerceIn(0f, 1f)
-    val velocidad = (3f * resto * resto).coerceAtMost(1f)
-    val fase = distancia / ZANCADA * PI.toFloat() + if (tutor) 0.8f else 0f
-    val paso = sin(fase) * velocidad
-    val rodilla = max(0f, sin(fase + 1.2f)) * velocidad
-    val rodilla2 = max(0f, sin(fase + 1.2f + PI.toFloat())) * velocidad
-    val mano = tramo(t, LLEGA + 0.35f, LLEGA + 0.95f) * (1f - tramo(t, 7.3f, 7.9f))
-    val sacude = sin((t - LLEGA - 1f) * DOS_PI / 0.42f) * meseta(t, LLEGA + 0.95f, LLEGA + 1.1f, LLEGA + 1.6f, LLEGA + 1.95f)
-    val visible = tramo(t, 0f, 0.35f) * (1f - tramo(t, 8.7f, 9.3f))
-    when (n.substring(2)) {
-        "raiz" -> Mov(dx = s * inicio * (1f - avance), dy = -2.2f * abs(cos(fase)) * velocidad, alfa = visible)
-        "torso" -> respira(i.t, fase = if (tutor) 0.4f else 0f, inclina = s * (2.2f * velocidad + 1.5f * mano), ancho = TORSO_PERFIL, ancla = if (tutor) 0.75f else 0.25f)
-        "cabeza" -> Mov(grados = s * (-1.5f * velocidad + 3f * mano * (0.5f + 0.5f * sin((t - LLEGA) * 3f)) + 0.8f * onda(i.t, 4.8f)))
-        "muslo" -> Mov(grados = s * (90f + 22f * paso))
-        "pierna" -> Mov(grados = s * (-90f + 34f * rodilla))
-        "muslo2" -> Mov(grados = s * (90f - 22f * paso))
-        "pierna2" -> Mov(grados = s * (-90f + 34f * rodilla2))
-        "brazo" -> Mov(grados = s * (-18f * paso * (1f - mano) - 20f * mano + 2.5f * sacude))
-        "ante" -> Mov(grados = s * (80f - 8f * abs(paso) - 98f * mano + 1.5f * sacude))
-        "brazo2" -> Mov(grados = s * (18f * paso + 3f * (1f - velocidad) * onda(i.t, 4.6f)))
-        "ante2" -> Mov(grados = s * (80f - 8f * abs(paso)))
-        else -> QUIETO
+    val vel = (3f * resto * resto).coerceAtMost(1f)
+    val nube = (t - LLEGA - 0.45f) / 0.45f
+    val mira = tramo(t, LLEGA - 0.5f, LLEGA + 0.2f)
+    val asiente = sin((t - 3.9f) * DOS_PI / 0.55f) * meseta((t - 3.7f) % 7f, 0f, 0.2f, 1.1f, 1.4f) * tramo(t, 3.6f, 3.8f)
+    when {
+        n == "fondo_calle" -> Mov(alfa = ALFA_FONDO)
+        n == "pin" -> Mov(
+            escala = 0.6f + 0.4f * rebote(nube).coerceAtLeast(0f),
+            dy = -1f * onda(t, 3.1f) * tramo(t, LLEGA + 0.9f, LLEGA + 1.4f),
+            alfa = suave(nube * 1.6f)
+        )
+        // Cada cifra entra con su propio retraso y un saltito
+        n.startsWith("pin") -> {
+            val k = n.last().digitToInt()
+            val e = (t - LLEGA - 0.7f - k * 0.16f) / 0.3f
+            Mov(escala = 0.7f + 0.3f * rebote(e).coerceAtLeast(0f), dy = 2f * (1f - suave(e)), alfa = suave(e * 1.5f))
+        }
+        else -> {
+            val tutor = n.startsWith("t_")
+            val s = if (tutor) -1f else 1f
+            val r = if (tutor) ritmoTutor else ritmoEstudiante
+            val fase = ACERCA * avance / r.zancada * PI.toFloat() + if (tutor) 1.1f else 0f
+            val parte = n.substring(2)
+            when {
+                parte == "raiz" -> Mov(dx = -s * ACERCA * (1f - avance), dy = (-2.6f * cos(fase) * cos(fase) + 0.6f * abs(sin(fase))) * vel)
+                tutor && parte == "cabeza" -> Mov(grados = s * (-1.5f * vel + 3f * asiente + 0.8f * onda(t, 4.8f)))
+                // Ella mira al tutor mientras le muestra el código
+                !tutor && parte == "cabeza" -> Mov(grados = -1.5f * vel - 3.5f * mira + 0.8f * onda(t, 5.2f))
+                else -> caminar(parte, fase, vel, s, t, if (tutor) 3.5f else 2f) ?: QUIETO
+            }
+        }
     }
 }
 
@@ -615,20 +778,13 @@ private val movCalificar: Movimiento = { n, i ->
 /* ==================== Composable ==================== */
 
 @Composable
-private fun rememberBitmaps(ids: List<Int>): List<ImageBitmap?> {
+private fun rememberBitmaps(ids: List<Int>): List<ImageBitmap?>? {
     val recursos = LocalContext.current.resources
-    return remember(ids) { ids.map { if (it == 0) null else ImageBitmap.imageResource(recursos, it) } }
+    // Se decodifican fuera del hilo principal; null mientras cargan (la escena no se dibuja)
+    return produceState<List<ImageBitmap?>?>(initialValue = null, ids) {
+        value = withContext(Dispatchers.IO) { ids.map { if (it == 0) null else ImageBitmap.imageResource(recursos, it) } }
+    }.value
 }
-
-/** Si el usuario desactivó las animaciones del sistema, cada escena queda en una pose quieta y clara. */
-@Composable
-private fun animacionesActivas(): Boolean {
-    val resolver = LocalContext.current.contentResolver
-    return remember {
-        runCatching { Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f }.getOrDefault(true)
-    }
-}
-
 
 /** Escena de cada fase y el instante que la muestra mejor cuando no hay animación. */
 private fun escenaDe(f: FaseSesion): Triple<Rig, Movimiento, Float> = when (f) {
@@ -636,7 +792,8 @@ private fun escenaDe(f: FaseSesion): Triple<Rig, Movimiento, Float> = when (f) {
     FaseSesion.ENVIADA -> Triple(rigEnviada, movEnviada, 2.5f)
     FaseSesion.AGENDADA -> Triple(rigAgendada, movAgendada, 3.5f)
     FaseSesion.HOY -> Triple(rigHoy, movHoy, 3f)
-    FaseSesion.YA_CASI -> Triple(rigYaCasi, movYaCasi, 6f)
+    FaseSesion.YA_CASI -> Triple(rigYaCasi, movYaCasi, 0.3f)
+    FaseSesion.LLEGO -> Triple(rigLlego, movLlego, 6f)
     FaseSesion.EN_SESION -> Triple(rigSesion, movSesion, 4.2f)
     FaseSesion.YA_CASI_VIRTUAL -> Triple(rigConectando, movConectando, 5f)
     FaseSesion.EN_SESION_VIRTUAL -> Triple(rigLlamada, movLlamada, 2f)
@@ -644,60 +801,114 @@ private fun escenaDe(f: FaseSesion): Triple<Rig, Movimiento, Float> = when (f) {
 }
 
 /**
- * Escena animada de la próxima sesión. Doble toque rápido: salta a la siguiente fase (para revisar
- * el flujo mientras no hay datos reales).
+ * Escena animada de la próxima sesión. La fase llega decidida ([faseDe]) y cambia sola con la hora y los datos.
+ * Doble toque: salta a la siguiente fase para revisar las escenas; solo en compilaciones de depuración.
+ *
+ * @param cargando aún no se conoce la fase real: al llegar los datos, la escena se reemplaza sin el paso animado,
+ * que contaría un avance que no ocurrió.
+ * @param minutosParaEmpezar lo que falta para la sesión, para el texto de "Ya casi".
+ * @param aviso reemplaza el texto de la fase mientras una presencial espera el PIN.
+ * @param alTocarAviso qué hace tocar la barra cuando el aviso trae una acción.
  */
 @Composable
-fun BarraSesion(modifier: Modifier = Modifier) {
-    var fase by remember { mutableStateOf(FaseSesion.SOLA) }
-    val movimiento = animacionesActivas()
-    val reloj = rememberInfiniteTransition(label = "barraSesion")
-    // Un reloj de 20 minutos: el reinicio llega tan tarde que no se nota
-    val tiempo = reloj.animateFloat(
-        0f, 1200f, infiniteRepeatable(tween(1_200_000, easing = LinearEasing), RepeatMode.Restart), label = "t"
-    )
+fun BarraSesion(
+    faseActual: FaseSesion,
+    cargando: Boolean,
+    minutosParaEmpezar: Long?,
+    esTutor: Boolean = false,
+    aviso: AvisoPin? = null,
+    alTocarAviso: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    // Lo saltado a mano dura hasta que la fase real cambie
+    var revisada by remember(faseActual) { mutableStateOf<FaseSesion?>(null) }
+    val fase = revisada ?: faseActual
+    val veniaCargando = remember { mutableStateOf(cargando) }
+    SideEffect { veniaCargando.value = cargando }
+    val movimiento = !LocalAnimacionesReducidas.current
+    val contexto = LocalContext.current
+    val revision = remember(contexto) { contexto.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0 }
+    // Con letra grande el texto necesita más líneas y la franja crece; la escena conserva su alto
+    val letraGrande = LocalDensity.current.fontScale > 1f
+    // Un reloj de 20 minutos (en segundos): el reinicio llega tan tarde que no se nota. Solo corre con
+    // animaciones activas y la app a la vista; si se detiene, conserva el último instante
+    val enPantalla = LocalLifecycleOwner.current.lifecycle.currentStateAsState().value.isAtLeast(Lifecycle.State.STARTED)
+    val corre = movimiento && enPantalla
+    val tiempo = produceState(0f, corre) {
+        if (!corre) return@produceState
+        var anterior = withFrameNanos { it }
+        while (true) {
+            withFrameNanos { ahora ->
+                value = (value + (ahora - anterior) / 1_000_000_000f) % 1200f
+                anterior = ahora
+            }
+        }
+    }
+    // Con la fase saltada a mano no hay aviso: se revisan las escenas tal cual
+    val avisoReal = aviso.takeIf { revisada == null }
+    val accion = avisoReal?.accion
+    // El PIN de la nube: el real para el estudiante; para el tutor, oculto
+    val medidor = rememberTextMeasurer()
+    val estiloPin = MaterialTheme.typography.titleSmall.merge(CodigoEspaciado).copy(color = TextoPrimario)
+    val textoPin = if (revisada != null) PIN_MUESTRA else avisoReal?.pin ?: PIN_OCULTO
+    val pin = remember(estiloPin, textoPin) { textoPin.map { medidor.measure(it.toString(), estiloPin) } }
     Column(
         modifier
             .fillMaxWidth()
-            .pointerInput(Unit) { detectTapGestures(onDoubleTap = { fase = fase.siguiente() }) }
+            .then(if (revision) Modifier.pointerInput(Unit) { detectTapGestures(onDoubleTap = { revisada = fase.siguiente() }) } else Modifier)
+            // Toda la barra es el botón: el tutor acaba de llegar y no debe buscar dónde tocar
+            .then(if (accion != null) Modifier.pulsable(etiqueta = "${accion.etiqueta}. ${avisoReal.detalle}", alClicar = alTocarAviso) else Modifier)
     ) {
         AnimatedContent(
             targetState = fase,
             // La escena nueva entra por la derecha y la anterior sale por la izquierda, como un paso más
             transitionSpec = {
-                (fadeIn(tween(300, delayMillis = 120)) + slideInHorizontally(tween(460, easing = FastOutSlowInEasing)) { it / 3 }) togetherWith
-                    (fadeOut(tween(200)) + slideOutHorizontally(tween(460, easing = FastOutSlowInEasing)) { -it / 3 })
+                if (veniaCargando.value) return@AnimatedContent EnterTransition.None togetherWith ExitTransition.None
+                (fadeIn(tween(DuracionNormal, delayMillis = ESCENA_RETRASO_MS)) + slideInHorizontally(tween(ESCENA_PASO_MS, easing = CurvaEstandar)) { it / 3 }) togetherWith
+                    (fadeOut(tween(ESCENA_SE_APAGA_MS)) + slideOutHorizontally(tween(ESCENA_PASO_MS, easing = CurvaEstandar)) { -it / 3 })
             },
             label = "escena"
         ) { f ->
             val (rig, mueve, pose) = escenaDe(f)
+            // "Llegó" cuenta desde que aparece: la llegada pasa una sola vez
+            val inicio = remember { if (f == FaseSesion.LLEGO) tiempo.value else 0f }
             // Solo se decodifican las imágenes de la fase visible (y, al cambiar, las de la siguiente)
             val bmps = rememberBitmaps(rig.capas.map { it.id })
             // A la izquierda, en qué paso va la sesión; a la derecha, la escena que lo cuenta
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(62.dp),
+                Modifier.fillMaxWidth().padding(horizontal = EspacioMargen).heightIn(min = 62.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(Modifier.weight(0.44f).padding(end = 10.dp)) {
+                Column(Modifier.weight(0.44f).padding(end = EspacioAjustado)) {
+                    // Durante el paso de escena, la que sale no toma el aviso de la que entra
+                    val avisoDeEsta = avisoReal.takeIf { f == fase }
                     Text(
-                        f.titulo,
+                        avisoDeEsta?.titulo ?: if (esTutor) f.tituloTutor else f.titulo,
                         style = MaterialTheme.typography.titleSmall,
                         color = TextoPrimario,
-                        maxLines = 1,
+                        maxLines = if (letraGrande) 2 else 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        f.detalle,
+                        avisoDeEsta?.detalle ?: (if (esTutor) f.detalleTutor else f.detalle).conFalta(minutosParaEmpezar),
                         style = MaterialTheme.typography.bodySmall,
                         color = TextoTercero,
-                        maxLines = 2,
+                        maxLines = if (letraGrande) 5 else 4,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 2.dp)
+                        modifier = Modifier.padding(top = EspacioMicro)
                     )
+                    avisoDeEsta?.accion?.let {
+                        Text(
+                            it.etiqueta,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = BosqueAcento,
+                            modifier = Modifier.padding(top = EspacioMicro)
+                        )
+                    }
                 }
-                Canvas(Modifier.weight(0.56f).fillMaxHeight().clipToBounds()) {
-                    val t = if (movimiento) tiempo.value else pose
-                    escena(rig, bmps, t, 1.dp.toPx(), mueve)
+                Canvas(Modifier.weight(0.56f).height(62.dp).align(Alignment.Bottom).clipToBounds()) {
+                    val t = if (movimiento) tiempo.value - inicio else pose
+                    if (bmps != null) escena(rig, bmps, t, 1.dp.toPx(), mueve, pin)
                 }
             }
         }
