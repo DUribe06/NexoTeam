@@ -29,6 +29,15 @@ data class SolicitudCambiarModo(val modo: RolDto)
 @Serializable
 data class SolicitudEditarMaterias(val materias: List<String>)
 
+/** Los datos públicos del tutor; un texto vacío borra ese dato y un precio null no lo cambia. */
+@Serializable
+data class SolicitudEditarDatosTutor(
+    val universidad: String,
+    val carrera: String,
+    val bio: String,
+    val precioHora: Double? = null
+)
+
 @Serializable
 data class SolicitudEliminarCuenta(val contrasena: String? = null, val tokenGoogle: String? = null)
 

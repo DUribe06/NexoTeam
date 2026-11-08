@@ -209,6 +209,17 @@ class SolicitudRepositoryRemotoTest {
     }
 
     @Test
+    fun `enviar con precio propuesto lo manda en el cuerpo`() = enPrueba {
+        rutas.responder("POST", "/api/solicitudes", solicitud(id = "s-3"), 201)
+        rutas.responder("GET", "/api/solicitudes", "[${solicitud(id = "s-3")}]")
+
+        repositorio.enviar("t-1", "Cálculo I", "Integrales", LocalDate.of(2026, 11, 3), LocalTime.of(8, 0), Modalidad.VIRTUAL, "", 20000.0)
+
+        val cuerpo = rutas.pedidas("POST", "/api/solicitudes").single().cuerpoTexto()
+        assertTrue(cuerpo.contains(""""precioPropuesto":20000.0"""))
+    }
+
+    @Test
     fun `una solicitud rechazada al enviar dice por que`() = enPrueba {
         rutas.fallar("POST", "/api/solicitudes", 422, CodigoError.HORA_NO_DISPONIBLE)
         try {

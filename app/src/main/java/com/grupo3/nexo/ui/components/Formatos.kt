@@ -23,6 +23,13 @@ fun universidadCorta(nombre: String): String = siglasUniversidad[nombre] ?: nomb
 /** Pesos colombianos con punto de miles: 25000.0 → "$25.000". */
 fun formatoPrecio(valor: Double): String =
     "$" + valor.toLong().toString().reversed().chunked(3).joinToString(".").reversed()
+/** Tarifa por hora para mostrar; un tutor que aún no la fija aparece "a convenir" en lugar de $0. */
+fun tarifaTexto(precioHora: Double): String =
+    if (precioHora > 0) "${formatoPrecio(precioHora)} la hora" else "precio a convenir"
+
+/** Lo escrito en un campo de precio: solo cifras, sin ceros a la izquierda y con el tope del servidor (8 cifras). */
+fun soloCifras(texto: String): String = texto.filter(Char::isDigit).trimStart('0').take(8)
+
 fun formatoHoras(horas: Double): String =
     if (horas % 1.0 == 0.0) "${horas.toInt()} h" else String.format(localeColombia, "%.1f h", horas)
 

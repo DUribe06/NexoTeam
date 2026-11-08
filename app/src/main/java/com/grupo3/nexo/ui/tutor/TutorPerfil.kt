@@ -63,6 +63,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -116,6 +118,8 @@ import com.grupo3.nexo.ui.components.enumerar
 import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.components.formatoPrecio
+import com.grupo3.nexo.ui.components.soloCifras
+import com.grupo3.nexo.ui.components.tarifaTexto
 import com.grupo3.nexo.ui.components.formatoValoracion
 import com.grupo3.nexo.ui.components.icono
 import com.grupo3.nexo.ui.components.mostrarError
@@ -612,11 +616,11 @@ private fun BarraAcciones(tutor: Tutor, alSolicitar: () -> Unit, modifier: Modif
     val precio: @Composable () -> Unit = {
         Column {
             Text(
-                formatoPrecio(tutor.precioHora),
+                if (tutor.precioHora > 0) formatoPrecio(tutor.precioHora) else "A convenir",
                 color = TextoPrimario,
                 style = MaterialTheme.typography.headlineSmall.merge(CifrasTabulares)
             )
-            Text("por hora", color = TextoTercero, style = MaterialTheme.typography.bodySmall)
+            Text(if (tutor.precioHora > 0) "por hora" else "precio", color = TextoTercero, style = MaterialTheme.typography.bodySmall)
         }
     }
     val margen = modifier
@@ -661,7 +665,9 @@ data class DatosSolicitud(
     val fecha: LocalDate,
     val hora: LocalTime,
     val modalidad: Modalidad,
-    val mensaje: String
+    val mensaje: String,
+    /** Precio por hora que propone el estudiante; null si acepta la tarifa del tutor. */
+    val precioPropuesto: Double? = null
 )
 
 private val DiaSolicitable.abreviatura: String get() = DiaSemana.desde(fecha.dayOfWeek.value).abreviatura
@@ -681,6 +687,7 @@ private fun HojaSolicitud(
     var hora by rememberSaveable { mutableStateOf<LocalTime?>(null) }
     var modalidad by rememberSaveable { mutableStateOf<Modalidad?>(null) }
     var mensaje by rememberSaveable { mutableStateOf("") }
+    var precio by rememberSaveable { mutableStateOf("") }
     var intentoEnviar by rememberSaveable { mutableStateOf(false) }
 
     val dia = dias.getOrNull(indiceDia)
@@ -692,7 +699,7 @@ private fun HojaSolicitud(
 
     HojaNexo(
         titulo = "Solicitar tutoría",
-        subtitulo = "con ${tutor.nombre} · ${formatoPrecio(tutor.precioHora)} la hora",
+        subtitulo = "con ${tutor.nombre} · ${tarifaTexto(tutor.precioHora)}",
         alCerrar = alCerrar
     ) {
         RotuloGrupo("Materia", Modifier.padding(top = EspacioHolgado, bottom = EspacioAjustado))
@@ -783,6 +790,27 @@ private fun HojaSolicitud(
             teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
         )
 
+        RotuloGrupo("Proponer otro precio (opcional)", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))
+        Campo(
+            valor = precio,
+            alCambiar = { precio = soloCifras(it) },
+            marcador = "Precio por hora, ej.: 20000",
+            etiqueta = "Proponer otro precio por hora",
+            limpiable = true,
+            teclado = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done)
+        )
+        val propuesto = precio.toDoubleOrNull()?.takeIf { it >= 1 }
+        Text(
+            if (propuesto != null) {
+                "Propones ${formatoPrecio(propuesto)} la hora. Si ${tutor.nombre.primerNombre} acepta la solicitud, acepta ese precio."
+            } else {
+                "Si lo dejas vacío, pagas la tarifa de ${tutor.nombre.primerNombre}: ${tarifaTexto(tutor.precioHora)}."
+            },
+            color = TextoSecundario,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(start = EspacioMargen, top = EspacioFino)
+        )
+
         Spacer(Modifier.height(EspacioAmplio))
         BotonPrimario(
             texto = "Enviar solicitud",
@@ -791,7 +819,7 @@ private fun HojaSolicitud(
             alClicar = {
                 intentoEnviar = true
                 if (!temaFalta && dia != null && horaElegida != null && modalidadElegida != null) {
-                    alEnviar(DatosSolicitud(materia, tema.trim(), dia.fecha, horaElegida, modalidadElegida, mensaje.trim()))
+                    alEnviar(DatosSolicitud(materia, tema.trim(), dia.fecha, horaElegida, modalidadElegida, mensaje.trim(), precio.toDoubleOrNull()?.takeIf { it >= 1 }))
                 }
             },
             modifier = Modifier.fillMaxWidth()

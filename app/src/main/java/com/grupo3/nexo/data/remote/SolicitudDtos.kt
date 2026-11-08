@@ -27,7 +27,8 @@ data class SolicitudDto(
     val motivoRechazo: String? = null,
     val enviada: String,
     val venceEn: String,
-    val penalizacionesEstudiante: Int = 0
+    val penalizacionesEstudiante: Int = 0,
+    val precioPropuesto: Double? = null
 )
 
 @Serializable
@@ -38,7 +39,9 @@ data class SolicitudNueva(
     val fecha: String,
     val hora: String,
     val modalidad: ModalidadDto,
-    val mensaje: String? = null
+    val mensaje: String? = null,
+    /** Precio por hora que propone el estudiante; null si acepta la tarifa del tutor. */
+    val precioPropuesto: Double? = null
 )
 
 @Serializable

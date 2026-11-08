@@ -374,7 +374,7 @@ fun FilaTutor(tutor: Tutor, alAbrir: () -> Unit, modifier: Modifier = Modifier) 
             Valoracion(tutor.rating)
             Spacer(Modifier.height(EspacioMinimo))
             Text(
-                formatoPrecio(tutor.precioHora),
+                if (tutor.precioHora > 0) formatoPrecio(tutor.precioHora) else "A convenir",
                 color = TextoPrimario,
                 style = MaterialTheme.typography.titleSmall.merge(CifrasTabulares)
             )
