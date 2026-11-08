@@ -410,7 +410,7 @@ fun BotonSecundario(
     }
 }
 
-/** La sirve el mismo servidor de la API; también es el enlace que se registra en Google Play. */
+/** La política de privacidad la sirve el mismo servidor de la API. */
 val URL_PRIVACIDAD: String get() = BuildConfig.API_URL + "privacidad.html"
 
 /** Acción de texto (enlaces como "Ver todo"), con área táctil de 48 dp. */

@@ -1,14 +1,14 @@
 # Publicar Nexo
 
-La API corre en Render y la base de datos en Neon, ambas en su plan gratis. El correo sale por Brevo, el inicio de sesión usa Google y la app se publica en Google Play. El orden importa: la app se genera al final porque necesita la dirección del servidor y el ID de Google.
+La API corre en Render y la base de datos en Neon, ambas en su plan gratis. El correo sale por Brevo, el inicio de sesión usa Google y la app se instala como APK en teléfonos Android. El orden importa: la app se genera al final porque necesita la dirección del servidor y el ID de Google.
 
 Revisa los límites vigentes de cada servicio antes de empezar: cambian con el tiempo y ninguno de los planes gratuitos garantiza disponibilidad.
 
 ## 1. Antes de empezar
 
-- En `backend/src/main/resources/static/privacidad.html`, cambia `[CORREO DE CONTACTO]` por un correo del equipo y haz revisar la política. No es una opinión legal.
-- Une el trabajo a `main` y comprueba que la integración continua pase: construye también la imagen del servidor.
-- Render necesita acceso al repositorio. Quien administra `DUribe06/NexoTeam` debe autorizarlo, o puedes desplegar desde un fork propio.
+- La política de privacidad (`backend/src/main/resources/static/privacidad.html`) tiene como contacto `team.nexo.ia@gmail.com`. Si cambia el correo del equipo, actualízalo ahí. No es una opinión legal: conviene que alguien la revise.
+- Render despliega la rama `main`. La integración continua comprueba en cada pull request que las pruebas pasen y que la imagen del servidor se construya.
+- Render necesita acceso al repositorio. Quien administra `DUribe06/NexoTeam` debe autorizarlo; como el repositorio es público, también puede desplegarse con su dirección.
 
 ## 2. Correo (Brevo, plan gratis)
 
@@ -24,7 +24,6 @@ El servidor envía el código para confirmar la cuenta y el de recuperar la cont
 3. Crea un cliente OAuth tipo **Android** con el paquete `com.grupo3.nexo` y el SHA-1 de la llave de firma. Haz uno por cada llave:
    - La de depuración, para probar desde Android Studio.
    - La de publicación del paso 6.
-   - La de **Play App Signing**, que aparece en Play Console después de subir la primera versión. Si falta, Google funciona en tus pruebas y falla a quien instale desde Play.
 
 Para ver el SHA-1 de una llave: `keytool -list -v -keystore ARCHIVO -alias ALIAS`.
 
@@ -88,11 +87,10 @@ gunzip -c nexo-FECHA.sql.gz | psql "postgresql://...PROYECTO-DE-PRUEBA..."
 
 - **Actualizar Nexo:** al subir a la rama elegida, Render vuelve a desplegar. Las migraciones se aplican solas al arrancar.
 - **Límites de Neon:** vigila en su panel el almacenamiento y las horas de cómputo. Si se agotan las horas, la base se detiene hasta el mes siguiente.
-- **Si Nexo crece:** cambia `plan: free` por `plan: starter` y `NEXO_SMTP_PUERTO` por `587`. El servidor deja de apagarse aunque `MantenerActivo` siga funcionando.
 
-## 6. App (Google Play, pago único)
+## 6. App (APK para Android)
 
-Crea la llave una sola vez y guárdala fuera del repositorio. Si se pierde, no se puede actualizar la app con ella:
+Crea la llave una sola vez y guárdala fuera del repositorio. Si se pierde, los teléfonos no aceptan una versión nueva firmada con otra llave:
 
 ```bash
 keytool -genkeypair -v -keystore ~/nexo-publicacion.jks -alias nexo -keyalg RSA -keysize 4096 -validity 10000
@@ -105,17 +103,13 @@ nexoApiUrl=https://TU-SERVICIO.onrender.com/
 nexoGoogleClientId=TU-ID.apps.googleusercontent.com
 ```
 
-Genera el archivo para Play. Sin esos dos valores, el comando se niega a generarlo:
+Genera la app. Sin esos dos valores, el comando se niega a generarla:
 
 ```bash
 export NEXO_LLAVE_ARCHIVO=~/nexo-publicacion.jks NEXO_LLAVE_ALIAS=nexo NEXO_LLAVE_CLAVE='...'
-./gradlew bundleRelease
+./gradlew assembleRelease
 ```
 
-Queda en `app/build/outputs/bundle/release/`. Sube cada versión nueva con un `versionCode` mayor en `app/build.gradle.kts`.
+Queda en `app/build/outputs/apk/release/app-release.apk`. Se instala en el teléfono abriendo el archivo, o con `adb install app-release.apk`. Cada versión nueva lleva un `versionCode` mayor en `app/build.gradle.kts`.
 
-En Play Console, la política de privacidad es `https://TU-SERVICIO.onrender.com/privacidad.html`. Una cuenta personal debe hacer una prueba cerrada con al menos 12 evaluadores durante 14 días seguidos antes de pedir acceso a producción.
-
-## Lo que falta para más adelante
-
-- **Avisos al instante.** Hoy la app pregunta al servidor cada 15 minutos o más, según Android. Lo instantáneo exige Firebase Cloud Messaging: un proyecto de Firebase, `google-services.json`, guardar el token de cada teléfono en el servidor y enviar desde allí.
+La política de privacidad queda publicada en `https://TU-SERVICIO.onrender.com/privacidad.html`.

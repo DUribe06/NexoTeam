@@ -4,13 +4,13 @@ Aplicación Android que conecta a estudiantes universitarios de Bucaramanga con 
 
 Proyecto de Ingeniería de Software de la Universidad Industrial de Santander (UIS), Grupo 3.
 
-> **Estado:** app y servidor listos para publicar. Los pasos están en [`backend/docs/despliegue.md`](backend/docs/despliegue.md).
+> **Estado:** versión final. Cómo se publica el servidor y se genera la app: [`backend/docs/despliegue.md`](backend/docs/despliegue.md).
 
 ## Cómo está armado
 
 | Parte | Tecnología | Dónde corre |
 |---|---|---|
-| App | Kotlin y Jetpack Compose | Google Play |
+| App | Kotlin y Jetpack Compose | Teléfonos Android (APK) |
 | API REST y HTTPS | Spring Boot en Docker | Render, plan gratis |
 | Base de datos | PostgreSQL 18 | Neon, plan gratis |
 | Inicio con Google | Credential Manager y OAuth | Google Cloud |
@@ -102,11 +102,6 @@ Las pantallas no llaman a los datos directamente: pasan por un ViewModel, que us
 - Las cifras se muestran en formato colombiano: decimales con coma (4,9) y miles con punto ($25.000).
 - Íconos Phosphor en la interfaz propia.
 - Fuente Instrument Sans, incluida en `assets/fuentes/` con su licencia OFL.
-
-## Pendiente
-
-- Desplegar el servidor y publicar la app ([pasos](backend/docs/despliegue.md)).
-- Avisos al instante con Firebase; hoy pueden tardar 15 minutos o más.
 
 ## Contribuir
 

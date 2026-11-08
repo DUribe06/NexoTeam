@@ -32,7 +32,7 @@ import kotlinx.serialization.json.Json
 
 /**
  * Pregunta al servidor si hay algo nuevo y lo avisa con una notificación. Android lo corre como mínimo cada 15 minutos y
- * puede demorarlo para ahorrar batería: es un aviso de "pronto", no al instante. Lo instantáneo requiere Firebase.
+ * puede demorarlo para ahorrar batería: es un aviso de "pronto", no al instante.
  */
 @HiltWorker
 class RevisarNovedadesWorker @AssistedInject constructor(
