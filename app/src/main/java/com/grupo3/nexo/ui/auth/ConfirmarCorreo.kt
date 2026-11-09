@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.grupo3.nexo.domain.usecase.LARGO_CODIGO
 import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
 import com.grupo3.nexo.ui.components.areaTactilSinCambiarMedida
+import com.grupo3.nexo.ui.components.plural
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.BordeSeleccion
 import com.grupo3.nexo.ui.theme.BordeSutil
@@ -144,7 +146,7 @@ private fun ContenidoConfirmarCorreo(
         )
         EnlaceAcceso(
             pregunta = "¿No es tu correo? ",
-            accion = "Volver",
+            accion = "Cambiar correo",
             alClicar = alVolver,
             modifier = Modifier.entrada(5, iniciado)
         )
@@ -163,7 +165,8 @@ internal fun CampoCodigo(
     conError: Boolean,
     alPulsarListo: () -> Unit,
     modifier: Modifier = Modifier,
-    largo: Int = LARGO_CODIGO
+    largo: Int = LARGO_CODIGO,
+    descripcion: String = "Código de $largo dígitos"
 ) {
     val foco = remember { FocusRequester() }
     var enfocado by remember { mutableStateOf(false) }
@@ -182,7 +185,10 @@ internal fun CampoCodigo(
                 .fillMaxWidth()
                 .focusRequester(foco)
                 .onFocusChanged { enfocado = it.isFocused }
-                .semantics { contentDescription = "Código de $largo dígitos" },
+                .semantics {
+                    contentDescription = descripcion
+                    if (conError) error("Código incorrecto")
+                },
             decorationBox = { campo ->
                 Box {
                     Row(
@@ -236,7 +242,7 @@ internal fun EnlaceReenviar(espera: Int, reenviando: Boolean, alClicar: () -> Un
     val libre = espera == 0 && !reenviando
     val texto = when {
         reenviando -> "Enviando código…"
-        espera > 0 -> "Reenviar código en ${espera / 60}:${(espera % 60).toString().padStart(2, '0')}"
+        espera > 0 -> "Reenviar código en $espera ${plural(espera, "segundo", "segundos")}"
         else -> "Reenviar código"
     }
     Text(

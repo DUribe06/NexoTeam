@@ -134,19 +134,41 @@ class ConversacionViewModel @Inject constructor(
         enCurso.lanzar(viewModelScope, "enviar:$limpio") { alTerminar(falloDe { enviarMensaje(chatId.value, limpio) }) }
     }
 
-    private val _imagenSubiendo = MutableStateFlow<String?>(null)
+    private val _imagenSubiendo = MutableStateFlow<ImagenPendiente?>(null)
 
-    /** Imagen (content://) que está subiendo ahora; el hilo la muestra como burbuja propia con progreso. */
-    val imagenSubiendo: StateFlow<String?> = _imagenSubiendo.asStateFlow()
+    /** Foto que sube ahora o que falló; el hilo la muestra como burbuja propia con progreso o con "Reintentar". */
+    val imagenSubiendo: StateFlow<ImagenPendiente?> = _imagenSubiendo.asStateFlow()
 
-    /** Envía la foto con el texto escrito (puede ir vacío); `alTerminar(fallo)` permite devolver el texto a la caja. */
-    fun enviarImagen(imagen: String, texto: String, alTerminar: (Throwable?) -> Unit) {
-        if (chatId.value.isEmpty() || estado.value.soloLectura || _imagenSubiendo.value != null) return
-        _imagenSubiendo.value = imagen
+    /**
+     * Envía la foto con el texto escrito (puede ir vacío). Devuelve false si no se aceptó (otra foto en curso,
+     * sin chat o solo lectura): así la pantalla conserva el texto. Si falla, la foto queda pendiente para reintentar.
+     */
+    fun enviarImagen(imagen: String, texto: String, alTerminar: (Throwable?) -> Unit): Boolean {
+        if (chatId.value.isEmpty() || estado.value.soloLectura || _imagenSubiendo.value != null) return false
+        subir(ImagenPendiente(imagen, texto.trim()), alTerminar)
+        return true
+    }
+
+    /** Vuelve a subir la foto que falló, con su mismo texto. */
+    fun reintentarImagen(alTerminar: (Throwable?) -> Unit) {
+        val pendiente = _imagenSubiendo.value?.takeIf { it.fallida } ?: return
+        subir(pendiente.copy(fallida = false), alTerminar)
+    }
+
+    /** Descarta la foto que falló sin enviarla. */
+    fun descartarImagen() {
+        if (_imagenSubiendo.value?.fallida == true) _imagenSubiendo.value = null
+    }
+
+    private fun subir(pendiente: ImagenPendiente, alTerminar: (Throwable?) -> Unit) {
+        _imagenSubiendo.value = pendiente
         enCurso.lanzar(viewModelScope, "imagen") {
-            val fallo = falloDe { enviarMensaje(chatId.value, texto.trim(), imagen) }
-            _imagenSubiendo.value = null
+            val fallo = falloDe { enviarMensaje(chatId.value, pendiente.texto, pendiente.uri) }
+            _imagenSubiendo.value = if (fallo == null) null else pendiente.copy(fallida = true)
             alTerminar(fallo)
         }
     }
 }
+
+/** Foto (content://) con su texto, mientras sube (`fallida = false`) o después de un fallo de subida. */
+data class ImagenPendiente(val uri: String, val texto: String, val fallida: Boolean = false)

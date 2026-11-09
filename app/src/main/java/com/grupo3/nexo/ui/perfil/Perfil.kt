@@ -1,12 +1,19 @@
 package com.grupo3.nexo.ui.perfil
 
+import com.grupo3.nexo.ui.theme.IconoPequenoCamara
+import com.grupo3.nexo.ui.theme.TamanoInsigniaCamara
+import com.grupo3.nexo.ui.theme.TamanoAvatarPropio
+import com.grupo3.nexo.ui.components.RotuloGrupo
+import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.animateFloatAsState
 import com.grupo3.nexo.ui.theme.Bosque
 import com.grupo3.nexo.ui.components.Avatar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.compose.rememberLauncherForActivityResult
-import com.grupo3.nexo.ui.theme.TamanoAvatarNormal
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.auth.HojaCondiciones
 import com.grupo3.nexo.ui.components.plural
@@ -23,6 +30,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -43,6 +51,8 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.Color
+import com.grupo3.nexo.ui.theme.FormaOpcion
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -87,7 +97,10 @@ import com.grupo3.nexo.ui.auth.ResultadoGoogle
 import com.grupo3.nexo.ui.auth.pedirTokenGoogle
 import com.grupo3.nexo.domain.model.Usuario
 import com.grupo3.nexo.ui.components.AvisoNexo
-import com.grupo3.nexo.ui.components.BotonPrimario
+import com.grupo3.nexo.ui.components.BotonSecundario
+import com.grupo3.nexo.ui.theme.Rojo
+import com.grupo3.nexo.domain.model.CodigoError
+import com.grupo3.nexo.domain.model.ErrorApi
 import com.grupo3.nexo.ui.components.BotonTexto
 import com.grupo3.nexo.ui.components.Campo
 import com.grupo3.nexo.ui.components.HojaNexo
@@ -96,13 +109,16 @@ import com.grupo3.nexo.ui.components.CabeceraBosque
 import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.DialogoConfirmacion
 import com.grupo3.nexo.ui.components.EncabezadoSeccion
+import com.grupo3.nexo.ui.components.EsqueletoLista
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import com.grupo3.nexo.ui.theme.AltoBarraAvance
+import com.grupo3.nexo.ui.theme.AltoFilaMenu
+import com.grupo3.nexo.ui.theme.TamanoBotonIr
 import com.grupo3.nexo.ui.components.ErrorDeLista
-import com.grupo3.nexo.ui.components.Esqueleto
 import com.grupo3.nexo.ui.components.EstadoVacio
-import com.grupo3.nexo.ui.components.Hueso
 import com.grupo3.nexo.ui.components.IconosClarosEnBarraDeEstado
 import com.grupo3.nexo.ui.components.IconosNexo
-import com.grupo3.nexo.ui.components.LineaHueso
 import com.grupo3.nexo.ui.components.ListaResenas
 import com.grupo3.nexo.ui.components.Onda
 import com.grupo3.nexo.ui.components.VeloBarraEstado
@@ -151,7 +167,6 @@ import com.grupo3.nexo.ui.theme.IconoMediano
 import com.grupo3.nexo.ui.theme.IconoNormal
 import com.grupo3.nexo.ui.theme.IconoSecundario
 import com.grupo3.nexo.ui.theme.MielFuerte
-import com.grupo3.nexo.ui.theme.RojoSuave
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.SobreOscuroSuave
 import com.grupo3.nexo.ui.theme.SombraAmbiente
@@ -188,6 +203,7 @@ fun PantallaPerfil(
     alAbrirResenas: () -> Unit,
     alAbrirMaterias: () -> Unit,
     alEditarPerfilTutor: () -> Unit,
+    alVerPerfilPublico: (String) -> Unit,
     viewModel: PerfilViewModel = hiltViewModel()
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -214,6 +230,8 @@ fun PantallaPerfil(
         }
     }
 
+    val pedirFoto: () -> Unit = { elegirFoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val altoPantalla = maxHeight
         // Con poco contenido la foto crece hasta llenar la pantalla, en vez de dejar un vacío blanco.
@@ -222,7 +240,7 @@ fun PantallaPerfil(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(desplazamiento),
-            cabecera = { Cabecera(usuario, iniciado, subiendoFoto, alCambiarFoto = { elegirFoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) }
+            cabecera = { Cabecera(usuario, iniciado, subiendoFoto, alCambiarFoto = pedirFoto) }
         ) {
             Column(Modifier.padding(bottom = EspacioExtenso)) {
                 // El selector ocupa el lugar del buscador: montado sobre la onda, con la única sombra
@@ -253,7 +271,11 @@ fun PantallaPerfil(
                         }
                         // Lo accionable va primero; las cifras y materias quedan como contexto
                         if (esTutor) {
-                            Column(Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto)) {
+                            Column(
+                                Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioSuelto),
+                                verticalArrangement = Arrangement.spacedBy(EspacioSuelto)
+                            ) {
+                                TarjetaCompletaPerfil(usuario, estado.pasosListos, subiendoFoto, pedirFoto, alEditarPerfilTutor, alAbrirMaterias)
                                 TarjetaDisponibilidad(alAbrirDisponibilidad)
                             }
                             Cifras(estado.resumen, true, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto))
@@ -268,16 +290,17 @@ fun PantallaPerfil(
                                 ErrorDeLista(titulo = "No pudimos cargar tu actividad", alReintentar = viewModel::reintentar)
                             }
                             estado.resumen?.materias?.takeIf { it.isNotEmpty() }?.let {
-                                Materias("Has estudiado", it, Modifier.padding(horizontal = EspacioMargen))
+                                SeccionMaterias("Has estudiado", it, Modifier.padding(horizontal = EspacioMargen))
                             }
                         }
-                        Spacer(Modifier.height(EspacioAmplio))
+                        Spacer(Modifier.height(EspacioMargen))
                         Menu(
                             esTutor = esTutor,
                             alAbrirHistorial = alAbrirHistorial,
                             alSalir = { confirmarSalida = true },
                             alEliminar = { eliminando = true },
-                            alVerCondiciones = { viendoCondiciones = true }
+                            alVerCondiciones = { viendoCondiciones = true },
+                            alVerPerfilPublico = { alVerPerfilPublico(usuario.id) }
                         )
                     }
                 }
@@ -290,17 +313,29 @@ fun PantallaPerfil(
     if (viendoCondiciones) HojaCondiciones(alCerrar = { viendoCondiciones = false })
 
     if (eliminando) {
+        val eliminandoCuenta by viewModel.eliminandoCuenta.collectAsStateWithLifecycle()
+        var errorContrasena by remember { mutableStateOf(false) }
+        // La hoja se cierra solo si salió bien (la navegación ya cierra la sesión); si no, se queda para corregir
         val alTerminar: (Throwable?) -> Unit = { fallo ->
-            if (fallo == null) alCerrarSesion()
-            else alcance.launch { avisos.mostrarError(avisoFallo("eliminar tu cuenta", fallo)) }
+            if (fallo == null) {
+                eliminando = false
+                alCerrarSesion()
+            } else if ((fallo as? ErrorApi)?.codigo == CodigoError.CONTRASENA_INCORRECTA) {
+                errorContrasena = true
+            } else {
+                alcance.launch { avisos.mostrarError(avisoFallo("eliminar tu cuenta", fallo)) }
+            }
         }
         val contexto = LocalContext.current
         HojaEliminarCuenta(
             conContrasena = usuario.tieneContrasena,
-            alCerrar = { eliminando = false },
+            eliminando = eliminandoCuenta,
+            errorContrasena = errorContrasena,
+            alCambiarContrasena = { errorContrasena = false },
+            alCerrar = { if (!eliminandoCuenta) eliminando = false },
             alConfirmar = { contrasena ->
+                errorContrasena = false
                 viewModel.eliminarCuenta(contrasena, alTerminar)
-                eliminando = false
             },
             alConfirmarConGoogle = {
                 alcance.launch {
@@ -310,7 +345,6 @@ fun PantallaPerfil(
                         ResultadoGoogle.SinCuentas -> avisos.mostrarError(MENSAJE_GOOGLE_SIN_CUENTAS)
                         ResultadoGoogle.NoDisponible -> avisos.mostrarError(MENSAJE_GOOGLE_NO_DISPONIBLE)
                     }
-                    eliminando = false
                 }
             }
         )
@@ -365,7 +399,7 @@ private fun BotonIr(modifier: Modifier = Modifier) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(36.dp)
+            .size(TamanoBotonIr)
             .background(BosqueMedio, CircleShape)
     ) {
         Icon(IconosNexo.Flecha, contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(IconoCuerpo))
@@ -398,25 +432,25 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean, subiendoFoto: Boolean,
                     .padding(start = EspacioAmplio, end = EspacioAmplio, bottom = EspacioMargen)
                     .aparicion(0, iniciado)
             ) {
-                FotoEditable(usuario, subiendoFoto, alCambiarFoto)
-                Spacer(Modifier.height(EspacioNormal))
-                Text(
-                    usuario.nombre,
-                    color = SobreOscuro,
-                    style = MaterialTheme.typography.displaySmall,
-                    maxLines = 2,
-                    modifier = Modifier.semantics { heading() }
-                )
-                Spacer(Modifier.height(EspacioMicro))
-                // Con letra grande no caben en una línea: el correo baja a la suya en vez de cortarse
-                val apilado = LocalDensity.current.fontScale > 1.3f
-                Text(
-                    if (apilado) "${usuario.handle}\n${usuario.correo}" else "${usuario.handle} · ${usuario.correo}",
-                    color = SobreOscuroSuave,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = if (apilado) 3 else 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                // Foto y nombre lado a lado (como Instagram o LinkedIn): la cabecera no crece al poner foto
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FotoEditable(usuario, subiendoFoto, alCambiarFoto)
+                    Spacer(Modifier.width(EspacioNormal))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            usuario.nombre,
+                            color = SobreOscuro,
+                            style = MaterialTheme.typography.headlineMedium,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.semantics { heading() }
+                        )
+                        Spacer(Modifier.height(EspacioMicro))
+                        // Usuario y correo en líneas propias: en una columna angosta no caben juntos
+                        Text(usuario.handle, color = SobreOscuroSuave, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(usuario.correo, color = SobreOscuroSuave, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
             }
             }
         }
@@ -433,23 +467,32 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean, subiendoFoto: Boolean,
 /** Avatar grande con un botón de cámara: tocarlo abre el selector de fotos del teléfono. */
 @Composable
 private fun FotoEditable(usuario: Usuario, subiendo: Boolean, alCambiar: () -> Unit) {
+    // Sin recorte en el contenedor: la insignia de la cámara asoma sobre el borde del círculo
     Box(
-        Modifier
-            .clip(CircleShape)
-            .clickable(enabled = !subiendo, onClickLabel = "Cambiar foto de perfil", onClick = alCambiar)
+        Modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null,
+            enabled = !subiendo,
+            onClickLabel = "Cambiar foto de perfil",
+            role = Role.Button,
+            onClick = alCambiar
+        )
     ) {
-        Avatar(usuario.nombre, tamano = 76.dp, anillo = SobreOscuroSuave.copy(alpha = 0.35f), fotoUrl = usuario.fotoUrl)
+        Avatar(usuario.nombre, tamano = TamanoAvatarPropio, anillo = SobreOscuro, fotoUrl = usuario.fotoUrl)
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .size(28.dp)
-                .background(Superficie, CircleShape)
+                .offset(x = EspacioMinimo, y = EspacioMinimo)
+                .size(TamanoInsigniaCamara)
+                .border(2.dp, SobreOscuro, CircleShape)
+                .padding(2.dp)
+                .background(BosqueMedio, CircleShape)
         ) {
             if (subiendo) {
-                CircularProgressIndicator(strokeWidth = 2.dp, color = Bosque, modifier = Modifier.size(16.dp))
+                CircularProgressIndicator(strokeWidth = 2.dp, color = SobreOscuro, modifier = Modifier.size(IconoPequenoCamara))
             } else {
-                Icon(IconosNexo.Camara, contentDescription = null, tint = Bosque, modifier = Modifier.size(16.dp))
+                Icon(IconosNexo.Camara, contentDescription = null, tint = SobreOscuro, modifier = Modifier.size(IconoPequenoCamara))
             }
         }
     }
@@ -529,8 +572,94 @@ private fun ValorCifra(valor: String, conEstrella: Boolean) {
     }
 }
 
-/** Modo tutor: verificación, materias que enseña y las últimas reseñas recibidas. */
-@OptIn(ExperimentalLayoutApi::class)
+/** Tarjeta blanca con el mismo interior en todas las secciones; el título de la sección va fuera, como en el Inicio. */
+@Composable
+private fun TarjetaSeccion(modifier: Modifier = Modifier, contenido: @Composable () -> Unit) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .superficie(FormaOrganica)
+            .padding(EspacioNormal)
+    ) { contenido() }
+}
+
+/** Título de sección con su acción, fuera de la tarjeta, y el contenido justo debajo (patrón del Inicio). */
+@Composable
+private fun Seccion(
+    titulo: String,
+    accion: String? = null,
+    alAccion: (() -> Unit)? = null,
+    contenido: @Composable () -> Unit
+) {
+    Column {
+        EncabezadoSeccion(titulo, accion = accion, alAccion = alAccion)
+        Spacer(Modifier.height(EspacioMicro))
+        contenido()
+    }
+}
+
+/** Lo que falta para que el perfil de tutor se vea completo; no aparece cuando ya está todo. */
+@Composable
+private fun TarjetaCompletaPerfil(
+    usuario: Usuario,
+    listosPasos: Set<PasoPerfil>,
+    subiendoFoto: Boolean,
+    alPonerFoto: () -> Unit,
+    alEditarPerfil: () -> Unit,
+    alEditarMaterias: () -> Unit
+) {
+    val puntos = listOf(
+        Triple(PasoPerfil.FOTO, "Agrega tu foto", alPonerFoto),
+        Triple(PasoPerfil.TARIFA, "Fija tu tarifa", alEditarPerfil),
+        Triple(PasoPerfil.MATERIAS, "Agrega tus materias", alEditarMaterias),
+        Triple(PasoPerfil.PRESENTACION, "Escribe tu presentación", alEditarPerfil)
+    )
+    val listos = listosPasos.size
+    if (listos == puntos.size) return
+    TarjetaSeccion {
+        Column(Modifier.semantics(mergeDescendants = true) { heading() }) {
+            Text("Completa tu perfil", color = TextoPrimario, style = MaterialTheme.typography.titleMedium)
+            Text("$listos de ${puntos.size} listos", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
+        }
+        val avance by animateFloatAsState(
+            listos / puntos.size.toFloat(),
+            animationSpec = if (LocalAnimacionesReducidas.current) snap() else spring(),
+            label = "avancePerfil"
+        )
+        Box(
+            Modifier
+                .padding(vertical = EspacioMedio)
+                .fillMaxWidth()
+                .height(AltoBarraAvance)
+                .clip(CircleShape)
+                .background(TinteBosque)
+        ) {
+            // Con 0 listos se ve un poco de avance: la tarea se lee como empezada, no como vacía
+            Box(Modifier.fillMaxHeight().fillMaxWidth(avance.coerceAtLeast(0.04f)).clip(CircleShape).background(BosqueMedio))
+        }
+        puntos.filter { it.first !in listosPasos }.forEach { (paso, texto, alClicar) ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = AreaTactilMinima)
+                    .clip(FormaOpcion)
+                    .clickable(enabled = !(paso == PasoPerfil.FOTO && subiendoFoto), role = Role.Button, onClick = alClicar)
+            ) {
+                Text(texto, color = TextoPrimario, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Icon(IconosNexo.Caret, contentDescription = null, tint = IconoSecundario, modifier = Modifier.size(IconoNormal))
+            }
+        }
+        Text(
+            "Con el perfil completo apareces mejor en las búsquedas.",
+            color = TextoTercero,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = EspacioFino)
+        )
+    }
+}
+
+/** Modo tutor: tarifa, materias que enseña y reseñas recibidas. */
 @Composable
 private fun BloqueTutor(
     usuario: Usuario,
@@ -544,91 +673,102 @@ private fun BloqueTutor(
     alEditarPerfil: () -> Unit
 ) {
     val carga = cargaDe(cargando, resenas.isEmpty(), error)
-    Column(Modifier.padding(horizontal = EspacioMargen)) {
-        EncabezadoSeccion("Tu tarifa", accion = "Editar perfil", alAccion = alEditarPerfil)
-        Text(
-            usuario.precioHora?.takeIf { it > 0 }?.let { "${formatoPrecio(it)} la hora" } ?: "A convenir: aún no la fijas",
-            color = TextoPrimario,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(bottom = EspacioAjustado)
-        )
-        if (usuario.materias.isNotEmpty()) {
-            Materias("Enseñas", usuario.materias, accion = "Editar", alAccion = alEditarMaterias)
-        } else {
-            EncabezadoSeccion("Enseñas")
-            Text("Aún no tienes materias publicadas.", color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
-            BotonTexto("Agregar materias", alEditarMaterias)
-        }
-        if (usuario.bio.isNotBlank()) {
-            Text(
-                usuario.bio,
-                color = TextoSecundario,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = EspacioMedio)
-            )
-        }
-
-        EncabezadoSeccion(
-            "Lo que dicen de ti",
-            Modifier.padding(top = EspacioAjustado),
-            accion = if (carga == Carga.LISTO) "Ver todas" else null,
-            alAccion = alVerTodas
-        )
-        when (carga) {
-            Carga.CARGANDO -> EsqueletoSinMargen(filas = 2)
-            Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus reseñas", alReintentar = alReintentar)
-            Carga.VACIO -> EstadoVacio(
-                icono = IconosNexo.Resena,
-                titulo = "Aún sin reseñas",
-                mensaje = "Aparecerán aquí cuando los estudiantes califiquen tus sesiones.",
-                accion = "Ver mi historial",
-                alAccion = alVerHistorial
-            )
-            Carga.LISTO -> ListaResenas(resenas.take(2))
-        }
-    }
-}
-
-/** [EsqueletoLista] ya trae margen lateral; dentro de un bloque con margen propio se pintan los huesos sin él. */
-@Composable
-private fun EsqueletoSinMargen(filas: Int) {
-    Esqueleto(
-        Modifier.fillMaxWidth().padding(vertical = EspacioNormal),
-        verticalArrangement = Arrangement.spacedBy(EspacioMedio)
-    ) {
-        repeat(filas) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Superficie, FormaOrganica)
-                    .border(1.dp, BordeSutil, FormaOrganica)
-                    .padding(EspacioNormal)
-            ) {
-                Hueso(Modifier.size(TamanoAvatarNormal), CircleShape)
-                Spacer(Modifier.width(EspacioMedio))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
-                    LineaHueso(0.55f, alto = 14.dp)
-                    LineaHueso(0.85f, alto = 10.dp)
-                    LineaHueso(0.4f, alto = 10.dp)
+    val precio = usuario.tarifaFijada
+    val datos = listOf(usuario.universidad, usuario.carrera).filter { it.isNotBlank() }.joinToString(" · ")
+    Column(Modifier.padding(horizontal = EspacioMargen), verticalArrangement = Arrangement.spacedBy(EspacioSuelto)) {
+        Seccion("Tu tarifa", accion = if (precio != null) "Editar" else "Fijar", alAccion = alEditarPerfil) {
+            TarjetaSeccion {
+                if (precio != null) {
+                    val cifra = MaterialTheme.typography.headlineSmall.toSpanStyle().copy(color = BosqueProfundo)
+                    Text(
+                        buildAnnotatedString {
+                            withStyle(cifra) { append(formatoPrecio(precio)) }
+                            append(" la hora")
+                        },
+                        color = TextoSecundario,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    Text("Aún no has fijado tu tarifa: los estudiantes verán «A convenir».", color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
                 }
+                if (datos.isNotEmpty()) {
+                    Text(datos, color = TextoPrimario, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = EspacioMedio))
+                }
+                if (usuario.bio.isNotBlank()) {
+                    Text(
+                        usuario.bio,
+                        color = TextoSecundario,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = EspacioFino)
+                    )
+                }
+            }
+        }
+
+        SeccionMaterias("Enseñas", usuario.materias, accion = "Editar", alAccion = alEditarMaterias, accionVacia = "Agregar")
+
+        Seccion(
+            "Lo que dicen de ti",
+            accion = when (carga) { Carga.LISTO -> "Ver todas"; Carga.VACIO -> "Ver tutorías"; else -> null },
+            alAccion = if (carga == Carga.VACIO) alVerHistorial else alVerTodas
+        ) {
+            when (carga) {
+                Carga.CARGANDO -> EsqueletoLista(filas = 2, conMargen = false)
+                Carga.ERROR -> TarjetaSeccion { ErrorDeLista(titulo = "No pudimos cargar tus reseñas", alReintentar = alReintentar) }
+                Carga.VACIO -> TarjetaSeccion {
+                    Text(
+                        "Aún sin reseñas. Aparecerán aquí cuando los estudiantes califiquen tus sesiones.",
+                        color = TextoSecundario,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Carga.LISTO -> ListaResenas(resenas.take(2))
             }
         }
     }
 }
 
-/** Materias como texto corrido, igual que en el perfil público: se leen de un vistazo y no recargan la pantalla. */
+/** Materias como píldoras en su tarjeta; si no hay, texto corto y la acción [accionVacia] en el encabezado. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Materias(
+private fun SeccionMaterias(
     titulo: String,
     materias: List<String>,
     modifier: Modifier = Modifier,
     accion: String? = null,
-    alAccion: () -> Unit = {}
+    alAccion: () -> Unit = {},
+    accionVacia: String? = null
 ) {
     Column(modifier) {
-        EncabezadoSeccion(titulo, accion = accion, alAccion = alAccion)
-        Text(enumerar(materias), color = TextoPrimario, style = MaterialTheme.typography.bodyLarge)
+        Seccion(titulo, accion = if (materias.isEmpty()) accionVacia else accion, alAccion = alAccion) {
+            TarjetaSeccion {
+                if (materias.isEmpty()) {
+                    Text(
+                        "Aún no publicas materias: elige las que puedes enseñar.",
+                        color = TextoSecundario,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
+                        verticalArrangement = Arrangement.spacedBy(EspacioCorto)
+                    ) {
+                        materias.forEach {
+                            Text(
+                                it,
+                                color = BosqueProfundo,
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier
+                                    .background(TinteBosque, FormaBoton)
+                                    .padding(horizontal = EspacioNormal, vertical = EspacioAjustado)
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -679,7 +819,7 @@ private fun AvisoPenalizaciones(resumen: ResumenActividad, esTutor: Boolean, mod
             )
             Text(
                 (if (esTutor) "No apareces en la búsqueda ni puedes aceptar solicitudes." else "No puedes enviar solicitudes.") +
-                    " Tus sesiones agendadas siguen en pie. ¿Fue un error? Pide revisión en el Historial.",
+                    " Tus sesiones agendadas siguen en pie. ¿Fue un error? Pide revisión en " + (if (esTutor) "Tutorías dadas." else "Tus tutorías."),
                 color = TextoSobreTinte,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -695,39 +835,38 @@ private fun AvisoPenalizaciones(resumen: ResumenActividad, esTutor: Boolean, mod
 }
 
 @Composable
-private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> Unit, alEliminar: () -> Unit, alVerCondiciones: () -> Unit) {
-    // Tarjeta con los mismos márgenes que el resto del perfil, como la de reseñas
-    Column(
-        Modifier
-            .padding(horizontal = EspacioMargen)
-            .fillMaxWidth()
-            .superficie(FormaOrganica)
-    ) {
-        FilaMenu(IconosNexo.Historial, if (esTutor) "Tutorías dadas" else "Tus tutorías", alAbrirHistorial)
+private fun Menu(
+    esTutor: Boolean,
+    alAbrirHistorial: () -> Unit,
+    alSalir: () -> Unit,
+    alEliminar: () -> Unit,
+    alVerCondiciones: () -> Unit,
+    alVerPerfilPublico: () -> Unit
+) {
+    val enlaces = LocalUriHandler.current
+    Column(Modifier.padding(horizontal = EspacioMargen), verticalArrangement = Arrangement.spacedBy(EspacioSuelto)) {
+        TarjetaFilas {
+            if (esTutor) FilaMenu(IconosNexo.Usuario, "Ver mi perfil público", alVerPerfilPublico)
+            FilaMenu(IconosNexo.Historial, if (esTutor) "Tutorías dadas" else "Tus tutorías", alAbrirHistorial)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
+            RotuloGrupo("Cuenta", Modifier.padding(start = EspacioNormal).semantics { heading() })
+            TarjetaFilas {
+                FilaMenu(IconosNexo.Documento, "Condiciones de uso", alVerCondiciones)
+                FilaMenu(IconosNexo.Candado, "Política de privacidad", { enlaces.openUri(URL_PRIVACIDAD) })
+            }
+        }
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            BotonTexto("Cerrar sesión", alSalir, color = TextoSecundario)
+            BotonTexto("Eliminar mi cuenta", alEliminar, color = TextoTercero)
+        }
     }
-    // Cerrar sesión es raro: píldora de borde fino, como "Continuar con Google" del acceso
-    val rojo = RojoSuave
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .padding(start = EspacioMargen, end = EspacioMargen, top = EspacioCercano)
-            .fillMaxWidth()
-            .heightIn(min = 50.dp)
-            .clip(CircleShape)
-            .border(1.dp, BordeRojoSalir, CircleShape)
-            .clickable(role = Role.Button, onClick = alSalir)
-    ) {
-        Icon(IconosNexo.Salir, contentDescription = null, tint = rojo, modifier = Modifier.size(IconoNormal))
-        Spacer(Modifier.width(EspacioCorto))
-        Text("Cerrar sesión", color = rojo, style = MaterialTheme.typography.titleSmall)
-    }
-    Column(Modifier.fillMaxWidth().padding(top = EspacioMinimo), horizontalAlignment = Alignment.CenterHorizontally) {
-        val enlaces = LocalUriHandler.current
-        BotonTexto("Condiciones de uso", alVerCondiciones, color = TextoTercero)
-        BotonTexto("Política de privacidad", { enlaces.openUri(URL_PRIVACIDAD) }, color = TextoTercero)
-        BotonTexto("Eliminar mi cuenta", alEliminar, color = TextoTercero)
-    }
+}
+
+/** Tarjeta sin relleno propio para filas que ya traen el suyo. */
+@Composable
+private fun TarjetaFilas(contenido: @Composable () -> Unit) {
+    Column(Modifier.fillMaxWidth().superficie(FormaOrganica)) { contenido() }
 }
 
 /**
@@ -737,6 +876,9 @@ private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> 
 @Composable
 private fun HojaEliminarCuenta(
     conContrasena: Boolean,
+    eliminando: Boolean,
+    errorContrasena: Boolean,
+    alCambiarContrasena: () -> Unit,
     alCerrar: () -> Unit,
     alConfirmar: (String) -> Unit,
     alConfirmarConGoogle: () -> Unit
@@ -752,17 +894,27 @@ private fun HojaEliminarCuenta(
             Spacer(Modifier.height(EspacioNormal))
             Campo(
                 valor = contrasena,
-                alCambiar = { contrasena = it },
+                alCambiar = { contrasena = it; alCambiarContrasena() },
                 marcador = "Tu contraseña",
                 oculto = true,
                 teclado = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth()
             )
+            if (errorContrasena) {
+                Text(
+                    "La contraseña no es correcta.",
+                    color = Rojo,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = EspacioMinimo)
+                )
+            }
         }
         Spacer(Modifier.height(EspacioHolgado))
-        BotonPrimario(
+        BotonSecundario(
             texto = if (conContrasena) "Eliminar mi cuenta" else "Confirmar con Google y eliminar",
-            habilitado = !conContrasena || contrasena.isNotEmpty(),
+            peligro = true,
+            cargando = eliminando,
+            habilitado = !eliminando && (!conContrasena || contrasena.isNotEmpty()),
             alClicar = { if (conContrasena) alConfirmar(contrasena) else alConfirmarConGoogle() },
             modifier = Modifier.fillMaxWidth()
         )
@@ -850,7 +1002,7 @@ private fun FilaMenu(icono: ImageVector, titulo: String, alClicar: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
+            .heightIn(min = AltoFilaMenu)
             .clickable(role = Role.Button, onClick = alClicar)
             .padding(horizontal = EspacioNormal, vertical = EspacioAjustado)
     ) {

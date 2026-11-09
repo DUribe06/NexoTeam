@@ -21,8 +21,11 @@ fun formatoValoracion(valor: Double): String = String.format(localeColombia, "%.
 fun universidadCorta(nombre: String): String = siglasUniversidad[nombre] ?: nombre
 
 /** Pesos colombianos con punto de miles: 25000.0 → "$25.000". */
-fun formatoPrecio(valor: Double): String =
-    "$" + valor.toLong().toString().reversed().chunked(3).joinToString(".").reversed()
+fun formatoPrecio(valor: Double): String = "$" + enteroCo(valor.toLong())
+
+/** Entero con punto de miles: 1250 → "1.250". */
+fun enteroCo(n: Long): String = n.toString().reversed().chunked(3).joinToString(".").reversed()
+fun enteroCo(n: Int): String = enteroCo(n.toLong())
 /** Tarifa por hora para mostrar; un tutor que aún no la fija aparece "a convenir" en lugar de $0. */
 fun tarifaTexto(precioHora: Double): String =
     if (precioHora > 0) "${formatoPrecio(precioHora)} la hora" else "precio a convenir"

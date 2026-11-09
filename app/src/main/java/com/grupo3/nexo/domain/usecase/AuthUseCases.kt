@@ -25,11 +25,11 @@ class ValidarAccesoUseCase @Inject constructor() {
         contrasena: String,
         aceptaCondiciones: Boolean
     ): String? = when {
-        esRegistro && nombre.isBlank() -> "Escribe tu nombre o un alias"
-        correo.isBlank() || contrasena.isBlank() -> "Completa todos los campos para continuar"
+        esRegistro && nombre.isBlank() -> "Escribe tu nombre o un alias."
+        correo.isBlank() || contrasena.isBlank() -> "Completa todos los campos para continuar."
         !correo.contains("@") -> "Escribe un correo válido, por ejemplo correo@ejemplo.com"
-        contrasena.length < 4 -> "La contraseña debe tener al menos 4 caracteres"
-        esRegistro && !aceptaCondiciones -> "Acepta las condiciones de uso para vincularte"
+        esRegistro && (contrasena.length < MINIMO_CONTRASENA || !tieneLetrasYNumeros(contrasena)) -> MENSAJE_CONTRASENA
+        esRegistro && !aceptaCondiciones -> "Acepta las condiciones de uso para vincularte."
         else -> null
     }
 }
@@ -74,15 +74,17 @@ class RestablecerContrasenaUseCase @Inject constructor(
 /** Valida los datos de la contraseña nueva; devuelve el mensaje de error o null si todo está en orden. */
 class ValidarRestablecerUseCase @Inject constructor() {
     operator fun invoke(codigo: String, nueva: String): String? = when {
-        codigo.length != LARGO_CODIGO -> "Escribe los $LARGO_CODIGO dígitos del código"
-        nueva.length < MINIMO_CONTRASENA -> "La contraseña debe tener al menos $MINIMO_CONTRASENA caracteres"
+        codigo.length != LARGO_CODIGO -> "Escribe los $LARGO_CODIGO dígitos del código."
+        nueva.length < MINIMO_CONTRASENA || !tieneLetrasYNumeros(nueva) -> MENSAJE_CONTRASENA
         else -> null
     }
-
-    private companion object {
-        const val MINIMO_CONTRASENA = 8
-    }
 }
+
+/** Lo mismo que exige el servidor a una contraseña. */
+const val MINIMO_CONTRASENA = 8
+private const val MENSAJE_CONTRASENA = "Usa al menos $MINIMO_CONTRASENA caracteres, con letras y números."
+
+private fun tieneLetrasYNumeros(texto: String) = texto.any(Char::isLetter) && texto.any(Char::isDigit)
 
 /** Dígitos del código que llega al correo. */
 const val LARGO_CODIGO = 6

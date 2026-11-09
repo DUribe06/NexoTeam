@@ -90,15 +90,18 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -656,7 +659,8 @@ internal fun CampoPildora(
     teclado: KeyboardOptions,
     modifier: Modifier = Modifier,
     esContrasena: Boolean = false,
-    alPulsarListo: () -> Unit = {}
+    alPulsarListo: () -> Unit = {},
+    etiqueta: String? = null
 ) {
     var enfocado by remember { mutableStateOf(false) }
     var visible by rememberSaveable { mutableStateOf(false) }
@@ -684,6 +688,11 @@ internal fun CampoPildora(
             .shadow(elevacion, CircleShape, ambientColor = SombraAmbienteCampoAcceso, spotColor = SombraPuntualCampoAcceso)
             .background(Superficie, CircleShape)
             .border(grosorBorde, colorBorde, CircleShape)
+            .semantics {
+                // Con texto escrito, la descripción taparía lo escrito: el nombre del campo pasa a ser su estado
+                val nombre = etiqueta ?: marcador
+                if (valor.isEmpty()) contentDescription = nombre else stateDescription = nombre
+            }
             .onFocusChanged { enfocado = it.isFocused },
         decorationBox = { campo ->
             Row(
@@ -696,7 +705,14 @@ internal fun CampoPildora(
                 Spacer(Modifier.width(EspacioMedio))
                 Box(Modifier.weight(1f)) {
                     if (valor.isEmpty()) {
-                        Text(marcador, color = Marcador, style = LocalTextStyle.current.merge(MarcadorCampo))
+                        Text(
+                            marcador,
+                            color = Marcador,
+                            style = LocalTextStyle.current.merge(MarcadorCampo),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.clearAndSetSemantics {}
+                        )
                     }
                     campo()
                 }
@@ -816,6 +832,10 @@ internal fun BotonVincularse(texto: String, cargando: Boolean, alClicar: () -> U
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
+            .semantics(mergeDescendants = true) {
+                contentDescription = texto
+                if (cargando) stateDescription = "Cargando"
+            }
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .graphicsLayer {

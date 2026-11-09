@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.usecase.DefinirMateriasUseCase
 import com.grupo3.nexo.domain.usecase.ObtenerUsuarioUseCase
+import com.grupo3.nexo.ui.disponibilidad.EstadoGuardado
 import com.grupo3.nexo.ui.falloDe
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -14,6 +15,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.stateIn
@@ -36,6 +39,9 @@ class MisMateriasViewModel @Inject constructor(
     private val _fallos = MutableSharedFlow<Throwable>(extraBufferCapacity = 1)
     val fallos: SharedFlow<Throwable> = _fallos
 
+    private val _guardado = MutableStateFlow(EstadoGuardado.SIN_CAMBIOS)
+    val guardado: StateFlow<EstadoGuardado> = _guardado.asStateFlow()
+
     /** Sobrevive a la pantalla: volver atrás justo después de agregar no pierde el cambio. */
     private val guardados = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -55,14 +61,23 @@ class MisMateriasViewModel @Inject constructor(
         if (actuales.size > 1) cambiar(actuales - materia)
     }
 
+    /** Deshace un quitado: la materia vuelve al lugar donde estaba. */
+    fun restaurar(materia: String, posicion: Int) {
+        val actuales = materias.value
+        if (materia !in actuales) cambiar(actuales.toMutableList().apply { add(posicion.coerceIn(0, size), materia) })
+    }
+
     private fun cambiar(nueva: List<String>) {
         borrador.value = nueva
+        _guardado.value = EstadoGuardado.GUARDANDO
         guardados.launch {
             turno.withLock {
                 val foto = borrador.value ?: return@withLock
                 val fallo = falloDe { definirMaterias(foto) }
                 if (borrador.value !== foto) return@withLock
                 borrador.value = null
+                // Si falló, la lista ya volvió a lo guardado y el aviso lo explica: no queda nada pendiente que mostrar
+                _guardado.value = if (fallo == null) EstadoGuardado.GUARDADO else EstadoGuardado.SIN_CAMBIOS
                 fallo?.let { _fallos.tryEmit(it) }
             }
         }

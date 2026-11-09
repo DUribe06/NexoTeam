@@ -1,5 +1,6 @@
 package com.grupo3.nexo.ui.tutor
 
+import android.content.Intent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -56,6 +57,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -108,6 +110,7 @@ import com.grupo3.nexo.ui.components.Onda
 import com.grupo3.nexo.ui.components.PLAZO_RESPUESTA
 import com.grupo3.nexo.ui.components.RadioOpcion
 import com.grupo3.nexo.ui.components.RotuloGrupo
+import com.grupo3.nexo.ui.components.Valoracion
 import com.grupo3.nexo.ui.components.SangriaDivisorRadio
 import com.grupo3.nexo.ui.components.TarjetaResena
 import com.grupo3.nexo.ui.components.TextoLinea
@@ -116,6 +119,7 @@ import com.grupo3.nexo.ui.components.aparicion
 import com.grupo3.nexo.ui.components.avisoFallo
 import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.enumerar
+import com.grupo3.nexo.ui.components.enteroCo
 import com.grupo3.nexo.ui.components.formatoFecha
 import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.components.formatoPrecio
@@ -129,6 +133,15 @@ import com.grupo3.nexo.ui.components.textoDePenalizacionesRecientes
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
+import com.grupo3.nexo.ui.theme.AlturaOndaCierre
+import com.grupo3.nexo.ui.theme.AlturaOndaPortada
+import com.grupo3.nexo.ui.theme.AltoOpcionModalidad
+import com.grupo3.nexo.ui.theme.AltoSelectorDia
+import com.grupo3.nexo.ui.theme.AnchoDiaHorario
+import com.grupo3.nexo.ui.theme.AnchoSelectorDia
+import com.grupo3.nexo.ui.theme.SolapeAvatarPerfil
+import com.grupo3.nexo.ui.theme.TamanoInsigniaAvatarPerfil
+import com.grupo3.nexo.ui.theme.UmbralPortada
 import com.grupo3.nexo.ui.theme.BordeSeleccion
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.BosqueAcento
@@ -199,6 +212,7 @@ fun PantallaTutorPerfil(
     var altoBarra by remember { mutableIntStateOf(0) }
     var mostrarReporte by rememberSaveable { mutableStateOf(false) }
     val avisos = remember { SnackbarHostState() }
+    val contexto = LocalContext.current
 
     LaunchedEffect(estado.aviso) {
         val aviso = estado.aviso ?: return@LaunchedEffect
@@ -213,8 +227,9 @@ fun PantallaTutorPerfil(
 
     // La portada es oscura: íconos claros solo mientras está a la vista.
     val lista = rememberLazyListState()
+    val umbralPortada = with(LocalDensity.current) { UmbralPortada.roundToPx() }
     val portadaVisible by remember {
-        derivedStateOf { lista.firstVisibleItemIndex == 0 && lista.firstVisibleItemScrollOffset < 300 }
+        derivedStateOf { lista.firstVisibleItemIndex == 0 && lista.firstVisibleItemScrollOffset < umbralPortada }
     }
     IconosClarosEnBarraDeEstado(activo = portadaVisible)
     val iniciado = rememberPrimeraVez()
@@ -223,7 +238,7 @@ fun PantallaTutorPerfil(
         if (tutor == null) {
             // La misma portada con foto que el perfil cargado: la cabecera no cambia de aspecto al llegar los datos
             Column(Modifier.fillMaxSize()) {
-                Portada(alVolver = alVolver, alReportar = null)
+                Portada(alVolver = alVolver, alReportar = null, alCompartir = null)
                 when (cargaDe(cargando = estado.cargando, vacia = estado.noEncontrado, error = estado.error)) {
                     Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar este perfil", alReintentar = viewModel::reintentar)
                     Carga.VACIO -> EstadoVacio(
@@ -242,15 +257,28 @@ fun PantallaTutorPerfil(
                     state = lista,
                     // Sin la barra de solicitud (modo tutor), el contenido debe despejar la barra de navegación
                     contentPadding = PaddingValues(
-                        bottom = EspacioAmplio + if (estado.esTutor) WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() else 0.dp
+                        bottom = EspacioAmplio + if (!estado.puedeSolicitar) WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() else 0.dp
                     ),
                     modifier = Modifier.weight(1f)
                 ) {
                     item(key = "portada") {
-                        Portada(alVolver = alVolver, alReportar = { mostrarReporte = true })
+                        Portada(
+                            alVolver = alVolver,
+                            alReportar = if (estado.esPropio) null else ({ mostrarReporte = true }),
+                            alCompartir = if (estado.esPropio) null else ({ contexto.startActivity(intentCompartir(tutor)) })
+                        )
                     }
                     item(key = "identidad") {
                         Identidad(tutor, Modifier.aparicion(0, iniciado))
+                    }
+                    if (estado.esPropio) item(key = "avisoPropio") {
+                        Text(
+                            "Así te ven los estudiantes.",
+                            color = TextoTercero,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = EspacioMargen).padding(top = EspacioAjustado)
+                        )
                     }
                     item(key = "cifras") {
                         Column(
@@ -279,14 +307,21 @@ fun PantallaTutorPerfil(
                                 .padding(top = EspacioSuelto)
                                 .aparicion(2, iniciado)
                         ) {
-                            EncabezadoSeccion("Sobre ${tutor.nombre.primerNombre}")
-                            Text(tutor.bio, color = TextoSecundario, style = MaterialTheme.typography.bodyLarge)
-                            Spacer(Modifier.height(EspacioSuelto))
-                            RotuloGrupo("Enseña")
-                            Spacer(Modifier.height(EspacioAjustado))
+                            // Sin presentación no se muestra un título vacío
+                            if (tutor.bio.isNotBlank()) {
+                                EncabezadoSeccion("Sobre ${tutor.nombre.primerNombre}")
+                                Text(tutor.bio, color = TextoSecundario, style = MaterialTheme.typography.bodyLarge)
+                                Spacer(Modifier.height(EspacioSuelto))
+                            }
+                            if (tutor.bio.isNotBlank()) {
+                                RotuloGrupo("Enseña")
+                                Spacer(Modifier.height(EspacioAjustado))
+                            } else {
+                                EncabezadoSeccion("Enseña")
+                            }
                             if (tutor.materias.isEmpty()) {
-                                Text("Aún no publica materias.", color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
-                                if (tutor.horario.isNotEmpty() && !estado.esTutor) BotonTexto("Solicitar tutoría", { mostrarSolicitud = true })
+                                Text(if (estado.esPropio) "Aún no publicas materias." else "Aún no publica materias.", color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
+                                if (tutor.horario.isNotEmpty() && estado.puedeSolicitar) BotonTexto("Solicitar tutoría", { mostrarSolicitud = true })
                             } else {
                                 Materias(tutor.materias)
                             }
@@ -299,34 +334,18 @@ fun PantallaTutorPerfil(
                                 .padding(top = EspacioHolgado)
                         ) {
                             EncabezadoSeccion("Horarios disponibles")
-                            HorarioSemanal(tutor.horario)
+                            HorarioSemanal(tutor.horario, propio = estado.esPropio)
                         }
                     }
                     item(key = "resenasTitulo") {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                        EncabezadoSeccion(
+                            "Reseñas",
                             modifier = Modifier
                                 .padding(horizontal = EspacioMargen)
                                 .padding(top = EspacioHolgado, bottom = EspacioFino)
                         ) {
-                            Text(
-                                "Reseñas",
-                                color = TextoPrimario,
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .semantics { heading() }
-                            )
                             // Sin reseñas, "0,0" parecería una nota real: el estado vacío de abajo ya lo explica
-                            if (tutor.totalResenas > 0) {
-                                Estrellas(Math.round(tutor.rating).toInt(), tamano = TamanoEstrella)
-                                Spacer(Modifier.width(EspacioFino))
-                                Text(
-                                    "${formatoValoracion(tutor.rating)} · ${tutor.totalResenas} ${plural(tutor.totalResenas, "reseña", "reseñas")}",
-                                    color = TextoSecundario,
-                                    style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares)
-                                )
-                            }
+                            if (tutor.totalResenas > 0) Valoracion(tutor.rating, resenas = tutor.totalResenas)
                         }
                     }
                     when (cargaDe(cargando = false, vacia = estado.resenas.isEmpty())) {
@@ -338,9 +357,10 @@ fun PantallaTutorPerfil(
                             EstadoVacio(
                                 icono = IconosNexo.Resena,
                                 titulo = "Aún sin reseñas",
-                                mensaje = if (estado.esTutor) "Aún nadie ha calificado a ${tutor.nombre.primerNombre}."
+                                mensaje = if (estado.esPropio) "Aún nadie te ha calificado."
+                                else if (!estado.puedeSolicitar) "Aún nadie ha calificado a ${tutor.nombre.primerNombre}."
                                 else "Tras tu sesión podrás calificar a ${tutor.nombre.primerNombre}.",
-                                accion = if (tutor.horario.isNotEmpty() && !estado.esTutor) "Solicitar tutoría" else null,
+                                accion = if (tutor.horario.isNotEmpty() && estado.puedeSolicitar) "Solicitar tutoría" else null,
                                 alAccion = { mostrarSolicitud = true }
                             )
                         }
@@ -355,7 +375,7 @@ fun PantallaTutorPerfil(
                     }
                 }
 
-                if (!estado.esTutor) {
+                if (estado.puedeSolicitar) {
                     BarraAcciones(
                         tutor = tutor,
                         alSolicitar = { mostrarSolicitud = true },
@@ -381,14 +401,14 @@ fun PantallaTutorPerfil(
                     .align(Alignment.BottomCenter)
                     // Sobre la barra de acciones según su alto real (crece al apilarse con letra grande)
                     .then(
-                        if (estado.esTutor) Modifier.navigationBarsPadding()
+                        if (!estado.puedeSolicitar) Modifier.navigationBarsPadding()
                         else Modifier.padding(bottom = with(LocalDensity.current) { altoBarra.toDp() } + EspacioMedio)
                     )
             )
         }
     }
 
-    if (mostrarSolicitud && tutor != null && !estado.esTutor) {
+    if (mostrarSolicitud && tutor != null && estado.puedeSolicitar) {
         val dias by remember(tutor) { viewModel.diasDe(tutor) }
             .collectAsStateWithLifecycle(initialValue = remember(tutor) { diasSolicitables(tutor.horario) })
         HojaSolicitud(
@@ -401,7 +421,7 @@ fun PantallaTutorPerfil(
             }
         )
     }
-    if (mostrarReporte && tutor != null) {
+    if (mostrarReporte && tutor != null && !estado.esPropio) {
         HojaReporte(
             nombre = tutor.nombre,
             alCerrar = { mostrarReporte = false },
@@ -413,12 +433,28 @@ fun PantallaTutorPerfil(
     }
 }
 
+/** Selector del sistema con el resumen del tutor listo para enviar por cualquier app. */
+private fun intentCompartir(tutor: Tutor): Intent {
+    val tarifa = if (tutor.precioHora > 0) "${formatoPrecio(tutor.precioHora)} la hora" else "A convenir"
+    val valoracion = if (tutor.totalResenas > 0) {
+        "★ ${formatoValoracion(tutor.rating)} (${tutor.totalResenas} ${plural(tutor.totalResenas, "reseña", "reseñas")})"
+    } else {
+        "aún sin reseñas"
+    }
+    val texto = "Mira a ${tutor.nombre} en Nexo: tutor de ${enumerar(tutor.materias)}, $tarifa, $valoracion."
+    val envio = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, texto)
+    }
+    return Intent.createChooser(envio, "Compartir perfil")
+}
+
 /* ==================== Piezas ==================== */
 
 @Composable
-private fun Portada(alVolver: () -> Unit, alReportar: (() -> Unit)?) {
+private fun Portada(alVolver: () -> Unit, alReportar: (() -> Unit)?, alCompartir: (() -> Unit)?) {
     Box {
-        CabeceraBosque(conFoto = true, alturaOnda = 52.dp) {
+        CabeceraBosque(conFoto = true, alturaOnda = AlturaOndaPortada) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -427,6 +463,7 @@ private fun Portada(alVolver: () -> Unit, alReportar: (() -> Unit)?) {
             ) {
                 BotonIcono(IconosNexo.Atras, "Volver", alVolver, sobreOscuro = true)
                 Spacer(Modifier.weight(1f))
+                if (alCompartir != null) BotonIcono(IconosNexo.Compartir, "Compartir perfil", alCompartir, sobreOscuro = true)
                 if (alReportar != null) BotonIcono(IconosNexo.Bandera, "Reportar tutor", alReportar, sobreOscuro = true)
             }
             Spacer(Modifier.height(EspacioPortada))
@@ -436,7 +473,7 @@ private fun Portada(alVolver: () -> Unit, alReportar: (() -> Unit)?) {
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(32.dp)
+                .height(AlturaOndaCierre)
         )
     }
 }
@@ -452,8 +489,8 @@ private fun EsqueletoPerfil() {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Hueso(
                 Modifier
-                    .solaparHaciaArriba(64.dp)
-                    .size(106.dp),
+                    .solaparHaciaArriba(SolapeAvatarPerfil)
+                    .size(TamanoInsigniaAvatarPerfil),
                 CircleShape
             )
             Spacer(Modifier.height(EspacioCercano))
@@ -489,7 +526,7 @@ private fun Identidad(tutor: Tutor, modifier: Modifier = Modifier) {
     ) {
         Box(
             Modifier
-                .solaparHaciaArriba(64.dp)
+                .solaparHaciaArriba(SolapeAvatarPerfil)
                 .background(Superficie, CircleShape)
                 .padding(EspacioMinimo)
         ) {
@@ -504,7 +541,7 @@ private fun Identidad(tutor: Tutor, modifier: Modifier = Modifier) {
             modifier = Modifier.semantics { heading() }
         )
         Spacer(Modifier.height(EspacioMinimo))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        if (tutor.universidad.isNotBlank()) Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(IconosNexo.Graduacion, contentDescription = null, tint = TextoTercero, modifier = Modifier.size(Icono15))
             Spacer(Modifier.width(EspacioFino))
             Text(
@@ -545,8 +582,8 @@ private fun Cifras(tutor: Tutor, modifier: Modifier = Modifier) {
     if (LocalDensity.current.fontScale > 1.4f) {
         Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(EspacioMedio)) {
             Cifra(if (tutor.rating > 0) formatoValoracion(tutor.rating) else "Nuevo", "calificación", conEstrella = tutor.rating > 0, enLinea = true)
-            Cifra("${tutor.sesionesTotales}", "sesiones", enLinea = true)
-            Cifra("${tutor.estudiantes}", "estudiantes", enLinea = true)
+            Cifra(enteroCo(tutor.sesionesTotales), plural(tutor.sesionesTotales, "sesión", "sesiones"), enLinea = true)
+            Cifra(enteroCo(tutor.estudiantes), plural(tutor.estudiantes, "estudiante", "estudiantes"), enLinea = true)
         }
     } else {
         Row(
@@ -557,9 +594,9 @@ private fun Cifras(tutor: Tutor, modifier: Modifier = Modifier) {
         ) {
             Cifra(if (tutor.rating > 0) formatoValoracion(tutor.rating) else "Nuevo", "calificación", Modifier.weight(1f), conEstrella = tutor.rating > 0)
             Box(Modifier.fillMaxHeight().padding(vertical = EspacioFino).width(1.dp).background(Divisor))
-            Cifra("${tutor.sesionesTotales}", "sesiones", Modifier.weight(1f))
+            Cifra(enteroCo(tutor.sesionesTotales), plural(tutor.sesionesTotales, "sesión", "sesiones"), Modifier.weight(1f))
             Box(Modifier.fillMaxHeight().padding(vertical = EspacioFino).width(1.dp).background(Divisor))
-            Cifra("${tutor.estudiantes}", "estudiantes", Modifier.weight(1f))
+            Cifra(enteroCo(tutor.estudiantes), plural(tutor.estudiantes, "estudiante", "estudiantes"), Modifier.weight(1f))
         }
     }
 }
@@ -624,7 +661,10 @@ private fun BarraAcciones(tutor: Tutor, alSolicitar: () -> Unit, modifier: Modif
                 color = TextoPrimario,
                 style = MaterialTheme.typography.headlineSmall.merge(CifrasTabulares)
             )
-            Text(if (tutor.precioHora > 0) "por hora" else "precio", color = TextoTercero, style = MaterialTheme.typography.bodySmall)
+            Text(if (tutor.precioHora > 0) "por hora" else "lo acuerdan en el chat", color = TextoTercero, style = MaterialTheme.typography.bodySmall)
+            if (tutor.horario.isEmpty()) {
+                Text("Sin horarios publicados", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
     val margen = modifier
@@ -856,7 +896,7 @@ private fun OpcionModalidad(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .heightIn(min = 52.dp)
+            .heightIn(min = AltoOpcionModalidad)
             .background(fondo, FormaOpcion)
             .border(1.dp, borde, FormaOpcion)
             .selectable(selected = seleccionada, enabled = habilitada, role = Role.RadioButton, onClick = alClicar)
@@ -879,9 +919,9 @@ private fun OpcionModalidad(
 /** Semana del tutor (RF4): un renglón por día con sus horas y la modalidad de cada una. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun HorarioSemanal(horario: List<FranjaTutor>) {
+private fun HorarioSemanal(horario: List<FranjaTutor>, propio: Boolean) {
     if (horario.isEmpty()) {
-        Text("Aún no publica horarios.", color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
+        Text(if (propio) "Aún no publicas horarios." else "Aún no publica horarios.", color = TextoSecundario, style = MaterialTheme.typography.bodyMedium)
         return
     }
     val porDia = remember(horario) { horario.porDia }
@@ -898,7 +938,7 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
                     .fillMaxWidth()
                     .padding(horizontal = EspacioNormal, vertical = EspacioMedio)
             ) {
-                Text(dia.nombre, color = TextoPrimario, style = MaterialTheme.typography.titleSmall, modifier = Modifier.widthIn(min = 92.dp).padding(end = EspacioCorto))
+                Text(dia.nombre, color = TextoPrimario, style = MaterialTheme.typography.titleSmall, modifier = Modifier.widthIn(min = AnchoDiaHorario).padding(end = EspacioCorto))
                 // Dos por fila siempre: las franjas con un solo ícono son más angostas y dejaban filas de 3 y 1
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(EspacioFino),
@@ -915,7 +955,7 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
                         ) {
                             Text(formatoHora(f.hora), color = TextoPrimario, style = MaterialTheme.typography.labelMedium.merge(CifrasTabulares))
                             Spacer(Modifier.width(EspacioFino))
-                            IconosModalidad(f.modalidades, tamano = 13.dp)
+                            IconosModalidad(f.modalidades, tamano = Icono13)
                         }
                     }
                 }
@@ -948,7 +988,7 @@ private fun SelectorDia(dia: String, fecha: String, seleccionado: Boolean, alCli
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
-            .sizeIn(minWidth = 58.dp, minHeight = 72.dp)
+            .sizeIn(minWidth = AnchoSelectorDia, minHeight = AltoSelectorDia)
             .background(fondo, FormaOpcion)
             .border(1.dp, borde, FormaOpcion)
             .selectable(selected = seleccionado, role = Role.RadioButton, onClick = alClicar)

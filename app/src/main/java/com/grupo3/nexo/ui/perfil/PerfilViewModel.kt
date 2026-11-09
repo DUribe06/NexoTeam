@@ -25,6 +25,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
+/** Lo que un perfil de tutor necesita para verse completo. */
+enum class PasoPerfil { FOTO, TARIFA, MATERIAS, PRESENTACION }
+
+/** Tarifa fijada: un precio en cero o ausente cuenta como "a convenir". */
+val Usuario.tarifaFijada: Double? get() = precioHora?.takeIf { it > 0 }
+
+fun pasosListosDe(usuario: Usuario): Set<PasoPerfil> = buildSet {
+    if (!usuario.fotoUrl.isNullOrBlank()) add(PasoPerfil.FOTO)
+    if (usuario.tarifaFijada != null) add(PasoPerfil.TARIFA)
+    if (usuario.materias.isNotEmpty()) add(PasoPerfil.MATERIAS)
+    if (usuario.bio.isNotBlank() && usuario.universidad.isNotBlank()) add(PasoPerfil.PRESENTACION)
+}
+
 @HiltViewModel
 class PerfilViewModel @Inject constructor(
     obtenerUsuario: ObtenerUsuarioUseCase,
@@ -45,6 +58,8 @@ class PerfilViewModel @Inject constructor(
         val error: Boolean = false
     ) {
         val esTutor get() = usuario.rol == Rol.TUTOR
+        /** Pasos de "Completa tu perfil" ya hechos. */
+        val pasosListos get() = pasosListosDe(usuario)
     }
 
     private val usuario = obtenerUsuario()
@@ -82,12 +97,22 @@ class PerfilViewModel @Inject constructor(
 
     fun salir() = cerrarSesion()
 
-    /** Sin fallo, la sesión ya se cerró. */
-    fun eliminarCuenta(contrasena: String, alTerminar: (Throwable?) -> Unit) {
-        enCurso.lanzar(viewModelScope, "eliminar") { alTerminar(falloDe { eliminarCuentaPropia(contrasena) }) }
-    }
+    private val _eliminandoCuenta = MutableStateFlow(false)
+    /** Mientras corre la eliminación, la hoja deshabilita el botón y muestra carga. */
+    val eliminandoCuenta: StateFlow<Boolean> = _eliminandoCuenta.asStateFlow()
 
-    fun eliminarCuentaConGoogle(tokenGoogle: String, alTerminar: (Throwable?) -> Unit) {
-        enCurso.lanzar(viewModelScope, "eliminar") { alTerminar(falloDe { eliminarCuentaPropia.conGoogle(tokenGoogle) }) }
+    /** Sin fallo, la sesión ya se cerró. */
+    fun eliminarCuenta(contrasena: String, alTerminar: (Throwable?) -> Unit) = eliminar(alTerminar) { eliminarCuentaPropia(contrasena) }
+
+    fun eliminarCuentaConGoogle(tokenGoogle: String, alTerminar: (Throwable?) -> Unit) =
+        eliminar(alTerminar) { eliminarCuentaPropia.conGoogle(tokenGoogle) }
+
+    private fun eliminar(alTerminar: (Throwable?) -> Unit, accion: suspend () -> Unit) {
+        enCurso.lanzar(viewModelScope, "eliminar") {
+            _eliminandoCuenta.value = true
+            val fallo = falloDe(accion)
+            _eliminandoCuenta.value = false
+            alTerminar(fallo)
+        }
     }
 }

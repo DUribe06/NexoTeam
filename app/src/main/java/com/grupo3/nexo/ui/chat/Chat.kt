@@ -1,6 +1,5 @@
 package com.grupo3.nexo.ui.chat
 
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -9,6 +8,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,8 +24,10 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -32,7 +35,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -42,21 +44,29 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -64,12 +74,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.grupo3.nexo.domain.model.Chat
 import com.grupo3.nexo.domain.model.EstadoSesion
 import com.grupo3.nexo.domain.model.Mensaje
@@ -87,6 +100,7 @@ import com.grupo3.nexo.ui.components.Esqueleto
 import com.grupo3.nexo.ui.components.EsqueletoLista
 import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.HojaCalificacion
+import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.Hueso
 import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.components.InsigniaConteo
@@ -105,11 +119,15 @@ import com.grupo3.nexo.ui.components.plural
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.textoDePenalizacion
+import com.grupo3.nexo.ui.theme.AltoEsqueletoBurbuja
+import com.grupo3.nexo.ui.theme.AnchoImagenBurbuja
+import com.grupo3.nexo.ui.theme.AnchoMaximoBurbuja
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.BosqueMedio
 import com.grupo3.nexo.ui.theme.BosqueProfundo
 import com.grupo3.nexo.ui.theme.Divisor
 import com.grupo3.nexo.ui.theme.EnfasisMedio
+import com.grupo3.nexo.ui.theme.EscalaMaximaVisor
 import com.grupo3.nexo.ui.theme.EnfasisNormal
 import com.grupo3.nexo.ui.theme.EspacioAjustado
 import com.grupo3.nexo.ui.theme.EspacioAmplio
@@ -121,9 +139,11 @@ import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.EspacioPunto
 import com.grupo3.nexo.ui.theme.EspacioRozante
 import com.grupo3.nexo.ui.theme.Fondo
 import com.grupo3.nexo.ui.theme.FormaControl
+import com.grupo3.nexo.ui.theme.FondoVisor
 import com.grupo3.nexo.ui.theme.FormaOpcion
 import com.grupo3.nexo.ui.theme.Icono14
 import com.grupo3.nexo.ui.theme.Icono18
@@ -131,9 +151,8 @@ import com.grupo3.nexo.ui.theme.Icono20
 import com.grupo3.nexo.ui.theme.LocalAnimacionesReducidas
 import com.grupo3.nexo.ui.theme.Menta
 import com.grupo3.nexo.ui.theme.MielFuerte
-import com.grupo3.nexo.ui.theme.RadioBurbuja
-import com.grupo3.nexo.ui.theme.RadioBurbujaCola
 import com.grupo3.nexo.ui.theme.RellenoTenue
+import com.grupo3.nexo.ui.theme.Rojo
 import com.grupo3.nexo.ui.theme.SangriaFilaAvatar
 import com.grupo3.nexo.ui.theme.SobreOscuro
 import com.grupo3.nexo.ui.theme.Superficie
@@ -146,7 +165,9 @@ import com.grupo3.nexo.ui.theme.TextoSecundario
 import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.VerdeEstado
 import com.grupo3.nexo.ui.theme.cambioContenido
+import com.grupo3.nexo.ui.theme.formaBurbuja
 import com.grupo3.nexo.ui.theme.resorteRebote
+import java.io.File
 import java.time.LocalDate
 import kotlinx.coroutines.launch
 
@@ -251,7 +272,7 @@ private fun FilaChat(chat: Chat, alAbrir: () -> Unit, modifier: Modifier = Modif
             Spacer(Modifier.height(EspacioRozante))
             if (chat.soloLectura) {
                 Text("Conversación cerrada · solo lectura", color = TextoTercero, style = MaterialTheme.typography.labelMedium)
-                Spacer(Modifier.height(1.dp))
+                Spacer(Modifier.height(EspacioPunto))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextoLinea(
@@ -298,12 +319,8 @@ private fun EsqueletoBurbujas(modifier: Modifier = Modifier) {
             val mio = i % 2 == 1
             Row(Modifier.fillMaxWidth(), horizontalArrangement = if (mio) Arrangement.End else Arrangement.Start) {
                 Hueso(
-                    Modifier.fillMaxWidth(ancho).height(44.dp),
-                    RoundedCornerShape(
-                        topStart = RadioBurbuja, topEnd = RadioBurbuja,
-                        bottomStart = if (mio) RadioBurbuja else RadioBurbujaCola,
-                        bottomEnd = if (mio) RadioBurbujaCola else RadioBurbuja
-                    )
+                    Modifier.fillMaxWidth(ancho).height(AltoEsqueletoBurbuja),
+                    formaBurbuja(mio, iniciaGrupo = true)
                 )
             }
         }
@@ -330,14 +347,27 @@ fun PantallaConversacion(
     val elementos = remember(estado.mensajes, imagenSubiendo) {
         estado.mensajes.size + estado.mensajes.map { it.hora.toLocalDate() }.distinct().size + if (imagenSubiendo != null) 1 else 0
     }
+    // Solo se baja si el último mensaje es mío o si ya se estaba leyendo el final; si no, se avisa con una píldora
+    var hayNuevos by remember { mutableStateOf(false) }
+    var elementosPrevios by remember { mutableStateOf(0) }
     LaunchedEffect(elementos) {
         if (estado.mensajes.isEmpty()) return@LaunchedEffect
         if (yaPosicionado) {
-            listaEstado.animateScrollToItem(elementos - 1)
+            val ultimoVisible = listaEstado.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val cercaDelFinal = ultimoVisible >= elementosPrevios - 3
+            if (estado.mensajes.last().mio || imagenSubiendo != null || cercaDelFinal) {
+                listaEstado.animateScrollToItem(elementos - 1)
+            } else {
+                hayNuevos = true
+            }
         } else {
             listaEstado.scrollToItem(elementos - 1)
             yaPosicionado = true
         }
+        elementosPrevios = elementos
+    }
+    LaunchedEffect(listaEstado) {
+        snapshotFlow { listaEstado.canScrollForward }.collect { if (!it) hayNuevos = false }
     }
 
     val avisos = remember { SnackbarHostState() }
@@ -354,18 +384,27 @@ fun PantallaConversacion(
         texto = ""
     }
 
-    val selector = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) {
-            val valor = texto
-            viewModel.enviarImagen(uri.toString(), valor) { fallo ->
-                if (fallo != null) {
-                    if (texto.isEmpty()) texto = valor
-                    alcance.launch { avisos.mostrarError(avisoFallo("enviar la foto", fallo)) }
-                }
-            }
-            texto = ""
+    // El texto se limpia solo si la foto se aceptó; si la subida falla, la foto queda en el hilo para reintentar
+    fun enviarFoto(uri: String) {
+        val aceptada = viewModel.enviarImagen(uri, texto) { fallo ->
+            if (fallo != null) alcance.launch { avisos.mostrarError(avisoFallo("enviar la foto", fallo)) }
         }
+        if (aceptada) texto = ""
     }
+
+    val selector = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) enviarFoto(uri.toString())
+    }
+
+    // TakePicture escribe en un archivo del caché que la cámara recibe por FileProvider (no necesita permiso de cámara)
+    val contexto = LocalContext.current
+    var fotoCamara by rememberSaveable { mutableStateOf<String?>(null) }
+    val camara = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { tomada ->
+        val uri = fotoCamara
+        fotoCamara = null
+        if (tomada && uri != null) enviarFoto(uri)
+    }
+    var eligiendoFoto by rememberSaveable { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize().background(Fondo).imePadding()) {
         Column(Modifier.fillMaxSize()) {
@@ -390,6 +429,7 @@ fun PantallaConversacion(
                     modifier = Modifier
                         .weight(1f)
                         .clip(FormaControl)
+                        .heightIn(min = AreaTactilMinima)
                         .then(
                             if (abrirPerfil != null) Modifier.clickable(
                                 onClickLabel = "Ver perfil de ${estado.nombre}",
@@ -466,10 +506,11 @@ fun PantallaConversacion(
                     }
                 }
             } else {
+                Box(Modifier.weight(1f).fillMaxWidth()) {
                 LazyColumn(
                     state = listaEstado,
                     contentPadding = PaddingValues(horizontal = EspacioNormal, vertical = EspacioNormal),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     estado.mensajes.forEachIndexed { indice, mensaje ->
                         val dia = mensaje.hora.toLocalDate()
@@ -483,14 +524,46 @@ fun PantallaConversacion(
                                 mensaje = mensaje,
                                 iniciaGrupo = iniciaDia || anterior?.mio != mensaje.mio,
                                 cierraGrupo = cierraDia || siguiente?.mio != mensaje.mio,
+                                nombre = estado.nombre.ifBlank { "Nexo" },
                                 alAmpliar = { imagenAmpliada = it },
                                 modifier = Modifier.animateItem()
                             )
                         }
                     }
-                    imagenSubiendo?.let { uri ->
-                        item(key = "subiendo") { BurbujaSubiendo(uri) }
+                    imagenSubiendo?.let { pendiente ->
+                        item(key = "subiendo") {
+                            BurbujaSubiendo(
+                                pendiente,
+                                alReintentar = {
+                                    viewModel.reintentarImagen { fallo ->
+                                        if (fallo != null) alcance.launch { avisos.mostrarError(avisoFallo("enviar la foto", fallo)) }
+                                    }
+                                },
+                                alDescartar = viewModel::descartarImagen,
+                                modifier = Modifier.animateItem()
+                            )
+                        }
                     }
+                }
+                if (hayNuevos) {
+                    Text(
+                        "Mensajes nuevos",
+                        color = SobreOscuro,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = EspacioNormal)
+                            .heightIn(min = AreaTactilMinima)
+                            .clip(FormaControl)
+                            .background(BosqueMedio)
+                            .clickable(role = Role.Button) {
+                                hayNuevos = false
+                                alcance.launch { listaEstado.animateScrollToItem(elementos - 1) }
+                            }
+                            .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
+                            .wrapContentHeight(Alignment.CenterVertically)
+                    )
+                }
                 }
             }
 
@@ -525,10 +598,23 @@ fun PantallaConversacion(
                     .navigationBarsPadding()
                     .padding(start = EspacioCorto, end = EspacioMedio, top = EspacioAjustado, bottom = EspacioAjustado)
             ) {
-                Box(Modifier.height(TamanoBotonEnviar), contentAlignment = Alignment.Center) {
-                    BotonIcono(IconosNexo.Imagen, "Adjuntar foto", {
-                        selector.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    })
+                // Mientras otra foto sube o espera reintento no se admite una segunda
+                val ocupado = imagenSubiendo != null
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .height(TamanoBotonEnviar)
+                        .then(
+                            if (ocupado) Modifier
+                                .alpha(0.38f)
+                                .clearAndSetSemantics {
+                                    contentDescription = "Adjuntar foto"
+                                    disabled()
+                                }
+                            else Modifier
+                        )
+                ) {
+                    BotonIcono(IconosNexo.Imagen, "Adjuntar foto", { if (!ocupado) eligiendoFoto = true })
                 }
                 Campo(
                     valor = texto,
@@ -565,6 +651,35 @@ fun PantallaConversacion(
         }
 
         AvisoNexo(avisos, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = EspacioAmplio))
+    }
+
+    if (eligiendoFoto) {
+        HojaNexo(titulo = "Adjuntar foto", alCerrar = { eligiendoFoto = false }) {
+            Column(verticalArrangement = Arrangement.spacedBy(EspacioCorto), modifier = Modifier.padding(top = EspacioAjustado, bottom = EspacioNormal)) {
+                BotonSecundario(
+                    "Tomar foto",
+                    {
+                        eligiendoFoto = false
+                        val carpeta = File(contexto.cacheDir, "fotos").apply { mkdirs() }
+                        val archivo = File.createTempFile("foto_", ".jpg", carpeta)
+                        val uri = FileProvider.getUriForFile(contexto, "${contexto.packageName}.archivos", archivo)
+                        fotoCamara = uri.toString()
+                        camara.launch(uri)
+                    },
+                    Modifier.fillMaxWidth(),
+                    icono = IconosNexo.Camara
+                )
+                BotonSecundario(
+                    "Elegir de la galería",
+                    {
+                        eligiendoFoto = false
+                        selector.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                    Modifier.fillMaxWidth(),
+                    icono = IconosNexo.Imagen
+                )
+            }
+        }
     }
 
     imagenAmpliada?.let { url -> ImagenCompleta(url, alCerrar = { imagenAmpliada = null }) }
@@ -625,27 +740,30 @@ private fun Burbuja(
     mensaje: Mensaje,
     iniciaGrupo: Boolean,
     cierraGrupo: Boolean,
+    nombre: String,
     alAmpliar: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val mio = mensaje.mio
-    val grande = RadioBurbuja
-    val chica = RadioBurbujaCola
-    val forma = RoundedCornerShape(
-        topStart = if (!mio && !iniciaGrupo) chica else grande,
-        topEnd = if (mio && !iniciaGrupo) chica else grande,
-        bottomStart = if (!mio) chica else grande,
-        bottomEnd = if (mio) chica else grande
-    )
+    val forma = formaBurbuja(mio, iniciaGrupo)
+    val hora = formatoHora(mensaje.hora.toLocalTime())
+    val fotoDe = if (mio) "Foto que enviaste" else "Foto de $nombre"
+    // TalkBack lee el mensaje entero de una vez: quién lo dijo, qué dice y a qué hora
+    val descripcion = if (mensaje.imagenUrl != null) {
+        listOfNotNull(fotoDe, mensaje.texto.ifEmpty { null }).joinToString(": ") + ", $hora"
+    } else {
+        "${if (mio) "Tú" else nombre}: ${mensaje.texto}, $hora"
+    }
     Column(
         horizontalAlignment = if (mio) Alignment.End else Alignment.Start,
         modifier = modifier
             .fillMaxWidth()
             .padding(top = if (iniciaGrupo) EspacioAjustado else EspacioRozante)
+            .semantics(mergeDescendants = true) { contentDescription = descripcion }
     ) {
         Box(
             modifier = Modifier
-                .widthIn(max = 300.dp)
+                .widthIn(max = AnchoMaximoBurbuja)
                 .then(
                     if (mio) Modifier.background(BosqueMedio, forma)
                     else Modifier.superficie(forma)
@@ -657,17 +775,7 @@ private fun Burbuja(
         ) {
             Column {
                 mensaje.imagenUrl?.let { url ->
-                    AsyncImage(
-                        model = url,
-                        contentDescription = "Foto enviada, toca para ampliar",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .widthIn(max = 240.dp)
-                            .heightIn(max = 320.dp)
-                            .clip(forma)
-                            .background(if (mio) BosqueProfundo else RellenoTenue)
-                            .clickable(onClickLabel = "Ver foto completa", role = Role.Button) { alAmpliar(url) }
-                    )
+                    FotoBurbuja(url, fotoDe, mio, formaBurbuja(mio, iniciaGrupo, margen = EspacioMinimo), alAmpliar)
                 }
                 if (mensaje.texto.isNotEmpty()) {
                     Text(
@@ -681,7 +789,7 @@ private fun Burbuja(
         }
         if (cierraGrupo) {
             Text(
-                formatoHora(mensaje.hora.toLocalTime()),
+                hora,
                 color = TextoTercero,
                 style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares),
                 modifier = Modifier.padding(horizontal = EspacioFino, vertical = EspacioMinimo)
@@ -690,47 +798,159 @@ private fun Burbuja(
     }
 }
 
-/** Burbuja propia provisional: la miniatura local con un indicador de progreso mientras la foto sube. */
+/** Foto de una burbuja con el tamaño reservado (3:4) para que la lista no salte al cargar; si falla, no se abre. */
 @Composable
-private fun BurbujaSubiendo(uri: String) {
-    Row(
-        horizontalArrangement = Arrangement.End,
-        modifier = Modifier
+private fun FotoBurbuja(url: String, descripcion: String, mio: Boolean, forma: Shape, alAmpliar: (String) -> Unit) {
+    var fallida by remember(url) { mutableStateOf(false) }
+    val reservado = Modifier
+        .width(AnchoImagenBurbuja)
+        .aspectRatio(3f / 4f)
+        .clip(forma)
+    SubcomposeAsyncImage(
+        model = url,
+        contentDescription = descripcion,
+        contentScale = ContentScale.Crop,
+        onError = { fallida = true },
+        loading = { Hueso(Modifier.fillMaxSize(), forma, color = if (mio) BosqueProfundo else RellenoTenue) },
+        error = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize().background(if (mio) BosqueProfundo else RellenoTenue).padding(EspacioNormal)
+            ) {
+                Icon(IconosNexo.Imagen, contentDescription = null, tint = if (mio) SobreOscuro else TextoTercero, modifier = Modifier.size(Icono20))
+                Spacer(Modifier.height(EspacioCorto))
+                Text(
+                    "No se pudo cargar la foto",
+                    color = if (mio) SobreOscuro else TextoTercero,
+                    style = MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        modifier = if (fallida) reservado else reservado.clickable(onClickLabel = "Ver foto completa", role = Role.Button) { alAmpliar(url) }
+    )
+}
+
+/**
+ * Burbuja propia provisional, con la forma y el tamaño de la real: la miniatura local con progreso mientras
+ * la foto sube; si falla, se puede reintentar o descartar.
+ */
+@Composable
+private fun BurbujaSubiendo(
+    pendiente: ImagenPendiente,
+    alReintentar: () -> Unit,
+    alDescartar: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.End,
+        modifier = modifier
             .fillMaxWidth()
             .padding(top = EspacioAjustado)
-            .semantics { contentDescription = "Enviando foto" }
+            .semantics { if (!pendiente.fallida) contentDescription = "Enviando foto" }
     ) {
         Box(
-            contentAlignment = Alignment.Center,
             modifier = Modifier
-                .background(BosqueMedio, RoundedCornerShape(RadioBurbuja))
+                .widthIn(max = AnchoMaximoBurbuja)
+                .background(BosqueMedio, formaBurbuja(mio = true, iniciaGrupo = true))
                 .padding(EspacioMinimo)
         ) {
-            AsyncImage(
-                model = uri,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                alpha = 0.5f,
-                modifier = Modifier
-                    .size(width = 160.dp, height = 200.dp)
-                    .clip(RoundedCornerShape(RadioBurbuja))
-            )
-            CircularProgressIndicator(color = SobreOscuro, strokeWidth = 2.dp, modifier = Modifier.size(Icono20))
+            Column {
+                Box(contentAlignment = Alignment.Center) {
+                    AsyncImage(
+                        model = pendiente.uri,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        alpha = 0.5f,
+                        modifier = Modifier
+                            .width(AnchoImagenBurbuja)
+                            .aspectRatio(3f / 4f)
+                            .clip(formaBurbuja(mio = true, iniciaGrupo = true, margen = EspacioMinimo))
+                    )
+                    if (!pendiente.fallida) {
+                        CircularProgressIndicator(color = SobreOscuro, strokeWidth = EspacioPunto * 2, modifier = Modifier.size(Icono20))
+                    }
+                }
+                if (pendiente.texto.isNotEmpty()) {
+                    Text(
+                        pendiente.texto,
+                        color = SobreOscuro,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(horizontal = EspacioAjustado, vertical = EspacioAjustado)
+                    )
+                }
+            }
+        }
+        if (pendiente.fallida) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "No se envió · Toca para reintentar",
+                    color = Rojo,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .heightIn(min = AreaTactilMinima)
+                        .clickable(role = Role.Button, onClick = alReintentar)
+                        .padding(horizontal = EspacioFino)
+                        .wrapContentHeight(Alignment.CenterVertically)
+                )
+                Text(
+                    "Descartar",
+                    color = TextoSecundario,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .heightIn(min = AreaTactilMinima)
+                        .clickable(role = Role.Button, onClick = alDescartar)
+                        .padding(horizontal = EspacioFino)
+                        .wrapContentHeight(Alignment.CenterVertically)
+                )
+            }
         }
     }
 }
 
-/** La foto a pantalla completa sobre negro; el botón o "atrás" la cierran. */
+/** La foto a pantalla completa sobre negro: se acerca con dos dedos o con doble toque; el botón o "atrás" la cierran. */
 @Composable
 private fun ImagenCompleta(url: String, alCerrar: () -> Unit) {
-    Dialog(onDismissRequest = alCerrar, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        BackHandler(onBack = alCerrar)
-        Box(Modifier.fillMaxSize().background(Color.Black)) {
+    Dialog(
+        onDismissRequest = alCerrar,
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+    ) {
+        var escala by remember { mutableFloatStateOf(1f) }
+        var desplazo by remember { mutableStateOf(Offset.Zero) }
+        var tamano by remember { mutableStateOf(IntSize.Zero) }
+        // La foto ampliada no puede salirse más de lo que crece
+        fun limitar(valor: Offset, escalaActual: Float): Offset {
+            val maxX = tamano.width * (escalaActual - 1f) / 2f
+            val maxY = tamano.height * (escalaActual - 1f) / 2f
+            return Offset(valor.x.coerceIn(-maxX, maxX), valor.y.coerceIn(-maxY, maxY))
+        }
+        Box(Modifier.fillMaxSize().background(FondoVisor)) {
             AsyncImage(
                 model = url,
                 contentDescription = "Foto enviada",
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onSizeChanged { tamano = it }
+                    .pointerInput(Unit) {
+                        detectTapGestures(onDoubleTap = {
+                            escala = if (escala > 1f) 1f else 2f
+                            desplazo = Offset.Zero
+                        })
+                    }
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            escala = (escala * zoom).coerceIn(1f, EscalaMaximaVisor)
+                            desplazo = if (escala == 1f) Offset.Zero else limitar(desplazo + pan * escala, escala)
+                        }
+                    }
+                    .graphicsLayer {
+                        scaleX = escala
+                        scaleY = escala
+                        translationX = desplazo.x
+                        translationY = desplazo.y
+                    }
             )
             BotonIcono(
                 IconosNexo.Cerrar, "Cerrar foto", alCerrar,

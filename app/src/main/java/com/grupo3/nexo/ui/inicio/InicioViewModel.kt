@@ -1,5 +1,7 @@
 package com.grupo3.nexo.ui.inicio
 
+import com.grupo3.nexo.domain.model.EstadoSolicitud
+import com.grupo3.nexo.domain.model.Solicitud
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grupo3.nexo.domain.model.DiaSemana
@@ -56,8 +58,10 @@ class InicioViewModel @Inject constructor(
     private val iniciarSesion: IniciarSesionTutoriaUseCase
 ) : ViewModel() {
 
-    /** Sesión próxima con el perfil del tutor, si el usuario es el estudiante. */
-    /** `tema` sale de la solicitud de esa misma sesión: cada tarjeta del mazo lleva el suyo. */
+    /**
+     * Sesión próxima con el perfil del tutor, si el usuario es el estudiante.
+     * `tema` sale de la solicitud de esa misma sesión: cada tarjeta del mazo lleva el suyo.
+     */
     data class SesionProxima(val sesion: Sesion, val tutor: Tutor? = null, val tema: String? = null)
 
     data class Estado(
@@ -71,9 +75,10 @@ class InicioViewModel @Inject constructor(
         /** Modo tutor: horas publicadas por semana y días con al menos una (RF7). */
         val horasPublicadas: Int = 0,
         val diasPublicados: List<DiaSemana> = emptyList(),
-        /** Modo tutor: tema que pidió el estudiante para la próxima sesión (RF5). */
         /** Modo tutor: cifras de los accesos. Null mientras llegan o si fallaron: un acceso no tumba el Inicio. */
         val resumen: ResumenActividad? = null,
+        /** Modo estudiante: solicitudes rechazadas cuya fecha aún no pasa, para ofrecer otros tutores. */
+        val rechazadas: List<Solicitud> = emptyList(),
         /** Falló la lectura: la pantalla muestra el error con "Reintentar". */
         val error: Boolean = false
     ) {
@@ -138,6 +143,9 @@ class InicioViewModel @Inject constructor(
                     )
                 },
                 pendientes = solicitudes.contarPendientes(),
+                rechazadas = if (usuario.rol == Rol.TUTOR) emptyList() else solicitudes
+                    .filter { it.estado == EstadoSolicitud.RECHAZADA && it.estudianteId == usuario.id && !it.fecha.isBefore(LocalDate.now()) }
+                    .sortedByDescending { it.enviada },
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())

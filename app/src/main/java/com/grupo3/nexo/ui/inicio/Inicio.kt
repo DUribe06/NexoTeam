@@ -1,5 +1,11 @@
 package com.grupo3.nexo.ui.inicio
 
+import com.grupo3.nexo.domain.model.Solicitud
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.IconButton
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
@@ -135,6 +141,8 @@ import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.superficiePulsable
 import com.grupo3.nexo.ui.components.universidadCorta
+import com.grupo3.nexo.ui.theme.IconoNormal
+import com.grupo3.nexo.ui.theme.EspacioSuelto
 import com.grupo3.nexo.ui.theme.AltoBuscador
 import com.grupo3.nexo.ui.theme.AltoPildora
 import com.grupo3.nexo.ui.theme.AnilloSobreOscuro
@@ -376,6 +384,20 @@ fun PantallaInicio(
                     .padding(top = EspacioCercano + with(densidad) { aireSesiones.toDp() })
                     .aparicion(4, iniciado)
             ) {
+                var descartadas by rememberSaveable { mutableStateOf(emptyList<String>()) }
+                val rechazada = estado.rechazadas.firstOrNull { it.id !in descartadas }
+                AnimatedVisibility(visible = rechazada != null, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
+                    val ultima = remember { mutableStateOf(rechazada) }
+                    if (rechazada != null) ultima.value = rechazada
+                    ultima.value?.let { r ->
+                        AvisoRechazo(
+                            r,
+                            alVerOtros = { alBuscar(AreaEstudio.deMateria(r.materia)?.name) },
+                            alDescartar = { descartadas = descartadas + r.id },
+                            modifier = Modifier.padding(bottom = EspacioSuelto)
+                        )
+                    }
+                }
                 EncabezadoSeccion(
                     titulo = if (estado.cargando || estado.error || estado.proximas.size > 1) "Tus próximas sesiones" else "Tu próxima sesión",
                     accion = if (estado.proximas.isNotEmpty()) "Ver solicitudes" else null,
@@ -395,7 +417,7 @@ fun PantallaInicio(
                 ) { carga ->
                     when (carga) {
                         Carga.CARGANDO -> SesionEsqueleto()
-                        Carga.VACIO -> SinSesiones(esTutor = estado.esTutor, alBuscar = { alBuscar(null) }, alVerSolicitudes = alVerSolicitudes)
+                        Carga.VACIO -> SinSesiones(esTutor = estado.esTutor, primeraVez = estado.historial.isEmpty(), alBuscar = { alBuscar(null) }, alVerSolicitudes = alVerSolicitudes)
                         Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus sesiones", alReintentar = viewModel::reintentar)
                         Carga.LISTO -> proximasVisibles.takeIf { it.isNotEmpty() }?.let { TarjetaProximas(it, mostrarTema = estado.esTutor, abrirChat) }
                     }
@@ -705,7 +727,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, mostr
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Avatar(s.conQuien, tamano = TamanoAvatarMini)
+                    Avatar(s.conQuien, tamano = TamanoAvatarMini, fotoUrl = primera.tutor?.fotoUrl)
                     Spacer(Modifier.width(EspacioAjustado))
                     Column(Modifier.weight(1f)) {
                         TextoLinea(s.conQuien, CuerpoNombre, BosqueProfundo)
@@ -717,6 +739,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, mostr
                             )
                         }
                     }
+                    BotonCalendario(s, primera.tema)
                     PildoraAbrirChat(s.conQuien, { alAbrirChat(s) }, fondo = Superficie)
                 }
             }
@@ -797,7 +820,27 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, mostr
 }
 
 @Composable
-private fun SinSesiones(esTutor: Boolean, alBuscar: () -> Unit, alVerSolicitudes: () -> Unit) {
+private fun SinSesiones(esTutor: Boolean, primeraVez: Boolean, alBuscar: () -> Unit, alVerSolicitudes: () -> Unit) {
+    val texto = when {
+        esTutor -> "Cuando aceptes una solicitud, aparecerá aquí."
+        primeraVez -> "Elige un tutor y solicita tu primera sesión."
+        else -> "Busca un tutor y agenda tu próxima sesión."
+    }
+    val boton: @Composable (Modifier) -> Unit = { m ->
+        BotonSecundario(if (esTutor) "Solicitudes" else "Buscar", if (esTutor) alVerSolicitudes else alBuscar, compacto = true, modifier = m)
+    }
+    // Con letra grande el texto no cabe junto al botón: el botón baja a su propia línea
+    if (LocalDensity.current.fontScale > 1.3f) {
+        Column(
+            Modifier.fillMaxWidth().superficie(FormaOrganica).padding(EspacioNormal),
+            verticalArrangement = Arrangement.spacedBy(EspacioCercano)
+        ) {
+            Text("Sin sesiones agendadas", color = TextoPrimario, style = MaterialTheme.typography.titleMedium)
+            Text(texto, color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
+            boton(Modifier.fillMaxWidth())
+        }
+        return
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -816,10 +859,10 @@ private fun SinSesiones(esTutor: Boolean, alBuscar: () -> Unit, alVerSolicitudes
         Spacer(Modifier.width(EspacioCercano))
         Column(Modifier.weight(1f)) {
             Text("Sin sesiones agendadas", color = TextoPrimario, style = MaterialTheme.typography.titleMedium)
-            Text(if (esTutor) "Cuando aceptes una solicitud, aparecerá aquí." else "Elige un tutor y solicita tu primera sesión.", color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
+            Text(texto, color = TextoSecundario, style = MaterialTheme.typography.bodySmall)
         }
         Spacer(Modifier.width(EspacioCorto))
-        BotonSecundario(if (esTutor) "Solicitudes" else "Buscar", if (esTutor) alVerSolicitudes else alBuscar, compacto = true)
+        boton(Modifier)
     }
 }
 
@@ -840,7 +883,7 @@ private fun AccesosTutor(
     Row(Modifier.fillMaxWidth().padding(horizontal = EspacioCercano)) {
         AccesoConCifra(
             R.drawable.ph_calendario_check, "Disponibilidad",
-            if (horas == 0) "Sin publicar" else "${formatoHoras(horas.toDouble())}/semana",
+            if (estado.cargando) "–" else if (horas == 0) "Sin publicar" else "${formatoHoras(horas.toDouble())}/semana",
             alerta = horas == 0 && !estado.cargando,
             alClicar = alDisponibilidad
         )
@@ -864,7 +907,7 @@ private fun AccesosTutor(
         )
         AccesoConCifra(
             R.drawable.ph_graduacion, "Materias",
-            if (materias == 0) "Agregar" else "$materias ${plural(materias, "publicada", "publicadas")}",
+            if (estado.cargando) "–" else if (materias == 0) "Agregar" else "$materias ${plural(materias, "publicada", "publicadas")}",
             alerta = materias == 0 && !estado.cargando,
             alClicar = alMaterias
         )
@@ -967,4 +1010,62 @@ private fun duracionVisible(s: Sesion): String {
     val minutos = java.time.Duration.between(desde, fin).toMinutes().coerceAtLeast(0)
     val cuanto = if (minutos % 60 == 0L) formatoHoras(minutos / 60.0) else "$minutos min"
     return "$cuanto · hasta las ${formatoHora(fin)}"
+}
+
+/** Pasa la sesión al calendario del teléfono, con la hora de Bogotá: así el recordatorio llega aunque Nexo esté cerrada. */
+@Composable
+private fun BotonCalendario(s: Sesion, tema: String?) {
+    val contexto = LocalContext.current
+    var sinApp by remember { mutableStateOf(false) }
+    IconButton(
+        onClick = {
+            val zona = java.time.ZoneId.of("America/Bogota")
+            val inicio = s.fecha.atTime(s.horaPactada ?: s.hora).atZone(zona)
+            val fin = inicio.plusMinutes((s.duracionHoras * 60).toLong())
+            val intento = android.content.Intent(android.content.Intent.ACTION_INSERT, android.provider.CalendarContract.Events.CONTENT_URI)
+                .putExtra(android.provider.CalendarContract.Events.TITLE, "Tutoría de ${tema?.takeIf { it.isNotBlank() } ?: s.materia} con ${s.conQuien}")
+                .putExtra(android.provider.CalendarContract.EXTRA_EVENT_BEGIN_TIME, inicio.toInstant().toEpochMilli())
+                .putExtra(android.provider.CalendarContract.EXTRA_EVENT_END_TIME, fin.toInstant().toEpochMilli())
+                .putExtra(android.provider.CalendarContract.Events.EVENT_LOCATION, if (s.modalidad == Modalidad.VIRTUAL) "Virtual (Nexo)" else "Presencial")
+                .putExtra(android.provider.CalendarContract.Events.DESCRIPTION, "Sesión agendada en Nexo.")
+            try { contexto.startActivity(intento) } catch (e: android.content.ActivityNotFoundException) { sinApp = true }
+        },
+        modifier = Modifier.semantics { contentDescription = "Agregar al calendario" }
+    ) {
+        Icon(IconosNexo.Calendario, contentDescription = null, tint = BosqueProfundo, modifier = Modifier.size(Icono22))
+    }
+    if (sinApp) {
+        LaunchedEffect(Unit) {
+            android.widget.Toast.makeText(contexto, "No encontramos una app de calendario.", android.widget.Toast.LENGTH_SHORT).show()
+            sinApp = false
+        }
+    }
+}
+
+/** Modo estudiante: un tutor no pudo aceptar; se ofrece buscar otro sin tener que ir a Solicitudes. */
+@Composable
+private fun AvisoRechazo(solicitud: Solicitud, alVerOtros: () -> Unit, alDescartar: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .superficie(FormaOrganica)
+            .padding(start = EspacioNormal, end = EspacioMinimo, top = EspacioMinimo, bottom = EspacioCercano)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "${solicitud.nombreTutor.substringBefore(' ')} no pudo aceptar tu solicitud de ${solicitud.materia}",
+                color = TextoPrimario,
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f).padding(top = EspacioCorto)
+            )
+            IconButton(onClick = alDescartar) {
+                Icon(IconosNexo.Cerrar, contentDescription = "Descartar aviso", tint = IconoSecundario, modifier = Modifier.size(IconoNormal))
+            }
+        }
+        solicitud.motivoRechazo?.takeIf { it.isNotBlank() }?.let {
+            Text("«$it»", color = TextoSecundario, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(end = EspacioNormal))
+        }
+        Spacer(Modifier.height(EspacioCorto))
+        BotonSecundario("Ver otros tutores", alVerOtros, compacto = true)
+    }
 }

@@ -1,6 +1,7 @@
 package com.grupo3.nexo.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /*
@@ -37,3 +38,18 @@ val ElevacionBotonAcceso = 16.dp
 /** Esquinas de la burbuja de chat: redondeada en general y casi recta en la "cola" y en los mensajes agrupados. */
 val RadioBurbuja = 16.dp
 val RadioBurbujaCola = 4.dp
+
+/**
+ * Forma de la burbuja de chat: la esquina "de cola" va en el borde inferior del autor y también arriba
+ * en los mensajes agrupados. Con `margen` se obtiene la forma concéntrica de lo que va dentro (la foto).
+ */
+fun formaBurbuja(mio: Boolean, iniciaGrupo: Boolean, margen: Dp = 0.dp): RoundedCornerShape {
+    val grande = (RadioBurbuja - margen).coerceAtLeast(0.dp)
+    val chica = (RadioBurbujaCola - margen).coerceAtLeast(0.dp)
+    return RoundedCornerShape(
+        topStart = if (!mio && !iniciaGrupo) chica else grande,
+        topEnd = if (mio && !iniciaGrupo) chica else grande,
+        bottomStart = if (!mio) chica else grande,
+        bottomEnd = if (mio) chica else grande
+    )
+}

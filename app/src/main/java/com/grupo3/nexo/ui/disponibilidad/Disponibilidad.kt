@@ -6,11 +6,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,7 +39,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -49,13 +51,16 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.grupo3.nexo.domain.model.DiaDisponibilidad
@@ -66,18 +71,18 @@ import com.grupo3.nexo.ui.components.Carga
 import com.grupo3.nexo.ui.components.CifrasTabulares
 import com.grupo3.nexo.ui.components.ErrorDeLista
 import com.grupo3.nexo.ui.components.Esqueleto
-import com.grupo3.nexo.ui.components.EstadoVacio
-import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.components.Hueso
 import com.grupo3.nexo.ui.components.LineaHueso
-import com.grupo3.nexo.ui.components.avisoFallo
 import com.grupo3.nexo.ui.components.cargaDe
 import com.grupo3.nexo.ui.components.descripcion
 import com.grupo3.nexo.ui.components.formatoHora
 import com.grupo3.nexo.ui.components.icono
-import com.grupo3.nexo.ui.components.mostrarError
 import com.grupo3.nexo.ui.components.plural
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
+import com.grupo3.nexo.ui.theme.AltoEsqueletoCuadricula
+import com.grupo3.nexo.ui.theme.AltoSelectorPincel
+import com.grupo3.nexo.ui.theme.AnchoMinimoEtiquetaHora
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.BordeAcento
 import com.grupo3.nexo.ui.theme.BordeMarcado
@@ -111,7 +116,7 @@ import com.grupo3.nexo.ui.theme.TinteBosque
 import com.grupo3.nexo.ui.theme.especColor
 import com.grupo3.nexo.ui.theme.pincelBosque
 import com.grupo3.nexo.ui.theme.resorteIndicador
-import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /* ==================== Pantalla ==================== */
 
@@ -124,7 +129,6 @@ private val pinceles: List<Pair<String, Set<Modalidad>>> = listOf(
 
 /** Lo que ocupa la pantalla aparte de las siete filas de horas. */
 private const val ALTO_SIN_CUADRICULA_DP = 472
-private val AnchoEtiquetaHora = 46.dp
 private val SeparacionCeldas = 3.dp
 
 /** Arranca con la modalidad que el tutor más usa: quien solo da clases virtuales no tiene que elegirla cada vez. */
@@ -147,18 +151,12 @@ fun PantallaDisponibilidad(
     val guardado by viewModel.guardado.collectAsStateWithLifecycle()
     val puedeDeshacer by viewModel.puedeDeshacer.collectAsStateWithLifecycle()
     val avisos = remember { SnackbarHostState() }
-    val alcance = rememberCoroutineScope()
 
     // Sin calendario se crea solo: el tutor llega directo a la cuadrícula, sin un paso previo que no decide nada
     var noSePudoCrear by rememberSaveable { mutableStateOf(false) }
     fun crear() {
         noSePudoCrear = false
-        viewModel.empezar { error ->
-            if (error != null) {
-                noSePudoCrear = true
-                alcance.launch { avisos.mostrarError(avisoFallo("crear tu calendario", error)) }
-            }
-        }
+        viewModel.empezar { error -> if (error != null) noSePudoCrear = true }
     }
     LaunchedEffect(carga) { if (carga == Carga.VACIO) crear() }
 
@@ -183,12 +181,9 @@ fun PantallaDisponibilidad(
             ) {
                 when {
                     carga == Carga.CARGANDO || (carga == Carga.VACIO && !noSePudoCrear) -> EsqueletoSemana()
-                    carga == Carga.VACIO -> EstadoVacio(
-                        icono = IconosNexo.Calendario,
+                    carga == Carga.VACIO -> ErrorDeLista(
                         titulo = "No pudimos preparar tu calendario",
-                        mensaje = "Revisa tu conexión e inténtalo de nuevo.",
-                        accion = "Reintentar",
-                        alAccion = ::crear
+                        alReintentar = ::crear
                     )
                     carga != Carga.LISTO -> ErrorDeLista(
                         titulo = "No pudimos cargar tu disponibilidad",
@@ -264,7 +259,7 @@ private fun SelectorPincel(indice: Int, alElegir: (Int) -> Unit) {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .height(54.dp)
+            .height(AltoSelectorPincel)
             .shadow(ElevacionTarjeta, forma, ambientColor = SombraAmbiente, spotColor = SombraPuntual)
             .superficie(forma)
             .padding(EspacioFino)
@@ -323,11 +318,15 @@ private fun Cuadricula(
     val horas = dias.firstOrNull()?.horas.orEmpty()
     if (horas.isEmpty()) return
     // Las celdas ceden un poco de alto para que en un teléfono pequeño la semana quepa sin desplazar
-    val altoCelda = ((LocalConfiguration.current.screenHeightDp - ALTO_SIN_CUADRICULA_DP) / horas.size).dp.coerceIn(40.dp, 48.dp)
+    // Con letra grande lo que rodea la cuadrícula crece, así que su parte fija se escala igual
+    val configuracion = LocalConfiguration.current
+    val reservado = ALTO_SIN_CUADRICULA_DP * configuracion.fontScale.coerceAtLeast(1f)
+    val altoCelda = ((configuracion.screenHeightDp - reservado) / horas.size).dp.coerceIn(40.dp, 48.dp)
     var trazo by remember { mutableStateOf<Trazo?>(null) }
     val vibracion = LocalHapticFeedback.current
     val diasActuales by rememberUpdatedState(dias)
     val pincelActual by rememberUpdatedState(pincel)
+    val nombrePincel = pinceles.firstOrNull { it.second == pincel }?.first.orEmpty().lowercase()
     val alTrazarActual by rememberUpdatedState(alTrazar)
 
     Column(
@@ -336,28 +335,13 @@ private fun Cuadricula(
             .superficie(FormaOrganica)
             .padding(EspacioAjustado)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(SeparacionCeldas)) {
-            Spacer(Modifier.width(AnchoEtiquetaHora - SeparacionCeldas))
-            dias.forEachIndexed { d, dia ->
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = AreaTactilMinima)
-                        .pulsable(etiqueta = "marcar o quitar todo", alClicar = { alTocarDia(d) })
-                        .semantics(mergeDescendants = true) { contentDescription = dia.dia }
-                ) {
-                    Text(
-                        dia.dia.take(3),
-                        color = if (dia.horasActivas > 0) TextoPrimario else TextoSecundario,
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1
-                    )
-                }
-            }
-        }
         Row {
-            Column(Modifier.width(AnchoEtiquetaHora), verticalArrangement = Arrangement.spacedBy(SeparacionCeldas)) {
+            // Las etiquetas ocupan lo que pida la letra más ancha; el espacio superior alinea con los títulos de día
+            Column(
+                verticalArrangement = Arrangement.spacedBy(SeparacionCeldas),
+                modifier = Modifier.widthIn(min = AnchoMinimoEtiquetaHora).width(IntrinsicSize.Max)
+            ) {
+                Spacer(Modifier.height(AreaTactilMinima - SeparacionCeldas))
                 horas.forEachIndexed { h, hora ->
                     Box(
                         contentAlignment = Alignment.CenterStart,
@@ -369,64 +353,101 @@ private fun Cuadricula(
                         Text(
                             formatoHora(hora.hora),
                             color = TextoSecundario,
-                            style = MaterialTheme.typography.labelMedium.merge(CifrasTabulares)
+                            style = MaterialTheme.typography.labelMedium.merge(CifrasTabulares),
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Clip
                         )
                     }
                 }
             }
-            Column(
-                verticalArrangement = Arrangement.spacedBy(SeparacionCeldas),
-                modifier = Modifier
-                    .weight(1f)
-                    .pointerInput(dias.size, horas.size) {
-                        fun celdaEn(p: Offset) = Celda(
-                            dia = (p.x / size.width * dias.size).toInt().coerceIn(0, dias.size - 1),
-                            hora = (p.y / size.height * horas.size).toInt().coerceIn(0, horas.size - 1)
-                        )
-                        awaitEachGesture {
-                            val toque = awaitFirstDown(requireUnconsumed = false)
-                            toque.consume()
-                            val inicio = celdaEn(toque.position)
-                            val actual = diasActuales.getOrNull(inicio.dia)?.horas?.getOrNull(inicio.hora)?.modalidades.orEmpty()
-                            var enCurso = Trazo(inicio, inicio, destinoDe(actual, pincelActual))
-                            trazo = enCurso
-                            vibracion.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            var cancelado = false
-                            while (true) {
-                                val evento = awaitPointerEvent()
-                                val cambio = evento.changes.firstOrNull { it.id == toque.id }
-                                if (cambio == null) {
-                                    cancelado = true
-                                    break
-                                }
-                                if (!cambio.pressed) break
-                                cambio.consume()
-                                val fin = celdaEn(cambio.position)
-                                if (fin != enCurso.fin) {
-                                    enCurso = enCurso.copy(fin = fin)
-                                    trazo = enCurso
-                                    vibracion.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                }
-                            }
-                            trazo = null
-                            if (!cancelado) alTrazarActual(enCurso)
-                        }
-                    }
-            ) {
-                horas.indices.forEach { h ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(SeparacionCeldas)) {
-                        dias.forEachIndexed { d, dia ->
-                            val celda = Celda(d, h)
-                            val guardadas = dia.horas.getOrNull(h)?.modalidades.orEmpty()
-                            val enTrazo = trazo?.takeIf { it.contiene(celda) }
-                            CeldaHora(
-                                nombre = "${dia.dia}, ${dia.horas.getOrNull(h)?.hora?.let(::formatoHora).orEmpty()}",
-                                modalidades = enTrazo?.valor ?: guardadas,
-                                alActivar = { alTrazar(Trazo(celda, celda, destinoDe(guardadas, pincel))) },
-                                modifier = Modifier.weight(1f).height(altoCelda)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(SeparacionCeldas)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(SeparacionCeldas)) {
+                    dias.forEachIndexed { d, dia ->
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = AreaTactilMinima)
+                                .pulsable(etiqueta = "marcar o quitar todo", alClicar = { alTocarDia(d) })
+                                .semantics(mergeDescendants = true) { contentDescription = dia.dia }
+                        ) {
+                            Text(
+                                dia.dia.take(3),
+                                color = if (dia.horasActivas > 0) TextoPrimario else TextoSecundario,
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 1
                             )
                         }
                     }
+                }
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(SeparacionCeldas),
+                    modifier = Modifier
+                        .pointerInput(dias.size, horas.size) {
+                            fun celdaEn(p: Offset) = Celda(
+                                dia = (p.x / size.width * dias.size).toInt().coerceIn(0, dias.size - 1),
+                                hora = (p.y / size.height * horas.size).toInt().coerceIn(0, horas.size - 1)
+                            )
+                            awaitEachGesture {
+                                // Nada se consume hasta saber qué quiere el dedo: un gesto vertical es para desplazar la pantalla
+                                val toque = awaitFirstDown(requireUnconsumed = false)
+                                val inicio = celdaEn(toque.position)
+                                val actual = diasActuales.getOrNull(inicio.dia)?.horas?.getOrNull(inicio.hora)?.modalidades.orEmpty()
+                                val destino = destinoDe(actual, pincelActual)
+                                val arrastre = awaitTouchSlopOrCancellation(toque.id) { cambio, exceso ->
+                                    if (abs(exceso.x) >= abs(exceso.y)) cambio.consume()
+                                }
+                                if (arrastre == null) {
+                                    // Sin desplazamiento: si el dedo se levantó, fue un toque simple sobre una celda
+                                    val ultimo = currentEvent.changes.firstOrNull { it.id == toque.id }
+                                    if (ultimo != null && !ultimo.pressed && !ultimo.isConsumed) {
+                                        vibracion.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        alTrazarActual(Trazo(inicio, inicio, destino))
+                                    }
+                                    return@awaitEachGesture
+                                }
+                                var enCurso = Trazo(inicio, celdaEn(arrastre.position), destino)
+                                trazo = enCurso
+                                vibracion.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                var cancelado = false
+                                while (true) {
+                                    val evento = awaitPointerEvent()
+                                    val cambio = evento.changes.firstOrNull { it.id == toque.id }
+                                    if (cambio == null) {
+                                        cancelado = true
+                                        break
+                                    }
+                                    if (!cambio.pressed) break
+                                    cambio.consume()
+                                    val fin = celdaEn(cambio.position)
+                                    if (fin != enCurso.fin) {
+                                        enCurso = enCurso.copy(fin = fin)
+                                        trazo = enCurso
+                                        vibracion.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    }
+                                }
+                                trazo = null
+                                if (!cancelado) alTrazarActual(enCurso)
+                            }
+                        }
+                ) {
+                        horas.indices.forEach { h ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(SeparacionCeldas)) {
+                                dias.forEachIndexed { d, dia ->
+                                    val celda = Celda(d, h)
+                                    val guardadas = dia.horas.getOrNull(h)?.modalidades.orEmpty()
+                                    val enTrazo = trazo?.takeIf { it.contiene(celda) }
+                                    CeldaHora(
+                                        nombre = "${dia.dia}, ${dia.horas.getOrNull(h)?.hora?.let(::formatoHora).orEmpty()}",
+                                        modalidades = enTrazo?.valor ?: guardadas,
+                                        accion = if (destinoDe(guardadas, pincel).isEmpty()) "quitar" else "marcar $nombrePincel",
+                                    alActivar = { alTrazar(Trazo(celda, celda, destinoDe(guardadas, pincel))) },
+                                        modifier = Modifier.weight(1f).height(altoCelda)
+                                    )
+                                }
+                            }
+                        }
                 }
             }
         }
@@ -438,6 +459,7 @@ private fun Cuadricula(
 private fun CeldaHora(
     nombre: String,
     modalidades: Set<Modalidad>,
+    accion: String,
     alActivar: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -453,7 +475,7 @@ private fun CeldaHora(
                 contentDescription = nombre
                 stateDescription = if (activa) modalidades.descripcion() else "no disponible"
                 role = Role.Button
-                onClick(label = "cambiar") {
+                onClick(label = accion) {
                     alActivar()
                     true
                 }
@@ -482,7 +504,7 @@ private fun Acciones(
     alReintentar: () -> Unit
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Box(Modifier.weight(1f)) {
+        Box(Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite }) {
             when (guardado) {
                 EstadoGuardado.SIN_CAMBIOS -> Unit
                 EstadoGuardado.GUARDANDO -> EstadoTexto("Guardando…", TextoSecundario)
@@ -497,7 +519,7 @@ private fun Acciones(
 }
 
 @Composable
-private fun EstadoTexto(texto: String, color: androidx.compose.ui.graphics.Color) {
+internal fun EstadoTexto(texto: String, color: androidx.compose.ui.graphics.Color) {
     Text(texto, color = color, style = MaterialTheme.typography.bodySmall)
 }
 
@@ -518,22 +540,21 @@ private fun AccionTexto(texto: String, habilitada: Boolean, alClicar: () -> Unit
     }
 }
 
-/** Silueta mientras llegan los datos. */
+/** Silueta mientras llegan los datos: resumen, selector de pincel y cuadrícula, con la misma medida que lo real. */
 @Composable
 private fun EsqueletoSemana() {
     Esqueleto(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(EspacioMedio)) {
-        repeat(3) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(EspacioCorto),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .superficie(FormaOrganica)
-                    .padding(EspacioNormal)
-            ) {
-                LineaHueso(0.4f, alto = 14.dp)
-                LineaHueso(0.85f, alto = 10.dp)
-                LineaHueso(0.6f, alto = 10.dp)
-            }
+        Column(
+            verticalArrangement = Arrangement.spacedBy(EspacioCorto),
+            modifier = Modifier
+                .fillMaxWidth()
+                .superficie(FormaOrganica)
+                .padding(horizontal = EspacioNormal, vertical = EspacioAjustado)
+        ) {
+            LineaHueso(0.35f, alto = 18.dp)
+            LineaHueso(0.7f, alto = 10.dp)
         }
+        Hueso(Modifier.fillMaxWidth().height(AltoSelectorPincel), FormaCampoAlto)
+        Hueso(Modifier.fillMaxWidth().height(AltoEsqueletoCuadricula), FormaOrganica)
     }
 }

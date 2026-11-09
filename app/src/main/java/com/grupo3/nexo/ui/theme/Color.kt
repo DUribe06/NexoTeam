@@ -185,3 +185,6 @@ val SombraPuntualBotonAcceso = BosqueProfundo.copy(alpha = 0.6f)
 val LineaSeparadorAcceso = Bosque.copy(alpha = 0.15f)
 /** Contorno del botón de Google. */
 val BordeBotonGoogle = Bosque.copy(alpha = 0.18f)
+
+/** Fondo del visor de fotos a pantalla completa. */
+val FondoVisor = Color(0xFF000000)

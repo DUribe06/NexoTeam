@@ -62,18 +62,21 @@ class ConfirmarCorreoViewModel @Inject constructor(
         val e = _estado.value
         if (e.cargando) return
         if (e.codigo.length != LARGO_CODIGO) {
-            _estado.update { it.copy(error = "Escribe los $LARGO_CODIGO dígitos del código", aviso = null) }
+            _estado.update { it.copy(error = "Escribe los $LARGO_CODIGO dígitos del código.", aviso = null) }
             return
         }
         viewModelScope.launch {
             _estado.update { it.copy(cargando = true, error = null, aviso = null) }
             val fallo = resultadoDe { verificarCorreo(e.correo, e.codigo) }.exceptionOrNull()
+            val rechazado = (fallo as? ErrorApi)?.codigo in CODIGOS_RECHAZADOS
             _estado.update {
                 it.copy(
                     cargando = false,
                     entro = fallo == null,
                     error = fallo?.let(::mensajeDeError),
-                    codigoRechazado = (fallo as? ErrorApi)?.codigo in CODIGOS_RECHAZADOS
+                    codigoRechazado = rechazado,
+                    // Un código rechazado ya no sirve: se vacía para escribir otro
+                    codigo = if (rechazado) "" else it.codigo
                 )
             }
         }

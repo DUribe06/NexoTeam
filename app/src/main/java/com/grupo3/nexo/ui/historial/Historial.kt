@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,7 +44,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.grupo3.nexo.domain.model.Sesion
@@ -65,6 +66,7 @@ import com.grupo3.nexo.ui.components.FiltroOpcion
 import com.grupo3.nexo.ui.components.HojaCalificacion
 import com.grupo3.nexo.ui.components.HojaNexo
 import com.grupo3.nexo.ui.components.IconosNexo
+import com.grupo3.nexo.ui.components.InsigniaEstado
 import com.grupo3.nexo.ui.components.ListaResenas
 import com.grupo3.nexo.ui.components.RotuloGrupo
 import com.grupo3.nexo.ui.components.TextoLinea
@@ -94,7 +96,9 @@ import com.grupo3.nexo.ui.theme.EspacioMargen
 import com.grupo3.nexo.ui.theme.EspacioMedio
 import com.grupo3.nexo.ui.theme.EspacioMinimo
 import com.grupo3.nexo.ui.theme.EspacioNormal
+import com.grupo3.nexo.ui.theme.AltoResumenHistorial
 import com.grupo3.nexo.ui.theme.FormaOrganica
+import com.grupo3.nexo.ui.theme.GrosorSeparadorResumen
 import com.grupo3.nexo.ui.theme.IconoDiminuto
 import com.grupo3.nexo.ui.theme.MielFuerte
 import com.grupo3.nexo.ui.theme.MielOscura
@@ -152,13 +156,13 @@ fun PantallaHistorial(
                         contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioNormal, bottom = EspacioExtenso + margenSistema)
                     ) {
                         item(key = "resumen") { Resumen(estado) }
-                        item(key = "rotulo") {
-                            RotuloGrupo("Más recientes primero", Modifier.padding(start = EspacioMinimo, top = EspacioMedio))
-                        }
                         if (estado.materias.size > 1) {
                             item(key = "filtros") {
                                 FiltrosMateria(estado.materias, estado.materia, viewModel::filtrar)
                             }
+                        }
+                        item(key = "rotulo") {
+                            RotuloGrupo("Más recientes primero", Modifier.padding(start = EspacioMinimo, top = EspacioMedio))
                         }
                         items(estado.sesiones, key = { it.id }) { sesion ->
                             TarjetaHistorial(sesion, estado.esTutor, alCalificar = { porCalificarId = sesion.id }, alPedirRevision = { porRevisarId = sesion.id }, modifier = Modifier.animateItem())
@@ -208,6 +212,7 @@ fun PantallaHistorial(
 
     estado.todas.firstOrNull { it.id == porRevisarId }?.let { sesion ->
         HojaRevision(
+            sesion = sesion,
             alCerrar = { porRevisarId = null },
             alEnviar = { motivo ->
                 viewModel.pedirRevision(sesion.id, motivo) { fallo ->
@@ -225,11 +230,11 @@ fun PantallaHistorial(
 private const val MINIMO_MOTIVO_REVISION = 10
 
 @Composable
-private fun HojaRevision(alCerrar: () -> Unit, alEnviar: (String) -> Unit) {
+private fun HojaRevision(sesion: Sesion, alCerrar: () -> Unit, alEnviar: (String) -> Unit) {
     var motivo by rememberSaveable { mutableStateOf("") }
     HojaNexo(
         titulo = "Pedir revisión",
-        subtitulo = "Cuéntanos qué pasó. Un administrador revisará el caso; mientras tanto, la penalización sigue vigente.",
+        subtitulo = "${sesion.materia} · ${formatoFecha(sesion.fecha)}. Cuéntanos qué pasó. Un administrador revisará el caso; mientras tanto, la penalización sigue vigente.",
         alCerrar = alCerrar
     ) {
         Spacer(Modifier.height(EspacioNormal))
@@ -239,6 +244,12 @@ private fun HojaRevision(alCerrar: () -> Unit, alEnviar: (String) -> Unit) {
             marcador = "Qué pasó ese día",
             lineasMaximas = 4,
             modifier = Modifier.fillMaxWidth()
+        )
+        Text(
+            "Mínimo $MINIMO_MOTIVO_REVISION caracteres · ${motivo.length}/$MAXIMO_MOTIVO_REVISION",
+            color = TextoTercero,
+            style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares),
+            modifier = Modifier.padding(start = EspacioMinimo, top = EspacioCorto)
         )
         Spacer(Modifier.height(EspacioHolgado))
         BotonPrimario(
@@ -294,13 +305,13 @@ private fun Resumen(estado: HistorialViewModel.Estado) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 64.dp)
+            .heightIn(min = AltoResumenHistorial)
             .height(IntrinsicSize.Min)
     ) {
         CifraResumen("${resumen.sesiones}", etiquetaSesiones, Modifier.weight(1f))
-        Box(Modifier.fillMaxHeight().padding(vertical = EspacioAjustado).width(1.dp).background(Divisor))
+        Box(Modifier.fillMaxHeight().padding(vertical = EspacioAjustado).width(GrosorSeparadorResumen).background(Divisor))
         CifraResumen(formatoHoras(resumen.horas), etiquetaHoras, Modifier.weight(1f))
-        Box(Modifier.fillMaxHeight().padding(vertical = EspacioAjustado).width(1.dp).background(Divisor))
+        Box(Modifier.fillMaxHeight().padding(vertical = EspacioAjustado).width(GrosorSeparadorResumen).background(Divisor))
         if (estado.esTutor) {
             CifraResumen(resumen.promedioRecibido?.let(::formatoValoracion) ?: "–", "calificación", Modifier.weight(1f))
         } else {
@@ -353,7 +364,7 @@ private fun CifraResumen(
 @Composable
 private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -> Unit, alPedirRevision: () -> Unit, modifier: Modifier = Modifier) {
     Row(
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
         modifier = modifier
             .fillMaxWidth()
             .superficie(FormaOrganica)
@@ -383,7 +394,13 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
             sesion.textoDeRevision()?.let {
                 Text(it, color = TextoSecundario, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = EspacioMinimo))
             }
-            if (sesion.puedePedirRevision) BotonTexto("Pedir revisión", alPedirRevision)
+            if (sesion.puedePedirRevision) {
+                BotonTexto(
+                    "Pedir revisión", alPedirRevision,
+                    modifier = Modifier.offset(x = -EspacioMedio),
+                    accion = "pedir revisión de ${sesion.materia}, ${formatoFecha(sesion.fecha)}"
+                )
+            }
             sesion.calificacionRecibida?.takeIf { sesion.completada }?.let { nota ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -401,10 +418,11 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
             }
             sesion.comentario?.let {
                 Text(
-                    "“$it”",
+                    "Tu comentario: “$it”",
                     color = TextoSecundario,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = EspacioMinimo)
                 )
             }
@@ -412,7 +430,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
         Spacer(Modifier.width(EspacioCorto))
         if (!sesion.completada) {
             // Cancelada o sin asistencia: no se califica; el estado se lee como texto discreto
-            Text(sesion.estado.etiqueta, color = TextoTercero, style = MaterialTheme.typography.labelMedium)
+            InsigniaEstado(sesion.estado.etiqueta)
             return@Row
         }
         AnimatedContent(
@@ -421,7 +439,7 @@ private fun TarjetaHistorial(sesion: Sesion, esTutor: Boolean, alCalificar: () -
             label = "calificacion"
         ) { nota ->
             if (nota != null) {
-                Estrellas(nota, tamano = TamanoEstrellaCompacta)
+                Estrellas(nota, tamano = TamanoEstrellaCompacta, descripcion = "Calificaste con $nota de 5 estrellas")
             } else {
                 BotonSecundario(
                     "Calificar", alCalificar,

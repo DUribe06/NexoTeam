@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fotos tomadas con la cámara desde el chat: viven en el caché hasta que se suben -->
+<paths>
+    <cache-path name="fotos" path="fotos/" />
+</paths>

@@ -293,7 +293,8 @@ fun NexoApp() {
                     alAbrirDisponibilidad = { controlador.navigate(Rutas.Disponibilidad.ruta) },
                     alAbrirResenas = { controlador.navigate(Rutas.MisResenas.ruta) },
                     alAbrirMaterias = { controlador.navigate(Rutas.MisMaterias.ruta) },
-                    alEditarPerfilTutor = { controlador.navigate(Rutas.DatosTutor.ruta) }
+                    alEditarPerfilTutor = { controlador.navigate(Rutas.DatosTutor.ruta) },
+                    alVerPerfilPublico = { id -> controlador.navigate(Rutas.TutorPerfil.crear(id)) }
                 )
             }
             composable(Rutas.DatosTutor.ruta) {

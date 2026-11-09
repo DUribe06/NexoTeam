@@ -59,9 +59,13 @@ class TutorPerfilViewModel @Inject constructor(
         val noEncontrado: Boolean = false,
         /** Un tutor viendo a otro tutor no puede solicitarle tutorías. */
         val esTutor: Boolean = false,
+        /** Es el perfil público del propio usuario: no se reporta ni se reserva a sí mismo. */
+        val esPropio: Boolean = false,
         /** Falló la lectura: la pantalla muestra el error con "Reintentar". */
         val error: Boolean = false
-    )
+    ) {
+        val puedeSolicitar get() = !esTutor && !esPropio
+    }
 
     private val tutorId = MutableStateFlow(estadoGuardado.get<String>(Rutas.TutorPerfil.ARG_TUTOR).orEmpty())
     private val aviso = MutableStateFlow<AvisoPerfil?>(null)
@@ -79,7 +83,7 @@ class TutorPerfilViewModel @Inject constructor(
 
     val estado = recarga.proteger(alCargar = { Estado() }, alFallar = { Estado(cargando = false, error = true) }) {
         combine(tutor, resenas, aviso, obtenerUsuario()) { t, r, a, u ->
-            Estado(tutor = t, resenas = r, aviso = a, cargando = false, noEncontrado = t == null, esTutor = u.rol == Rol.TUTOR)
+            Estado(tutor = t, resenas = r, aviso = a, cargando = false, noEncontrado = t == null, esTutor = u.rol == Rol.TUTOR, esPropio = t != null && t.id == u.id)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
 

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -43,6 +44,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.contentDescription
@@ -64,10 +66,10 @@ import com.grupo3.nexo.domain.model.acciones
 import com.grupo3.nexo.domain.model.activa
 import com.grupo3.nexo.domain.model.horasRestantes
 import com.grupo3.nexo.domain.model.primerNombre
-import com.grupo3.nexo.ui.busqueda.AreaEstudio
+import com.grupo3.nexo.domain.model.AreaEstudio
 import com.grupo3.nexo.ui.components.Avatar
 import com.grupo3.nexo.ui.components.AvisoNexo
-import com.grupo3.nexo.ui.components.BotonPrimario
+import com.grupo3.nexo.ui.components.BotonSecundario
 import com.grupo3.nexo.ui.components.BotonTexto
 import com.grupo3.nexo.ui.components.BotonTonal
 import com.grupo3.nexo.ui.components.CabeceraSeccion
@@ -81,6 +83,7 @@ import com.grupo3.nexo.ui.components.EsqueletoLista
 import com.grupo3.nexo.ui.components.EstadoVacio
 import com.grupo3.nexo.ui.components.FiltroOpcion
 import com.grupo3.nexo.ui.components.HojaNexo
+import com.grupo3.nexo.ui.components.Hueso
 import com.grupo3.nexo.ui.components.IconosNexo
 import com.grupo3.nexo.ui.components.InsigniaEstado
 import com.grupo3.nexo.ui.components.Pestanas
@@ -154,7 +157,10 @@ fun PantallaSolicitudes(
                 }
             )
 
-            if (estado.total > 0) {
+            if (estado.cargando) {
+                // Reserva el alto de las pestañas para que la lista no salte al llegar
+                Hueso(Modifier.fillMaxWidth().height(AreaTactilMinima).padding(top = EspacioFino), RectangleShape)
+            } else if (estado.total > 0) {
                 val estados = remember(estado.conteos) { EstadoSolicitud.entries.filter { (estado.conteos[it] ?: 0) > 0 } }
                 val opciones = remember(estados, estado.conteos) {
                     listOf("Todas") + estados.map { "${plural(it)} ${estado.conteos[it]}" }
@@ -175,7 +181,7 @@ fun PantallaSolicitudes(
                 modifier = Modifier.weight(1f)
             ) { fase ->
                 if (fase == Carga.CARGANDO) {
-                    EsqueletoLista()
+                    EsqueletoLista(conAcciones = true)
                 } else if (fase == Carga.ERROR) {
                     ErrorDeLista(titulo = "No pudimos cargar tus solicitudes", alReintentar = viewModel::reintentar)
                 } else if (fase == Carga.VACIO) {
@@ -268,6 +274,7 @@ private fun plural(e: EstadoSolicitud): String = when (e) {
     EstadoSolicitud.EXPIRADA -> "Expiradas"
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TarjetaSolicitud(
     solicitud: Solicitud,
@@ -305,11 +312,12 @@ private fun TarjetaSolicitud(
         Spacer(Modifier.height(EspacioMedio))
         Text(solicitud.tema, color = TextoPrimario, style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(EspacioFino))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(EspacioCercano),
+            verticalArrangement = Arrangement.spacedBy(EspacioMinimo)
+        ) {
             Dato(IconosNexo.Calendario, formatoFecha(solicitud.fecha))
-            Spacer(Modifier.width(EspacioCercano))
             Dato(IconosNexo.Reloj, formatoHora(solicitud.hora))
-            Spacer(Modifier.width(EspacioCercano))
             Dato(solicitud.modalidad.icono, solicitud.modalidad.etiqueta)
         }
 
@@ -368,7 +376,7 @@ private fun TarjetaSolicitud(
             AccionesSolicitud.RESPONDER -> {
                 Spacer(Modifier.height(EspacioMedio))
                 AvisoPlazo(
-                    if (horas < 1) "Queda menos de ${formatoHoras(1.0)} para responder" else if (horasEnteras < 2) "Queda ${formatoHoras(horasEnteras)} para responder" else "Quedan ${formatoHoras(horasEnteras)} para responder",
+                    textoPlazo(horas, horasEnteras, esTutor = true),
                     urgente = horas <= HORAS_AVISO_PLAZO
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -382,16 +390,15 @@ private fun TarjetaSolicitud(
                     BotonTexto(
                         "Rechazar",
                         alRechazar,
+                        modifier = Modifier.offset(x = EspacioMedio),
                         color = TextoSecundario,
                         accion = "rechazar la solicitud de $otraParte"
                     )
                 }
-                Spacer(Modifier.height(EspacioMinimo))
             }
             AccionesSolicitud.ABRIR_CHAT -> {
                 Spacer(Modifier.height(EspacioMedio))
                 PildoraAbrirChat(otraParte, alEscribir)
-                Spacer(Modifier.height(EspacioMinimo))
             }
             AccionesSolicitud.ABRIR_CHAT_O_CANCELAR -> {
                 Spacer(Modifier.height(EspacioMedio))
@@ -401,16 +408,16 @@ private fun TarjetaSolicitud(
                     BotonTexto(
                         "Cancelar",
                         alCancelar,
+                        modifier = Modifier.offset(x = EspacioMedio),
                         color = Rojo,
                         accion = "cancelar con $otraParte"
                     )
                 }
-                Spacer(Modifier.height(EspacioMinimo))
             }
             AccionesSolicitud.CANCELAR -> {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     AvisoPlazo(
-                        if (horas < 1) "Expira en menos de ${formatoHoras(1.0)}" else "Expira en ${formatoHoras(horasEnteras)} si no responde",
+                        textoPlazo(horas, horasEnteras, esTutor = false),
                         Modifier.weight(1f),
                         conAire = false,
                         urgente = horas <= HORAS_AVISO_PLAZO
@@ -418,16 +425,19 @@ private fun TarjetaSolicitud(
                     BotonTexto(
                         "Cancelar",
                         alCancelar,
+                        modifier = Modifier.offset(x = EspacioMedio),
                         color = Rojo,
                         accion = "cancelar con $otraParte"
                     )
                 }
             }
             AccionesSolicitud.VER_OTROS -> {
-                BotonTexto("Ver otros tutores de ${solicitud.materia}", alVerOtros)
+                BotonTexto("Ver otros tutores de ${solicitud.materia}", alVerOtros, modifier = Modifier.offset(x = -EspacioMedio))
             }
-            AccionesSolicitud.NINGUNA -> Spacer(Modifier.height(EspacioCorto))
+            AccionesSolicitud.NINGUNA -> Unit
         }
+        // Mismo aire al pie de la tarjeta, sea cual sea la acción
+        Spacer(Modifier.height(EspacioMinimo))
     }
 }
 
@@ -488,10 +498,11 @@ private fun HojaRechazo(solicitud: Solicitud, alCerrar: () -> Unit, alConfirmar:
         Row(verticalAlignment = Alignment.CenterVertically) {
             BotonTexto("Volver", alCerrar, color = TextoSecundario)
             Spacer(Modifier.width(EspacioCorto))
-            BotonPrimario(
+            BotonSecundario(
                 "Rechazar solicitud",
                 alClicar = { alConfirmar(motivo.ifBlank { null }) },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                peligro = true
             )
         }
     }

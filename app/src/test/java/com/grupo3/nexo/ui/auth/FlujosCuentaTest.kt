@@ -287,9 +287,10 @@ class FlujosCuentaTest {
         runCurrent()
         assertEquals("El código venció. Pide uno nuevo.", vm.estado.value.error)
         assertTrue(vm.estado.value.codigoRechazado)
+        assertEquals("", vm.estado.value.codigo)
 
         cuentas.alVerificar = { throw IOException() }
-        vm.confirmar()
+        vm.cambiarCodigo("482913")
         runCurrent()
         assertTrue(vm.estado.value.error!!.startsWith("No pudimos conectarnos."))
         assertFalse(vm.estado.value.codigoRechazado)
@@ -372,13 +373,13 @@ class FlujosCuentaTest {
         vm.cambiarNueva("nueva1234")
         vm.cambiarContrasena()
         runCurrent()
-        assertEquals("Escribe los 6 dígitos del código", vm.estado.value.error)
+        assertEquals("Escribe los 6 dígitos del código.", vm.estado.value.error)
 
         vm.cambiarCodigo("482913")
         vm.cambiarNueva("corta")
         vm.cambiarContrasena()
         runCurrent()
-        assertEquals("La contraseña debe tener al menos 8 caracteres", vm.estado.value.error)
+        assertEquals("Usa al menos 8 caracteres, con letras y números.", vm.estado.value.error)
 
         vm.cambiarNueva("nueva1234")
         vm.cambiarContrasena()
