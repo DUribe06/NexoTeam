@@ -170,7 +170,8 @@ fun SolicitudDto.aDominio(): Solicitud? {
         motivoRechazo = motivoRechazo,
         enviada = momentoEnColombia(enviada),
         venceEn = momentoEnColombia(venceEn),
-        penalizacionesEstudiante = penalizacionesEstudiante
+        penalizacionesEstudiante = penalizacionesEstudiante,
+        precioPropuesto = precioPropuesto
     )
 }
 

@@ -2637,6 +2637,13 @@ components:
           type: string
           description: Mensaje opcional para el tutor
           maxLength: 500
+        precioPropuesto:
+          type: number
+          format: double
+          minimum: 1
+          maximum: 10000000
+          description: Precio por hora en pesos (COP) que el estudiante propone en lugar de la tarifa del tutor; opcional
+          example: 20000
 
     Solicitud:
       type: object
@@ -2707,6 +2714,11 @@ components:
           type: integer
           description: Penalizaciones del estudiante como estudiante en los últimos 90 días
           example: 0
+        precioPropuesto:
+          type: number
+          format: double
+          description: Precio por hora que propuso el estudiante; se omite si aceptó la tarifa del tutor
+          example: 20000
 
     SolicitudRechazar:
       type: object

@@ -95,6 +95,9 @@ data class FranjaTutor(
 val List<FranjaTutor>.porDia: List<Pair<DiaSemana, List<FranjaTutor>>>
     get() = groupBy { it.dia }.toSortedMap(compareBy { it.numero }).map { (dia, franjas) -> dia to franjas.sortedBy { it.hora } }
 
+/** Tope de la tarifa y del precio propuesto, el mismo que valida el servidor. */
+const val PRECIO_MAXIMO = 10_000_000.0
+
 data class Tutor(
     val id: String,
     val nombre: String,
@@ -191,7 +194,9 @@ data class Solicitud(
     /** Límite para responder: 24 h tras el envío o el inicio de la tutoría, lo que llegue antes; lo fija el servidor (RF6). */
     val venceEn: LocalDateTime = enviada.plusHours(PLAZO_RESPUESTA_HORAS.toLong()),
     /** Del estudiante como estudiante, en los últimos 90 días; ayuda al tutor a decidir. */
-    val penalizacionesEstudiante: Int = 0
+    val penalizacionesEstudiante: Int = 0,
+    /** Precio por hora que propuso el estudiante; null si aceptó la tarifa del tutor. Al aceptar, el tutor acepta este precio. */
+    val precioPropuesto: Double? = null
 )
 
 /** Horas que quedan para que el tutor responda, contando minutos completos; 0 o menos si el plazo ya venció. */
@@ -356,6 +361,8 @@ data class Usuario(
     /** Perfil público como tutor. */
     val bio: String = "",
     val materias: List<String> = emptyList(),
+    /** Tarifa por hora como tutor, en pesos; null si aún no la fija. */
+    val precioHora: Double? = null,
     /** False si la cuenta solo entra con Google. */
     val tieneContrasena: Boolean = true
 )

@@ -68,7 +68,8 @@ class SolicitudRepositoryRemoto @Inject constructor(
         fecha: LocalDate,
         hora: LocalTime,
         modalidad: Modalidad,
-        mensaje: String
+        mensaje: String,
+        precioPropuesto: Double?
     ) {
         val enviada = errores.llamar {
             api.enviarSolicitud(
@@ -79,7 +80,8 @@ class SolicitudRepositoryRemoto @Inject constructor(
                     fecha = fecha.toString(),
                     hora = hora.aTextoApi(),
                     modalidad = modalidad.aDto(),
-                    mensaje = mensaje.takeIf { it.isNotBlank() }
+                    mensaje = mensaje.takeIf { it.isNotBlank() },
+                    precioPropuesto = precioPropuesto
                 )
             )
         }

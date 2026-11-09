@@ -25,6 +25,7 @@ interface SolicitudRepository {
         fecha: LocalDate,
         hora: LocalTime,
         modalidad: Modalidad,
-        mensaje: String
+        mensaje: String,
+        precioPropuesto: Double? = null
     )
 }

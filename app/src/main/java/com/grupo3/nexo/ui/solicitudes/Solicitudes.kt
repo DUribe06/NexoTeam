@@ -3,6 +3,7 @@ package com.grupo3.nexo.ui.solicitudes
 import com.grupo3.nexo.ui.components.textoDePenalizacionesRecientes
 import com.grupo3.nexo.ui.components.PildoraAbrirChat
 import com.grupo3.nexo.ui.components.formatoHora
+import com.grupo3.nexo.ui.components.formatoPrecio
 import com.grupo3.nexo.ui.theme.TamanoAvatarCompacto
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.AltoPildora
@@ -318,6 +319,20 @@ private fun TarjetaSolicitud(
                 "“${solicitud.mensaje}”",
                 color = TextoTercero,
                 style = MaterialTheme.typography.bodyMedium.merge(NotaCursiva)
+            )
+        }
+
+        solicitud.precioPropuesto?.let { precio ->
+            Spacer(Modifier.height(EspacioAjustado))
+            Text(
+                buildAnnotatedString {
+                    append(if (esTutor) "Propone pagar " else "Propusiste ")
+                    withStyle(SpanStyle(color = TextoPrimario, fontWeight = FontWeight.SemiBold)) { append(formatoPrecio(precio)) }
+                    append(" la hora")
+                    if (esTutor && solicitud.estado == EstadoSolicitud.PENDIENTE) append(". Si aceptas, aceptas este precio.")
+                },
+                color = TextoSecundario,
+                style = MaterialTheme.typography.bodyMedium
             )
         }
 

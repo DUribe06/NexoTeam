@@ -73,6 +73,30 @@ class SolicitudApiTest extends PruebaTutoriasBase {
     }
 
     @Test
+    void elEstudiantePuedeProponerOtroPrecio() throws Exception {
+        String conPrecio = solicitud(ana, dia, "10:00").replaceFirst("\\}$", ",\"precioPropuesto\":20000}");
+        String id = campo(enviarComo(vale.token(), "/api/solicitudes", conPrecio)
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.precioPropuesto").value(20000))
+            .andReturn().getResponse().getContentAsString(), "$.id");
+        pedir("/api/solicitudes/" + id, ana.token()).andExpect(jsonPath("$.precioPropuesto").value(20000));
+    }
+
+    @Test
+    void sinPrecioPropuestoNoSeEnviaElCampo() throws Exception {
+        enviarComo(vale.token(), "/api/solicitudes", solicitud(ana, dia, "10:00"))
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.precioPropuesto").doesNotExist());
+    }
+
+    @Test
+    void elPrecioPropuestoDebeSerValido() throws Exception {
+        for (String precio : new String[] {"0", "-5000", "10000001"}) {
+            String cuerpo = solicitud(ana, dia, "10:00").replaceFirst("\\}$", ",\"precioPropuesto\":" + precio + "}");
+            codigo(enviarComo(vale.token(), "/api/solicitudes", cuerpo), 400, "DATOS_INVALIDOS");
+        }
+    }
+
+    @Test
     void laMateriaSeGuardaComoLaEscribioElTutor() throws Exception {
         enviarComo(vale.token(), "/api/solicitudes", solicitud(ana, dia, "10:00").replace("Cálculo I", "cálculo i"))
             .andExpect(status().isCreated()).andExpect(jsonPath("$.materia").value("Cálculo I"));

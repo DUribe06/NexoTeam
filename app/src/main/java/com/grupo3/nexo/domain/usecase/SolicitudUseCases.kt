@@ -3,6 +3,7 @@ package com.grupo3.nexo.domain.usecase
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlinx.coroutines.CancellationException
+import com.grupo3.nexo.domain.model.PRECIO_MAXIMO
 import com.grupo3.nexo.domain.model.EstadoSolicitud
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Rol
@@ -111,9 +112,13 @@ class EnviarSolicitudUseCase @Inject constructor(
         fecha: LocalDate,
         hora: LocalTime,
         modalidad: Modalidad,
-        mensaje: String
+        mensaje: String,
+        precioPropuesto: Double? = null
     ) {
         require(tema.isNotBlank()) { "Indica el tema a reforzar" }
-        repositorio.enviar(tutor.id, materia, tema.trim(), fecha, hora, modalidad, mensaje.trim())
+        require(precioPropuesto == null || precioPropuesto in 1.0..PRECIO_MAXIMO) { "El precio propuesto no es válido" }
+        // Proponer la misma tarifa del tutor no es una propuesta
+        val propuesta = precioPropuesto?.takeIf { it != tutor.precioHora }
+        repositorio.enviar(tutor.id, materia, tema.trim(), fecha, hora, modalidad, mensaje.trim(), propuesta)
     }
 }

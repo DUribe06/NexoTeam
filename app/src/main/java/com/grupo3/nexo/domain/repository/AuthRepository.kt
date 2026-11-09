@@ -37,6 +37,8 @@ interface AuthRepository {
     suspend fun cambiarModo(rol: Rol)
     /** Reemplaza las materias que enseña el tutor; el servidor exige al menos una. */
     suspend fun definirMaterias(materias: List<String>)
+    /** Guarda universidad, carrera, descripción y tarifa del tutor; si falla, el perfil sigue igual. */
+    suspend fun editarDatosTutor(universidad: String, carrera: String, bio: String, precioHora: Double?)
     fun cerrarSesion()
 
     /** Si la contraseña no coincide o quedan tutorías agendadas lanza el error y la cuenta sigue igual. */

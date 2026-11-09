@@ -253,6 +253,7 @@ class SesionRepositoryRemotoTest {
         override suspend fun iniciarSesionGoogle(tokenId: String, aceptaCondiciones: Boolean) = throw NotImplementedError()
         override suspend fun cambiarModo(rol: Rol) = Unit
         override suspend fun definirMaterias(materias: List<String>) = Unit
+        override suspend fun editarDatosTutor(universidad: String, carrera: String, bio: String, precioHora: Double?) = Unit
         override fun cerrarSesion() = Unit
         override suspend fun eliminarCuenta(contrasena: String) = Unit
         override suspend fun eliminarCuentaConGoogle(tokenGoogle: String) = Unit

@@ -1,5 +1,6 @@
 package com.grupo3.nexo.domain.usecase
 
+import com.grupo3.nexo.domain.model.PRECIO_MAXIMO
 import com.grupo3.nexo.domain.model.ResultadoAcceso
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Usuario
@@ -106,6 +107,21 @@ class DefinirMateriasUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(materias: List<String>) = repositorio.definirMaterias(materias)
 }
+
+/** Guarda los datos públicos del tutor: universidad, carrera, descripción y tarifa por hora. */
+class EditarDatosTutorUseCase @Inject constructor(
+    private val repositorio: AuthRepository
+) {
+    suspend operator fun invoke(universidad: String, carrera: String, bio: String, precioHora: Double?) {
+        require(precioHora == null || precioHora in 0.0..PRECIO_MAXIMO) { "La tarifa no es válida" }
+        require(bio.trim().length <= LARGO_MAXIMO_DESCRIPCION) { "La descripción es muy larga" }
+        repositorio.editarDatosTutor(universidad, carrera, bio, precioHora)
+    }
+}
+
+/** Lo mismo que acepta el servidor. */
+const val LARGO_MAXIMO_DESCRIPCION = 500
+const val LARGO_MAXIMO_UNIVERSIDAD = 120
 
 /** Cambia el modo de uso: Estudiante ↔ Tutor. */
 class CambiarModoUseCase @Inject constructor(

@@ -63,6 +63,9 @@ interface NexoApi {
     @PATCH("api/usuarios/yo/perfil-tutor")
     suspend fun editarPerfilTutor(@Body solicitud: SolicitudEditarMaterias): PerfilPropioDto
 
+    @PATCH("api/usuarios/yo/perfil-tutor")
+    suspend fun editarDatosTutor(@Body solicitud: SolicitudEditarDatosTutor): PerfilPropioDto
+
     @POST("api/usuarios/yo/eliminar")
     suspend fun eliminarCuenta(@Body solicitud: SolicitudEliminarCuenta): Response<Unit>
 

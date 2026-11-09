@@ -48,6 +48,7 @@ import com.grupo3.nexo.ui.inicio.PantallaInicio
 import com.grupo3.nexo.ui.navigation.Rutas
 import com.grupo3.nexo.ui.navigation.rutasDeAcceso
 import com.grupo3.nexo.ui.navigation.rutasDeBarra
+import com.grupo3.nexo.ui.perfil.PantallaDatosTutor
 import com.grupo3.nexo.ui.perfil.PantallaMisMaterias
 import com.grupo3.nexo.ui.perfil.PantallaMisResenas
 import com.grupo3.nexo.ui.perfil.PantallaPerfil
@@ -291,8 +292,12 @@ fun NexoApp() {
                     alAbrirHistorial = { controlador.navigate(Rutas.Historial.ruta) },
                     alAbrirDisponibilidad = { controlador.navigate(Rutas.Disponibilidad.ruta) },
                     alAbrirResenas = { controlador.navigate(Rutas.MisResenas.ruta) },
-                    alAbrirMaterias = { controlador.navigate(Rutas.MisMaterias.ruta) }
+                    alAbrirMaterias = { controlador.navigate(Rutas.MisMaterias.ruta) },
+                    alEditarPerfilTutor = { controlador.navigate(Rutas.DatosTutor.ruta) }
                 )
+            }
+            composable(Rutas.DatosTutor.ruta) {
+                PantallaDatosTutor(alVolver = { controlador.popBackStack() })
             }
             composable(Rutas.MisResenas.ruta) {
                 PantallaMisResenas(alVolver = { controlador.popBackStack() })

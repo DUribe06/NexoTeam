@@ -111,6 +111,7 @@ import com.grupo3.nexo.ui.components.mostrarError
 import com.grupo3.nexo.ui.components.rememberPrimeraVez
 import com.grupo3.nexo.ui.components.solaparHaciaArriba
 import com.grupo3.nexo.ui.components.superficie
+import com.grupo3.nexo.ui.components.formatoPrecio
 import com.grupo3.nexo.ui.theme.BordeAcento
 import com.grupo3.nexo.ui.theme.BordeRojoSalir
 import com.grupo3.nexo.ui.theme.BordeSutil
@@ -179,6 +180,7 @@ fun PantallaPerfil(
     alAbrirDisponibilidad: () -> Unit,
     alAbrirResenas: () -> Unit,
     alAbrirMaterias: () -> Unit,
+    alEditarPerfilTutor: () -> Unit,
     viewModel: PerfilViewModel = hiltViewModel()
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -240,7 +242,7 @@ fun PantallaPerfil(
                                 TarjetaDisponibilidad(alAbrirDisponibilidad)
                             }
                             Cifras(estado.resumen, true, Modifier.padding(horizontal = EspacioMargen, vertical = EspacioSuelto))
-                            BloqueTutor(usuario, estado.resenas, cargando = estado.resumen == null, error = estado.error, alReintentar = viewModel::reintentar, alVerTodas = alAbrirResenas, alVerHistorial = alAbrirHistorial, alEditarMaterias = alAbrirMaterias)
+                            BloqueTutor(usuario, estado.resenas, cargando = estado.resumen == null, error = estado.error, alReintentar = viewModel::reintentar, alVerTodas = alAbrirResenas, alVerHistorial = alAbrirHistorial, alEditarMaterias = alAbrirMaterias, alEditarPerfil = alEditarPerfilTutor)
                         } else {
                             val pendientes = estado.resumen?.porCalificar ?: 0
                             if (pendientes > 0) {
@@ -494,10 +496,18 @@ private fun BloqueTutor(
     alReintentar: () -> Unit,
     alVerTodas: () -> Unit,
     alVerHistorial: () -> Unit,
-    alEditarMaterias: () -> Unit
+    alEditarMaterias: () -> Unit,
+    alEditarPerfil: () -> Unit
 ) {
     val carga = cargaDe(cargando, resenas.isEmpty(), error)
     Column(Modifier.padding(horizontal = EspacioMargen)) {
+        EncabezadoSeccion("Tu tarifa", accion = "Editar perfil", alAccion = alEditarPerfil)
+        Text(
+            usuario.precioHora?.takeIf { it > 0 }?.let { "${formatoPrecio(it)} la hora" } ?: "A convenir: aún no la fijas",
+            color = TextoPrimario,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(bottom = EspacioAjustado)
+        )
         if (usuario.materias.isNotEmpty()) {
             Materias("Enseñas", usuario.materias, accion = "Editar", alAccion = alEditarMaterias)
         } else {

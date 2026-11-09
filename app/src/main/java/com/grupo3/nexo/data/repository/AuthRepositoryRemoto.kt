@@ -6,6 +6,7 @@ import com.grupo3.nexo.data.remote.NexoApi
 import com.grupo3.nexo.data.remote.PerfilPropioDto
 import com.grupo3.nexo.data.remote.SesionDto
 import com.grupo3.nexo.data.remote.SolicitudCambiarModo
+import com.grupo3.nexo.data.remote.SolicitudEditarDatosTutor
 import com.grupo3.nexo.data.remote.SolicitudEditarMaterias
 import com.grupo3.nexo.data.remote.SolicitudCorreo
 import com.grupo3.nexo.data.remote.SolicitudGoogle
@@ -167,6 +168,11 @@ class AuthRepositoryRemoto @Inject constructor(
         cerrojoPerfil.withLock { aplicarPerfil(errores.llamar { api.editarPerfilTutor(SolicitudEditarMaterias(materias)) }) }
     }
 
+    override suspend fun editarDatosTutor(universidad: String, carrera: String, bio: String, precioHora: Double?) {
+        val solicitud = SolicitudEditarDatosTutor(universidad.trim(), carrera.trim(), bio.trim(), precioHora)
+        cerrojoPerfil.withLock { aplicarPerfil(errores.llamar { api.editarDatosTutor(solicitud) }) }
+    }
+
     /** La sesión local se borra primero: salir no espera a la red y funciona también sin conexión. */
     override fun cerrarSesion() {
         val sesion = almacen.sesion.value
@@ -248,6 +254,7 @@ private fun SesionDto.aDominio(datos: PerfilPropioDto?): Usuario {
         carrera = propio?.carrera.orEmpty(),
         bio = propio?.bio.orEmpty(),
         materias = propio?.materias.orEmpty(),
+        precioHora = propio?.precioHora,
         tieneContrasena = propio?.tieneContrasena ?: true
     )
 }

@@ -91,7 +91,7 @@ class TutorPerfilViewModel @Inject constructor(
     fun solicitar(datos: DatosSolicitud) {
         val t = estado.value.tutor ?: return
         enCurso.lanzar(viewModelScope, "solicitar") {
-            val fallo = falloDe { enviarSolicitud(t, datos.materia, datos.tema, datos.fecha, datos.hora, datos.modalidad, datos.mensaje) }
+            val fallo = falloDe { enviarSolicitud(t, datos.materia, datos.tema, datos.fecha, datos.hora, datos.modalidad, datos.mensaje, datos.precioPropuesto) }
             aviso.value = if (fallo == null) AvisoPerfil.SolicitudEnviada(t.nombre.primerNombre) else AvisoPerfil.SolicitudFallida(fallo)
         }
     }
