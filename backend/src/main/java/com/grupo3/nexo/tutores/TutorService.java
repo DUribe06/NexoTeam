@@ -120,7 +120,8 @@ public class TutorService {
                 u.getPrecioHora() == null ? 0 : u.getPrecioHora().doubleValue(),
                 u.estaEnLinea(ahora),
                 horarios.getOrDefault(id, List.of()),
-                faltas.getOrDefault(id, 0));
+                faltas.getOrDefault(id, 0),
+                u.getFotoUrl());
         }).toList();
     }
 

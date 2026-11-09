@@ -6,7 +6,8 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /** Esquemas de chats del contrato. */
@@ -17,15 +18,27 @@ public final class ChatDtos {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record ChatDto(UUID id, UUID contraparteId, String nombre, String ultimoMensaje, OffsetDateTime ultimoMensajeEn,
-                          int noLeidos, boolean enLinea, boolean soloLectura, boolean comoTutor) {
+                          int noLeidos, boolean enLinea, boolean soloLectura, boolean comoTutor, String fotoUrl) {
     }
 
-    public record MensajeDto(UUID id, UUID chatId, String texto, OffsetDateTime enviadoEn, boolean mio) {
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record MensajeDto(UUID id, UUID chatId, String texto, String imagenUrl, OffsetDateTime enviadoEn, boolean mio) {
     }
 
     public record PaginaMensajes(List<MensajeDto> mensajes, boolean hayMas) {
     }
 
-    public record SolicitudMensaje(@NotBlank @Size(max = 2000) String texto, UUID idCliente) {
+    /** Texto, imagen o los dos (la imagen se sube antes a Cloudinary). Sin ninguno de los dos no hay mensaje. */
+    public record SolicitudMensaje(@Size(max = 2000) String texto, UUID idCliente,
+                                   @Size(max = 1000) @Pattern(regexp = "https://res\\.cloudinary\\.com/.+") String imagenUrl) {
+
+        @AssertTrue(message = "escribe un mensaje o adjunta una imagen")
+        public boolean isConContenido() {
+            return !textoLimpio().isEmpty() || imagenUrl != null;
+        }
+
+        public String textoLimpio() {
+            return texto == null ? "" : texto.trim();
+        }
     }
 }
