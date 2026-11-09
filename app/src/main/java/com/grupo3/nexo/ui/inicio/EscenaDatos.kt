@@ -234,7 +234,7 @@ internal val rigCalificar = Rig(267.9f, listOf(
     Capa("t_torso", R.drawable.rig_calificar_t_torso, 184.2f, 67.8f, 225.2f, 149.4f, 17),
     Capa("t_brazoI", R.drawable.rig_calificar_t_brazoi, 184.2f, 120.8f, 191.4f, 127.0f, 23),
     Capa("t_manoI", R.drawable.rig_calificar_t_manoi, 182.5f, 149.8f, 188.1f, 152.7f, 20),
-    Capa("t_saludo", R.drawable.rig_calificar_t_saludo, 178.8f, 150.3f, 188.1f, 152.7f, 20),
+    Capa("t_saludo", R.drawable.rig_calificar_t_saludo, 175.4f, 150.3f, 188.1f, 152.7f, 20),
     Capa("t_mangaI", R.drawable.rig_calificar_t_mangai, 184.6f, 89.8f, 195.5f, 98.0f, 19),
     Capa("t_brazoD", R.drawable.rig_calificar_t_brazod, 252.5f, 120.4f, 258.6f, 126.6f, 26),
     Capa("t_manoD", R.drawable.rig_calificar_t_manod, 255.5f, 149.4f, 261.9f, 152.3f, 24),

@@ -17,7 +17,7 @@ fun mensajeDeAcceso(resultado: ResultadoAcceso): String? = when (resultado) {
         val cuando = resultado.minutos?.let { "en $it ${plural(it, "minuto", "minutos")}" } ?: "en unos minutos"
         "Bloqueamos tu cuenta por varios intentos fallidos. Inténtalo de nuevo $cuando."
     }
-    ResultadoAcceso.CuentaSuspendida -> "Tu cuenta está suspendida."
+    ResultadoAcceso.CuentaSuspendida -> "Tu cuenta está suspendida. Revisa tu correo para conocer el motivo."
 }
 
 /** Una excepción que no es del servidor se trata como fallo de conexión. */
@@ -55,7 +55,7 @@ private fun mensajeDeErrorApi(error: ErrorApi): String = when (error.codigo) {
     CodigoError.TUTOR_NO_ENCONTRADO -> "Este tutor ya no está disponible."
     CodigoError.REPORTE_DUPLICADO -> "Ya reportaste a este tutor. Estamos revisando tu reporte."
     CodigoError.REPORTE_A_SI_MISMO -> "No puedes reportarte a ti mismo."
-    CodigoError.CALENDARIO_NO_CREADO -> "Primero crea tu semana con \"Agregar horario\"."
+    CodigoError.CALENDARIO_NO_CREADO -> "Aún no tienes calendario. Abre Mi disponibilidad para crearlo."
     CodigoError.HORA_NO_VALIDA -> "Esa hora no está en el calendario. Elige otra."
     CodigoError.SOLICITUD_DUPLICADA -> "Ya tienes una solicitud con este tutor para ese día y hora."
     CodigoError.FECHA_NO_VALIDA -> "Esa fecha ya no se puede pedir. Elige un día de los próximos 14."

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -15,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.grupo3.nexo.ui.theme.AreaTactilMinima
+import com.grupo3.nexo.ui.theme.TamanoAvatarCompacto
 import com.grupo3.nexo.ui.theme.TamanoAvatarNormal
 import com.grupo3.nexo.ui.theme.BordeSutil
 import com.grupo3.nexo.ui.theme.EspacioCorto
@@ -34,15 +37,15 @@ fun cargaDe(cargando: Boolean, vacia: Boolean, error: Boolean = false): Carga = 
 
 /** Filas de relleno para una lista que aún carga: avatar y tres líneas, sobre tarjeta con borde. */
 @Composable
-fun EsqueletoLista(modifier: Modifier = Modifier, filas: Int = 5) {
+fun EsqueletoLista(modifier: Modifier = Modifier, filas: Int = 5, conMargen: Boolean = true, conAcciones: Boolean = false) {
     Esqueleto(
         modifier
             .fillMaxWidth()
-            .padding(horizontal = EspacioMargen, vertical = EspacioNormal),
+            .then(if (conMargen) Modifier.padding(horizontal = EspacioMargen, vertical = EspacioNormal) else Modifier),
         verticalArrangement = Arrangement.spacedBy(EspacioMedio)
     ) {
         repeat(filas) {
-            Row(
+            if (conAcciones) EsqueletoSolicitud() else Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -58,6 +61,34 @@ fun EsqueletoLista(modifier: Modifier = Modifier, filas: Int = 5) {
                     LineaHueso(0.4f, alto = 10.dp)
                 }
             }
+        }
+    }
+}
+
+/** Tarjeta de solicitud: avatar con dos líneas, tema, datos y la fila de acciones. */
+@Composable
+private fun EsqueletoSolicitud() {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(EspacioMedio),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Superficie, FormaOrganica)
+            .border(1.dp, BordeSutil, FormaOrganica)
+            .padding(EspacioNormal)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Hueso(Modifier.size(TamanoAvatarCompacto), CircleShape)
+            Spacer(Modifier.width(EspacioMedio))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(EspacioCorto)) {
+                LineaHueso(0.5f, alto = 14.dp)
+                LineaHueso(0.35f, alto = 10.dp)
+            }
+        }
+        LineaHueso(0.7f, alto = 12.dp)
+        LineaHueso(0.55f, alto = 10.dp)
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Hueso(Modifier.width(112.dp).height(AreaTactilMinima), FormaOrganica)
+            Hueso(Modifier.width(72.dp).height(AreaTactilMinima), FormaOrganica)
         }
     }
 }

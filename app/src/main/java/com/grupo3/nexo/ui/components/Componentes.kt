@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -374,6 +375,7 @@ fun BotonSecundario(
     compacto: Boolean = false,
     peligro: Boolean = false,
     habilitado: Boolean = true,
+    cargando: Boolean = false,
     colorIcono: Color = BosqueAcento,
     /** Alto del botón; 48 dp en pantallas nuevas para cumplir el área táctil mínima. */
     alto: Dp = if (compacto) 44.dp else 52.dp,
@@ -388,7 +390,7 @@ fun BotonSecundario(
         modifier = modifier
             .areaTactilSinCambiarMedida(alto)
             .heightIn(min = maxOf(alto, AreaTactilMinima))
-            .pulsable(habilitado = habilitado, alClicar = alClicar)
+            .pulsable(habilitado = habilitado && !cargando, alClicar = alClicar)
             .semantics { if (descripcion != null) contentDescription = descripcion }
     ) {
         Row(
@@ -400,19 +402,23 @@ fun BotonSecundario(
                 .border(1.dp, if (peligro) BordeRojoPeligro else BordeMarcado, FormaControl)
                 .padding(horizontal = if (compacto) EspacioNormal else EspacioMargen)
         ) {
-            if (icono != null) {
-                Icon(icono, contentDescription = null, tint = if (peligro) Rojo else colorIcono, modifier = Modifier.size(IconoNormal))
-                Spacer(Modifier.width(EspacioCorto))
+            if (cargando) {
+                CircularProgressIndicator(color = colorTexto, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+            } else {
+                if (icono != null) {
+                    Icon(icono, contentDescription = null, tint = if (peligro) Rojo else colorIcono, modifier = Modifier.size(IconoNormal))
+                    Spacer(Modifier.width(EspacioCorto))
+                }
+                Text(
+                    texto,
+                    color = colorTexto,
+                    style = if (compacto) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
             }
-            Text(
-                texto,
-                color = colorTexto,
-                style = if (compacto) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false)
-            )
         }
     }
 }
@@ -584,6 +590,8 @@ fun Campo(
     teclado: KeyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
     acciones: KeyboardActions = KeyboardActions.Default,
     lineasMaximas: Int = 1,
+    /** Alto inicial en líneas de un campo multilínea, para que invite a escribir más que una frase. */
+    lineasMinimas: Int = 1,
     /** Para contraseñas: muestra puntos en lugar del texto. */
     oculto: Boolean = false,
     /** Para precios: muestra las cifras con punto de miles (20000 → 20.000) sin cambiar el valor. */
@@ -605,6 +613,7 @@ fun Campo(
         onValueChange = alCambiar,
         singleLine = !multilinea,
         maxLines = lineasMaximas,
+        minLines = lineasMinimas.coerceAtMost(lineasMaximas),
         textStyle = CampoEntrada.copy(color = BosqueProfundo),
         cursorBrush = SolidColor(BosqueAcento),
         keyboardOptions = teclado,
@@ -771,6 +780,17 @@ fun InsigniaEstado(estado: EstadoSolicitud, modifier: Modifier = Modifier) {
         Text(estado.etiqueta, color = texto, style = MaterialTheme.typography.labelMedium.merge(EnfasisFuerte))
     }
 }
+
+/** Estado sin solicitud asociada (p. ej. sesión cancelada): mismo punto y texto, en tono neutro. */
+@Composable
+fun InsigniaEstado(etiqueta: String, modifier: Modifier = Modifier, texto: Color = GrisEstado, punto: Color = GrisEstadoSuave) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
+        Box(Modifier.size(TamanoPuntoEstado).background(punto, CircleShape))
+        Spacer(Modifier.width(EspacioFino))
+        Text(etiqueta, color = texto, style = MaterialTheme.typography.labelMedium.merge(EnfasisFuerte))
+    }
+}
+
 /* ==================== Personas ==================== */
 
 /** Tono de avatar estable para un nombre (siempre el mismo par de la paleta bosque). */
@@ -846,10 +866,10 @@ fun Avatar(
 
 /** Fila de 5 estrellas (llenas según `cantidad`). */
 @Composable
-fun Estrellas(cantidad: Int, tamano: Dp = TamanoEstrella, modifier: Modifier = Modifier) {
+fun Estrellas(cantidad: Int, tamano: Dp = TamanoEstrella, modifier: Modifier = Modifier, descripcion: String? = null) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(EspacioMicro),
-        modifier = modifier.semantics { contentDescription = "$cantidad de 5 estrellas" }
+        modifier = modifier.semantics { contentDescription = descripcion ?: "$cantidad de 5 estrellas" }
     ) {
         repeat(5) { indice ->
             Icon(
@@ -899,7 +919,8 @@ fun EncabezadoSeccion(
     titulo: String,
     modifier: Modifier = Modifier,
     accion: String? = null,
-    alAccion: (() -> Unit)? = null
+    alAccion: (() -> Unit)? = null,
+    extra: @Composable RowScope.() -> Unit = {}
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -915,6 +936,7 @@ fun EncabezadoSeccion(
                 .weight(1f)
                 .semantics { heading() }
         )
+        extra()
         if (accion != null && alAccion != null) {
             BotonTexto(accion, alAccion, modifier = Modifier.padding(end = 0.dp))
         }

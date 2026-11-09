@@ -31,9 +31,10 @@ internal fun HojaPin(sesion: Sesion, alCerrar: () -> Unit, alEnviar: (String, al
         alEnviar(pin) {
             enviando = false
             error = it
+            pin = ""
         }
     }
-    HojaNexo(titulo = "Escribe el PIN", alCerrar = alCerrar, subtitulo = "Pídeselo a ${sesion.conQuien}. Con él empieza la sesión.") {
+    HojaNexo(titulo = "Escribe el PIN", alCerrar = alCerrar, subtitulo = "Pídeselo a ${sesion.conQuien.substringBefore(' ')}. Con él empieza la sesión.") {
         CampoCodigo(
             valor = pin,
             alCambiar = { nuevo ->
@@ -43,11 +44,12 @@ internal fun HojaPin(sesion: Sesion, alCerrar: () -> Unit, alEnviar: (String, al
             conError = error != null,
             alPulsarListo = ::enviar,
             modifier = Modifier.padding(top = EspacioAjustado),
-            largo = LARGO_PIN
+            largo = LARGO_PIN,
+            descripcion = "PIN de $LARGO_PIN dígitos"
         )
         MensajeAcceso(error = error)
         BotonPrimario(
-            "Iniciar sesión",
+            "Empezar tutoría",
             ::enviar,
             modifier = Modifier.fillMaxWidth().padding(top = EspacioNormal),
             habilitado = completo,

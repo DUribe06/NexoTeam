@@ -25,6 +25,8 @@ object IconosNexo {
         @Composable get() = ImageVector.vectorResource(R.drawable.ph_imagen)
     val Campana: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ph_campana)
+    val Compartir: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ph_compartir)
     val Candado: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ph_candado)
     val Caret: ImageVector
@@ -37,6 +39,10 @@ object IconosNexo {
         @Composable get() = ImageVector.vectorResource(R.drawable.ph_correo)
     val Enviar: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ph_enviar)
+    val Documento: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ph_documento)
+    val Papelera: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ph_papelera)
     val Estrella: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ph_estrella)
     val Filtros: ImageVector

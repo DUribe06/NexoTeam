@@ -744,7 +744,9 @@ private val movCalificar: Movimiento = { n, i ->
     val t = i.t
     val u = t % 7f
     fun sube(retraso: Float) = tramo(u, 0.3f + retraso, 0.9f + retraso) * (1f - tramo(u, 6.1f + retraso, 6.7f + retraso))
-    val manoGesto = suave(sube(0.24f) * 6f)
+    // La mano que cuelga y la que saluda se cambian de golpe, con el brazo apenas levantado: en un fundido se
+    // verían las dos a la vez
+    val manoGesto = if (sube(0.24f) > 0.12f) 1f else 0f
     val saludo = onda(t, 0.78f)
     when {
         n == "e_pelvis" -> apoyo(t)
@@ -870,8 +872,8 @@ fun BarraSesion(
             label = "escena"
         ) { f ->
             val (rig, mueve, pose) = escenaDe(f)
-            // "Llegó" cuenta desde que aparece: la llegada pasa una sola vez
-            val inicio = remember { if (f == FaseSesion.LLEGO) tiempo.value else 0f }
+            // Cada escena empieza desde su primer cuadro al aparecer (al terminar una sesión, el saludo arranca entero)
+            val inicio = remember { tiempo.value }
             // Solo se decodifican las imágenes de la fase visible (y, al cambiar, las de la siguiente)
             val bmps = rememberBitmaps(rig.capas.map { it.id })
             // A la izquierda, en qué paso va la sesión; a la derecha, la escena que lo cuenta
@@ -907,7 +909,7 @@ fun BarraSesion(
                     }
                 }
                 Canvas(Modifier.weight(0.56f).height(62.dp).align(Alignment.Bottom).clipToBounds()) {
-                    val t = if (movimiento) tiempo.value - inicio else pose
+                    val t = if (movimiento) (tiempo.value - inicio + 1200f) % 1200f else pose
                     if (bmps != null) escena(rig, bmps, t, 1.dp.toPx(), mueve, pin)
                 }
             }

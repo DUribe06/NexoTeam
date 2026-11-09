@@ -18,12 +18,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
@@ -88,6 +90,7 @@ import com.grupo3.nexo.ui.components.plural
 import com.grupo3.nexo.ui.components.pulsable
 import com.grupo3.nexo.ui.components.superficie
 import com.grupo3.nexo.ui.components.universidadCorta
+import com.grupo3.nexo.ui.theme.AltoFilaInterruptor
 import com.grupo3.nexo.ui.theme.AltoPildora
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
 import com.grupo3.nexo.ui.theme.BordeRadio
@@ -120,13 +123,6 @@ import com.grupo3.nexo.ui.theme.enfasisSeleccion
 import com.grupo3.nexo.ui.theme.DuracionLarga
 import kotlinx.coroutines.delay
 
-/**
- * Alias temporal: [AreaEstudio] pasó a `domain.model`. Solicitudes.kt aún lo importa desde aquí;
- * al cambiar su import, se borra esta línea.
- */
-typealias AreaEstudio = com.grupo3.nexo.domain.model.AreaEstudio
-
-
 /* ==================== Pantalla ==================== */
 
 @Composable
@@ -151,7 +147,13 @@ fun PantallaBusqueda(
         }
     }
 
-    Column(Modifier.fillMaxSize()) {
+    // Al desplazar los resultados el teclado se cierra
+    val estadoLista = rememberLazyListState()
+    LaunchedEffect(estadoLista.isScrollInProgress) {
+        if (estadoLista.isScrollInProgress) focos.clearFocus()
+    }
+
+    Column(Modifier.fillMaxSize().imePadding()) {
         CabeceraSeccion("Buscar tutores", alVolver = alVolver) {
             BotonIcono(
                 IconosNexo.Filtros,
@@ -202,21 +204,22 @@ fun PantallaBusqueda(
                             "Nada coincide con «${estado.consulta.trim()}». Revisa cómo está escrito o busca por materia, tutor o universidad."
                         estado.consulta.isNotBlank() ->
                             "Nada coincide con «${estado.consulta.trim()}» y los filtros elegidos. Prueba con menos filtros."
-                        else -> "Amplía la búsqueda: prueba otra franja horaria, la otra modalidad o quita el área."
+                        estado.hayFiltros -> sugerenciaSinResultados(estado)
+                        else -> "Aún no hay tutores publicados."
                     },
-                    accion = if (estado.hayFiltros) "Quitar todos los filtros" else "Ver todas las áreas",
-                    alAccion = viewModel::limpiarTodo
+                    accion = if (estado.hayFiltros) "Quitar todos los filtros" else null,
+                    alAccion = if (estado.hayFiltros) viewModel::limpiarTodo else null
                 )
             } else {
                 // Sin barra inferior en esta pantalla: el final de la lista respeta la barra del sistema
                 val margenSistema = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-                LazyColumn(contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioNormal, bottom = EspacioAmplio + margenSistema)) {
+                LazyColumn(state = estadoLista, contentPadding = PaddingValues(start = EspacioMargen, end = EspacioMargen, top = EspacioNormal, bottom = EspacioAmplio + margenSistema)) {
                     item(key = "conteo") {
                         Text(
                             resumenResultados(estado),
                             color = TextoTercero,
                             style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(start = EspacioMinimo, bottom = EspacioAjustado)
+                            modifier = Modifier.padding(bottom = EspacioAjustado)
                         )
                     }
                     itemsIndexed(estado.resultados, key = { _, t -> t.id }) { i, tutor ->
@@ -245,6 +248,21 @@ fun PantallaBusqueda(
     }
 }
 
+/** Sugerencia para ampliar la búsqueda, armada solo con los filtros que están activos. */
+private fun sugerenciaSinResultados(e: BusquedaViewModel.Estado): String {
+    val propuestas = listOfNotNull(
+        if (e.franja != null) "otra franja horaria" else null,
+        if (e.modalidad != null) "la otra modalidad" else null,
+        if (e.soloEnLinea) "ver también a quienes no están en línea" else null,
+        if (e.area != null) "quitar el área" else null
+    )
+    return when (propuestas.size) {
+        0 -> "Prueba con menos filtros."
+        1 -> "Amplía la búsqueda: prueba con ${propuestas[0]}."
+        else -> "Amplía la búsqueda: prueba con ${propuestas.dropLast(1).joinToString(", ")} o ${propuestas.last()}."
+    }
+}
+
 private fun resumenResultados(e: BusquedaViewModel.Estado): String = buildString {
     append(plural(e.resultados.size, "1 tutor", "${e.resultados.size} tutores"))
     val detalles = listOfNotNull(
@@ -253,7 +271,7 @@ private fun resumenResultados(e: BusquedaViewModel.Estado): String = buildString
         if (e.soloEnLinea) "en línea" else null
     )
     if (detalles.isNotEmpty()) append(" · " + detalles.joinToString(" · "))
-    append(" · ordenados por calificación")
+    if (e.resultados.size > 1) append(" · ordenados por calificación")
 }
 
 /** Filtros de horario y modalidad (HU-05). Se aplican al instante; el botón muestra el resultado. */
@@ -299,7 +317,7 @@ private fun HojaFiltros(
                 .fillMaxWidth()
                 .superficie(FormaOrganica)
                 .toggleable(value = estado.soloEnLinea, role = Role.Switch, onValueChange = alCambiarEnLinea)
-                .heightIn(min = 60.dp)
+                .heightIn(min = AltoFilaInterruptor)
                 .padding(horizontal = EspacioNormal)
         ) {
             Column(Modifier.weight(1f)) {
@@ -396,10 +414,10 @@ fun FilaTutor(tutor: Tutor, alAbrir: () -> Unit, modifier: Modifier = Modifier) 
         }
         Spacer(Modifier.width(EspacioMedio))
         Column(horizontalAlignment = Alignment.End) {
-            Valoracion(tutor.rating)
+            Valoracion(tutor.rating, resenas = tutor.totalResenas)
             Spacer(Modifier.height(EspacioMinimo))
             Text(
-                if (tutor.precioHora > 0) formatoPrecio(tutor.precioHora) else "A convenir",
+                if (tutor.precioHora > 0) "${formatoPrecio(tutor.precioHora)}/h" else "A convenir",
                 color = TextoPrimario,
                 style = MaterialTheme.typography.titleSmall.merge(CifrasTabulares)
             )

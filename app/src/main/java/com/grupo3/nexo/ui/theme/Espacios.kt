@@ -78,3 +78,16 @@ val ElevacionCampoEnfocado: Dp = 10.dp
 val ElevacionCampoReposo: Dp = 3.dp
 /** Cuánto se corre la flecha del botón principal del acceso al presionarlo. */
 val DesplazamientoFlechaBoton: Dp = 4.dp
+
+/** Alto mínimo de una fila de menú con ícono (Perfil). */
+val AltoFilaMenu: Dp = 56.dp
+/** Botón circular con flecha de las tarjetas accionables. */
+val TamanoBotonIr: Dp = 36.dp
+/** Grosor de la barra de avance de "Completa tu perfil". */
+val AltoBarraAvance: Dp = 6.dp
+
+/** Avatar del perfil propio, junto al nombre en la cabecera. */
+val TamanoAvatarPropio = 72.dp
+/** Insignia de cámara sobre el avatar propio y su ícono. */
+val TamanoInsigniaCamara = 26.dp
+val IconoPequenoCamara = 13.dp
