@@ -13,7 +13,8 @@ import kotlinx.coroutines.flow.Flow
 interface ChatRepository {
     fun obtenerChats(): Flow<List<Chat>>
     fun obtenerMensajes(chatId: String): Flow<List<Mensaje>>
-    suspend fun enviarMensaje(chatId: String, texto: String)
+    /** `imagenUrl` ya subida a Cloudinary; el texto puede ir vacío si lleva imagen. */
+    suspend fun enviarMensaje(chatId: String, texto: String, imagenUrl: String? = null)
     suspend fun marcarLeido(chatId: String)
     /**
      * Devuelve el id del chat con esa persona y lo crea si todavía no existe (primer mensaje a un tutor).

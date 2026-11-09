@@ -129,7 +129,8 @@ fun TutorDto.aDominio(): Tutor = Tutor(
     precioHora = precioHora,
     enLinea = enLinea,
     horario = horario.mapNotNull { it.aDominio() },
-    penalizaciones = penalizaciones
+    penalizaciones = penalizaciones,
+    fotoUrl = fotoUrl
 )
 
 fun ResenaDto.aDominio(): Resena = Resena(id, tutorId, autor, handleAutor, texto, estrellas, LocalDate.parse(fecha))
@@ -226,7 +227,8 @@ fun ChatDto.aDominio(): Chat = Chat(
     noLeidos = noLeidos,
     enLinea = enLinea,
     soloLectura = soloLectura,
-    comoTutor = comoTutor
+    comoTutor = comoTutor,
+    fotoUrl = fotoUrl
 )
 
-fun MensajeDto.aDominio(): Mensaje = Mensaje(id, chatId, texto, momentoEnColombia(enviadoEn), mio)
+fun MensajeDto.aDominio(): Mensaje = Mensaje(id, chatId, texto, momentoEnColombia(enviadoEn), mio, imagenUrl)

@@ -22,7 +22,8 @@ data class TutorDto(
     val precioHora: Double,
     val enLinea: Boolean,
     val horario: List<FranjaTutorDto>,
-    val penalizaciones: Int = 0
+    val penalizaciones: Int = 0,
+    val fotoUrl: String? = null
 )
 
 @Serializable

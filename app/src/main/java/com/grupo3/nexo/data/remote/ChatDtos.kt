@@ -14,7 +14,8 @@ data class ChatDto(
     val noLeidos: Int,
     val enLinea: Boolean,
     val soloLectura: Boolean,
-    val comoTutor: Boolean
+    val comoTutor: Boolean,
+    val fotoUrl: String? = null
 )
 
 @Serializable
@@ -22,6 +23,7 @@ data class MensajeDto(
     val id: String,
     val chatId: String,
     val texto: String,
+    val imagenUrl: String? = null,
     val enviadoEn: String,
     val mio: Boolean
 )
@@ -30,4 +32,4 @@ data class MensajeDto(
 data class PaginaMensajesDto(val mensajes: List<MensajeDto>, val hayMas: Boolean)
 
 @Serializable
-data class SolicitudMensaje(val texto: String, val idCliente: String)
+data class SolicitudMensaje(val texto: String, val idCliente: String, val imagenUrl: String? = null)

@@ -73,11 +73,11 @@ class ChatRepositoryRemoto internal constructor(
         if (chatId.isEmpty()) flowOf(emptyList())
         else hiloDe(chatId).flujo().map { it.mensajes }.distinctUntilChanged()
 
-    override suspend fun enviarMensaje(chatId: String, texto: String) {
-        val envio = chatId to texto
+    override suspend fun enviarMensaje(chatId: String, texto: String, imagenUrl: String?) {
+        val envio = chatId to (texto + imagenUrl.orEmpty())
         val idCliente = sinConfirmar.computeIfAbsent(envio) { UUID.randomUUID().toString() }
         val enviado = try {
-            errores.llamar { api.enviarMensaje(chatId, SolicitudMensaje(texto, idCliente)) }.aDominio()
+            errores.llamar { api.enviarMensaje(chatId, SolicitudMensaje(texto, idCliente, imagenUrl)) }.aDominio()
         } catch (e: ErrorApi) {
             // La sesión terminó mientras se escribía: la pantalla debe pasar a solo lectura
             if (e.codigo == CodigoError.CHAT_SOLO_LECTURA) chats.refrescar()
@@ -86,7 +86,7 @@ class ChatRepositoryRemoto internal constructor(
         sinConfirmar.remove(envio)
         hiloDe(chatId).actualizar { it.copy(mensajes = it.mensajes.conNuevos(listOf(enviado))) }
         chats.actualizar { lista ->
-            lista.map { if (it.id == chatId) it.copy(ultimoMensaje = enviado.texto, hora = enviado.hora) else it }
+            lista.map { if (it.id == chatId) it.copy(ultimoMensaje = enviado.texto.ifEmpty { "Foto" }, hora = enviado.hora) else it }
         }
         chats.refrescar()
     }

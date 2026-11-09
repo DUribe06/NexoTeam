@@ -7,6 +7,7 @@ import com.grupo3.nexo.domain.model.Sesion
 import com.grupo3.nexo.domain.model.Solicitud
 import com.grupo3.nexo.domain.repository.AuthRepository
 import com.grupo3.nexo.domain.repository.ChatRepository
+import com.grupo3.nexo.domain.repository.SubidorImagenes
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -36,12 +37,20 @@ class ObtenerMensajesUseCase @Inject constructor(
         repositorio.obtenerMensajes(chatId).map { lista -> lista.sortedBy { it.hora } }
 }
 
-/** Envía un mensaje en una conversación. */
+/** Envía un mensaje en una conversación; con `imagen` (content:// del selector) la sube primero a Cloudinary. */
 class EnviarMensajeUseCase @Inject constructor(
-    private val repositorio: ChatRepository
+    private val repositorio: ChatRepository,
+    private val subidor: SubidorImagenes
 ) {
-    suspend operator fun invoke(chatId: String, texto: String) =
-        repositorio.enviarMensaje(chatId, texto)
+    suspend operator fun invoke(chatId: String, texto: String, imagen: String? = null) {
+        val url = imagen?.let { subidor.subir(it, LADO_IMAGEN_CHAT) }
+        repositorio.enviarMensaje(chatId, texto, url)
+    }
+
+    private companion object {
+        /** Se lee bien en pantalla completa y pesa unos 200 KB. */
+        const val LADO_IMAGEN_CHAT = 1600
+    }
 }
 
 /** Marca la conversación como leída al abrirla. */

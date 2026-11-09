@@ -397,7 +397,7 @@ fun PantallaInicio(
                         Carga.CARGANDO -> SesionEsqueleto()
                         Carga.VACIO -> SinSesiones(esTutor = estado.esTutor, alBuscar = { alBuscar(null) }, alVerSolicitudes = alVerSolicitudes)
                         Carga.ERROR -> ErrorDeLista(titulo = "No pudimos cargar tus sesiones", alReintentar = viewModel::reintentar)
-                        Carga.LISTO -> proximasVisibles.takeIf { it.isNotEmpty() }?.let { TarjetaProximas(it, estado.temaProximo.takeIf { estado.esTutor }, abrirChat) }
+                        Carga.LISTO -> proximasVisibles.takeIf { it.isNotEmpty() }?.let { TarjetaProximas(it, mostrarTema = estado.esTutor, abrirChat) }
                     }
                 }
             }
@@ -481,7 +481,8 @@ private fun Cabecera(
                     Avatar(
                         nombre = usuario?.nombre ?: "Nexo",
                         tamano = TamanoAvatarBarra,
-                        anillo = AnilloSobreOscuro
+                        anillo = AnilloSobreOscuro,
+                        fotoUrl = usuario?.fotoUrl
                     )
                 }
             }
@@ -599,7 +600,7 @@ private val Modalidad.iconoPh: Int
  */
 
 @Composable
-private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, tema: String?, alAbrirChat: (Sesion) -> Unit) {
+private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, mostrarTema: Boolean, alAbrirChat: (Sesion) -> Unit) {
     // Tocar una capa de atrás la pasa al frente; las demás se reacomodan en orden (como un mazo de cartas)
     var inicio by remember(proximas) { mutableIntStateOf(0) }
     // Al salir de la pantalla (otra pestaña, otra pantalla o la app en segundo plano) vuelve la más próxima
@@ -683,7 +684,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, tema:
                         TextoLinea(s.materia, TituloMateria, BosqueProfundo)
                         Row {
                             // Si el tema no cabe se recorta él, nunca la hora
-                            tema?.let {
+                            primera.tema?.takeIf { mostrarTema }?.let {
                                 Text(
                                     it,
                                     color = TextoSobreTinte,
@@ -695,7 +696,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, tema:
                                 Text(" · ", color = TextoSobreTinte, style = CuerpoSesion, maxLines = 1)
                             }
                             Text(
-                                "${formatoHoras(s.duracionHoras)} · hasta las ${formatoHora(horaFin(s.hora, s.duracionHoras))}",
+                                duracionVisible(s),
                                 color = TextoSobreTinte,
                                 style = CuerpoSesion,
                                 maxLines = 1
@@ -710,7 +711,7 @@ private fun TarjetaProximas(proximas: List<InicioViewModel.SesionProxima>, tema:
                         TextoLinea(s.conQuien, CuerpoNombre, BosqueProfundo)
                         primera.tutor?.let { t ->
                             TextoLinea(
-                                "${universidadCorta(t.universidad)} · ${formatoValoracion(t.rating)}",
+                                listOf(universidadCorta(t.universidad), if (t.rating > 0) formatoValoracion(t.rating) else "Tutor nuevo").filter { it.isNotBlank() }.joinToString(" · "),
                                 MaterialTheme.typography.bodySmall.merge(EnfasisMedio),
                                 TextoSobreTinte
                             )
@@ -955,3 +956,15 @@ private fun AccesoSolicitudes(cantidad: Int, alRevisar: () -> Unit, modifier: Mo
     }
 }
 
+
+/**
+ * Con un retardo pactado la sesión empieza más tarde pero termina a la misma hora: lo que queda es menos de lo
+ * agendado ("22 min · hasta las 21:00", no "1 h").
+ */
+private fun duracionVisible(s: Sesion): String {
+    val fin = horaFin(s.hora, s.duracionHoras)
+    val desde = s.horaPactada ?: return "${formatoHoras(s.duracionHoras)} · hasta las ${formatoHora(fin)}"
+    val minutos = java.time.Duration.between(desde, fin).toMinutes().coerceAtLeast(0)
+    val cuanto = if (minutos % 60 == 0L) formatoHoras(minutos / 60.0) else "$minutos min"
+    return "$cuanto · hasta las ${formatoHora(fin)}"
+}

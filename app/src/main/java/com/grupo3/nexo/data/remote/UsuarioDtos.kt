@@ -19,7 +19,8 @@ data class PerfilPropioDto(
     val bio: String? = null,
     val materias: List<String> = emptyList(),
     val precioHora: Double? = null,
-    val tieneContrasena: Boolean = true
+    val tieneContrasena: Boolean = true,
+    val fotoUrl: String? = null
 )
 
 @Serializable
@@ -53,3 +54,7 @@ data class ResumenActividadDto(
     val penalizaciones: Int = 0,
     val suspendidaHasta: String? = null
 )
+
+/** La foto ya está en Cloudinary: el servidor solo guarda su dirección. */
+@Serializable
+data class SolicitudFoto(val url: String)

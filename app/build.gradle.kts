@@ -10,6 +10,9 @@ plugins {
 // Se definen en gradle.properties; ver backend/docs/despliegue.md
 val apiUrl = providers.gradleProperty("nexoApiUrl").get()
 val googleClientId = providers.gradleProperty("nexoGoogleClientId").get()
+// Cuenta de Cloudinary donde la app sube fotos de perfil e imágenes del chat (preset sin firma: no hay secreto)
+val cloudinaryNube = providers.gradleProperty("nexoCloudinaryNube").get()
+val cloudinaryPreset = providers.gradleProperty("nexoCloudinaryPreset").get()
 
 require(apiUrl.startsWith("https://") && apiUrl.endsWith("/")) {
     "nexoApiUrl debe empezar por https:// y terminar en /: la app no permite tráfico sin cifrar"
@@ -28,6 +31,8 @@ android {
 
         buildConfigField("String", "API_URL", "\"$apiUrl\"")
         buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
+        buildConfigField("String", "CLOUDINARY_NUBE", "\"$cloudinaryNube\"")
+        buildConfigField("String", "CLOUDINARY_PRESET", "\"$cloudinaryPreset\"")
     }
 
     // La llave de firma vive fuera del repositorio; solo se usa si estas variables existen
@@ -118,6 +123,8 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.serialization)
     implementation(libs.okhttp)
+    // Fotos de perfil e imágenes del chat desde Cloudinary y Google
+    implementation(libs.coil.compose)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.datastore.preferences)
 

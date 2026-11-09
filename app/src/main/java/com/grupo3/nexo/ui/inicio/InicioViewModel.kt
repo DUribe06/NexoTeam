@@ -57,7 +57,8 @@ class InicioViewModel @Inject constructor(
 ) : ViewModel() {
 
     /** Sesión próxima con el perfil del tutor, si el usuario es el estudiante. */
-    data class SesionProxima(val sesion: Sesion, val tutor: Tutor? = null)
+    /** `tema` sale de la solicitud de esa misma sesión: cada tarjeta del mazo lleva el suyo. */
+    data class SesionProxima(val sesion: Sesion, val tutor: Tutor? = null, val tema: String? = null)
 
     data class Estado(
         val cargando: Boolean = true,
@@ -71,7 +72,6 @@ class InicioViewModel @Inject constructor(
         val horasPublicadas: Int = 0,
         val diasPublicados: List<DiaSemana> = emptyList(),
         /** Modo tutor: tema que pidió el estudiante para la próxima sesión (RF5). */
-        val temaProximo: String? = null,
         /** Modo tutor: cifras de los accesos. Null mientras llegan o si fallaron: un acceso no tumba el Inicio. */
         val resumen: ResumenActividad? = null,
         /** Falló la lectura: la pantalla muestra el error con "Reintentar". */
@@ -131,10 +131,13 @@ class InicioViewModel @Inject constructor(
                 cargando = proximas == null,
                 usuario = usuario,
                 proximas = proximas.orEmpty().map { sesion ->
-                    SesionProxima(sesion, tutores.find { !sesion.comoTutor && it.id == sesion.contraparteId })
+                    SesionProxima(
+                        sesion,
+                        tutores.find { !sesion.comoTutor && it.id == sesion.contraparteId },
+                        sesion.solicitudId?.let { id -> solicitudes.find { it.id == id }?.tema }
+                    )
                 },
                 pendientes = solicitudes.contarPendientes(),
-                temaProximo = proximas?.firstOrNull()?.solicitudId?.let { id -> solicitudes.find { it.id == id }?.tema },
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())

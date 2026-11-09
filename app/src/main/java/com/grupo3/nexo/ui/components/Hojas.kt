@@ -1,5 +1,12 @@
 package com.grupo3.nexo.ui.components
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material3.ModalBottomSheetProperties
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,7 +74,7 @@ import com.grupo3.nexo.ui.theme.VeloHoja
  * Hoja inferior de la app: blanca, esquinas de [FormaHoja], asa discreta,
  * título + subtítulo y contenido desplazable que respeta el teclado.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun HojaNexo(
     titulo: String,
@@ -79,6 +86,8 @@ fun HojaNexo(
     val vistaApp = LocalView.current
     ModalBottomSheet(
         onDismissRequest = alCerrar,
+        // "Atrás" con el teclado abierto solo lo oculta: cerrar la hoja haría perder lo escrito
+        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Superficie,
         contentColor = TextoPrimario,
@@ -93,6 +102,17 @@ fun HojaNexo(
             )
         }
     ) {
+        val tecladoVisible = WindowInsets.isImeVisible
+        val teclado = LocalSoftwareKeyboardController.current
+        val foco = LocalFocusManager.current
+        BackHandler {
+            if (tecladoVisible) {
+                teclado?.hide()
+                foco.clearFocus()
+            } else {
+                alCerrar()
+            }
+        }
         // La hoja es su propia ventana y no hereda ese ajuste
         val vista = LocalView.current
         SideEffect {

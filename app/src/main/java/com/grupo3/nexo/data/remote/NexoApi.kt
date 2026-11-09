@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.PATCH
@@ -65,6 +66,12 @@ interface NexoApi {
 
     @PATCH("api/usuarios/yo/perfil-tutor")
     suspend fun editarDatosTutor(@Body solicitud: SolicitudEditarDatosTutor): PerfilPropioDto
+
+    @PUT("api/usuarios/yo/foto")
+    suspend fun cambiarFoto(@Body solicitud: SolicitudFoto): PerfilPropioDto
+
+    @DELETE("api/usuarios/yo/foto")
+    suspend fun quitarFoto(): PerfilPropioDto
 
     @POST("api/usuarios/yo/eliminar")
     suspend fun eliminarCuenta(@Body solicitud: SolicitudEliminarCuenta): Response<Unit>

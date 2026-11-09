@@ -1,5 +1,8 @@
 package com.grupo3.nexo.data.repository
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CoroutineScope
 import com.grupo3.nexo.data.remote.ErroresApi
 import com.grupo3.nexo.data.remote.NexoApi
 import com.grupo3.nexo.data.remote.SolicitudDto
@@ -21,6 +24,9 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
+/** Aceptar, rechazar o cancelar lo hace la otra persona en otro teléfono: así se ve sin salir de la pantalla. */
+private const val INTERVALO_SONDEO_MS = 15_000L
+
 /**
  * Solicitudes contra /api/solicitudes, solo las del modo actual.
  * Aceptar, rechazar y cancelar también crean o cancelan la sesión y habilitan o cierran el chat en el servidor, en una
@@ -35,9 +41,12 @@ class SolicitudRepositoryRemoto @Inject constructor(
     contexto: ContextoRemoto
 ) : SolicitudRepository {
 
+    private val sondeos = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // Mientras alguien las observa se consultan cada [INTERVALO_SONDEO_MS]
     private val solicitudes = EstadoRemoto<List<Solicitud>>(contexto) { clave, _ ->
         errores.llamar { api.solicitudes(clave.modo.aDto()) }.mapNotNull { it.aDominio() }
-    }
+    }.also { it.sondear(sondeos, INTERVALO_SONDEO_MS) }
 
     override fun obtenerSolicitudes(): Flow<List<Solicitud>> = solicitudes.flujo()
 

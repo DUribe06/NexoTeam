@@ -5,6 +5,7 @@ import com.grupo3.nexo.domain.model.ResultadoAcceso
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Usuario
 import com.grupo3.nexo.domain.repository.AuthRepository
+import com.grupo3.nexo.domain.repository.SubidorImagenes
 import javax.inject.Inject
 
 /** Inicia sesión con correo y contraseña. */
@@ -151,4 +152,19 @@ class ObtenerUsuarioUseCase @Inject constructor(
     private val repositorio: AuthRepository
 ) {
     operator fun invoke(): kotlinx.coroutines.flow.StateFlow<Usuario> = repositorio.usuarioActual
+}
+
+/** Pone una foto de perfil elegida en el teléfono (`imagen` es el content:// del selector), o la quita con null. */
+class CambiarFotoPerfilUseCase @Inject constructor(
+    private val repositorio: AuthRepository,
+    private val subidor: SubidorImagenes
+) {
+    suspend operator fun invoke(imagen: String?) {
+        repositorio.cambiarFoto(imagen?.let { subidor.subir(it, LADO_FOTO_PERFIL) })
+    }
+
+    private companion object {
+        /** Nítida en el avatar grande del perfil y liviana en las listas. */
+        const val LADO_FOTO_PERFIL = 640
+    }
 }

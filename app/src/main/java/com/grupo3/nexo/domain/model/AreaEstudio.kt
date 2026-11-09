@@ -9,7 +9,7 @@ enum class AreaEstudio(val etiqueta: String, val claves: List<String>) {
     PROGRAMACION("Programación", listOf("Programación", "Python", "Java")),
     CIENCIAS("Ciencias", listOf("Física", "Química", "Biología", "Estadística")),
     IDIOMAS("Idiomas", listOf("Inglés", "Redacción")),
-    DATOS("Bases de datos", listOf("Bases de Datos", "SQL")),
+    DATOS("Bases de datos", listOf("Bases de datos", "SQL")),
     DISENO("Diseño", listOf("Diseño", "Figma")),
     NEGOCIOS("Negocios", listOf("Contabilidad", "Economía"));
 

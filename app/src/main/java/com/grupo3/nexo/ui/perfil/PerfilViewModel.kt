@@ -6,6 +6,7 @@ import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.ResumenActividad
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Usuario
+import com.grupo3.nexo.domain.usecase.CambiarFotoPerfilUseCase
 import com.grupo3.nexo.domain.usecase.CambiarModoUseCase
 import com.grupo3.nexo.domain.usecase.CerrarSesionUseCase
 import com.grupo3.nexo.domain.usecase.EliminarCuentaUseCase
@@ -17,7 +18,10 @@ import com.grupo3.nexo.ui.Recarga
 import com.grupo3.nexo.ui.falloDe
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
@@ -28,7 +32,8 @@ class PerfilViewModel @Inject constructor(
     obtenerMisResenas: ObtenerMisResenasUseCase,
     private val cambiarModo: CambiarModoUseCase,
     private val cerrarSesion: CerrarSesionUseCase,
-    private val eliminarCuentaPropia: EliminarCuentaUseCase
+    private val eliminarCuentaPropia: EliminarCuentaUseCase,
+    private val cambiarFotoPerfil: CambiarFotoPerfilUseCase
 ) : ViewModel() {
 
     data class Estado(
@@ -59,6 +64,20 @@ class PerfilViewModel @Inject constructor(
     /** Si falla el modo sigue igual y `alFallar` muestra el aviso. */
     fun elegirModo(rol: Rol, alFallar: (Throwable) -> Unit) {
         enCurso.lanzar(viewModelScope, "modo") { falloDe { cambiarModo(rol) }?.let(alFallar) }
+    }
+
+    private val _subiendoFoto = MutableStateFlow(false)
+    /** Mientras sube, el avatar muestra un indicador en vez de la cámara. */
+    val subiendoFoto: StateFlow<Boolean> = _subiendoFoto.asStateFlow()
+
+    /** `imagen` es el content:// del selector; null quita la foto propia. */
+    fun cambiarFoto(imagen: String?, alFallar: (Throwable) -> Unit) {
+        enCurso.lanzar(viewModelScope, "foto") {
+            _subiendoFoto.value = true
+            val fallo = falloDe { cambiarFotoPerfil(imagen) }
+            _subiendoFoto.value = false
+            fallo?.let(alFallar)
+        }
     }
 
     fun salir() = cerrarSesion()
