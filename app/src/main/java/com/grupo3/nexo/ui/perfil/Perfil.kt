@@ -1,7 +1,14 @@
 package com.grupo3.nexo.ui.perfil
 
+import com.grupo3.nexo.ui.theme.Bosque
+import com.grupo3.nexo.ui.components.Avatar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.compose.rememberLauncherForActivityResult
 import com.grupo3.nexo.ui.theme.TamanoAvatarNormal
 import com.grupo3.nexo.ui.theme.AreaTactilMinima
+import com.grupo3.nexo.ui.auth.HojaCondiciones
 import com.grupo3.nexo.ui.components.plural
 import com.grupo3.nexo.ui.components.textoDePenalizacionesRecientes
 import androidx.compose.animation.AnimatedContent
@@ -196,8 +203,16 @@ fun PantallaPerfil(
     val iniciado = rememberPrimeraVez()
     var confirmarSalida by remember { mutableStateOf(false) }
     var eliminando by remember { mutableStateOf(false) }
+    var viendoCondiciones by remember { mutableStateOf(false) }
     val avisos = remember { SnackbarHostState() }
     val alcance = rememberCoroutineScope()
+    val subiendoFoto by viewModel.subiendoFoto.collectAsStateWithLifecycle()
+    // El selector de fotos del sistema no pide permisos: solo entrega la imagen elegida
+    val elegirFoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) viewModel.cambiarFoto(uri.toString()) { fallo ->
+            alcance.launch { avisos.mostrarError(avisoFallo("cambiar la foto", fallo)) }
+        }
+    }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val altoPantalla = maxHeight
@@ -207,7 +222,7 @@ fun PantallaPerfil(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(desplazamiento),
-            cabecera = { Cabecera(usuario, iniciado) }
+            cabecera = { Cabecera(usuario, iniciado, subiendoFoto, alCambiarFoto = { elegirFoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) }
         ) {
             Column(Modifier.padding(bottom = EspacioExtenso)) {
                 // El selector ocupa el lugar del buscador: montado sobre la onda, con la única sombra
@@ -261,7 +276,8 @@ fun PantallaPerfil(
                             esTutor = esTutor,
                             alAbrirHistorial = alAbrirHistorial,
                             alSalir = { confirmarSalida = true },
-                            alEliminar = { eliminando = true }
+                            alEliminar = { eliminando = true },
+                            alVerCondiciones = { viendoCondiciones = true }
                         )
                     }
                 }
@@ -270,6 +286,8 @@ fun PantallaPerfil(
         VeloBarraEstado(visible = !cabeceraVisible)
         AvisoNexo(avisos, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = EspacioMedio))
     }
+
+    if (viendoCondiciones) HojaCondiciones(alCerrar = { viendoCondiciones = false })
 
     if (eliminando) {
         val alTerminar: (Throwable?) -> Unit = { fallo ->
@@ -356,12 +374,11 @@ private fun BotonIr(modifier: Modifier = Modifier) {
 
 /** Misma cabecera que el Inicio: foto, nombre grande como el saludo y la onda del lienzo. */
 @Composable
-private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
+private fun Cabecera(usuario: Usuario, iniciado: Boolean, subiendoFoto: Boolean, alCambiarFoto: () -> Unit) {
     Box(Modifier.fillMaxSize()) {
         CabeceraBosque(conFoto = true, alturaOnda = 58.dp, modifier = Modifier.matchParentSize()) {
             // La cabecera compartida envuelve su contenido; esta columna lo estira para bajar el nombre
             Column(Modifier.fillMaxHeight()) {
-            // Sin avatar: en el perfil propio repetiría el nombre que ya se lee en grande
             Box(
                 contentAlignment = Alignment.CenterStart,
                 modifier = Modifier
@@ -381,6 +398,8 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
                     .padding(start = EspacioAmplio, end = EspacioAmplio, bottom = EspacioMargen)
                     .aparicion(0, iniciado)
             ) {
+                FotoEditable(usuario, subiendoFoto, alCambiarFoto)
+                Spacer(Modifier.height(EspacioNormal))
                 Text(
                     usuario.nombre,
                     color = SobreOscuro,
@@ -408,6 +427,31 @@ private fun Cabecera(usuario: Usuario, iniciado: Boolean) {
                 .fillMaxWidth()
                 .height(AreaTactilMinima)
         )
+    }
+}
+
+/** Avatar grande con un botón de cámara: tocarlo abre el selector de fotos del teléfono. */
+@Composable
+private fun FotoEditable(usuario: Usuario, subiendo: Boolean, alCambiar: () -> Unit) {
+    Box(
+        Modifier
+            .clip(CircleShape)
+            .clickable(enabled = !subiendo, onClickLabel = "Cambiar foto de perfil", onClick = alCambiar)
+    ) {
+        Avatar(usuario.nombre, tamano = 76.dp, anillo = SobreOscuroSuave.copy(alpha = 0.35f), fotoUrl = usuario.fotoUrl)
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .size(28.dp)
+                .background(Superficie, CircleShape)
+        ) {
+            if (subiendo) {
+                CircularProgressIndicator(strokeWidth = 2.dp, color = Bosque, modifier = Modifier.size(16.dp))
+            } else {
+                Icon(IconosNexo.Camara, contentDescription = null, tint = Bosque, modifier = Modifier.size(16.dp))
+            }
+        }
     }
 }
 
@@ -651,7 +695,7 @@ private fun AvisoPenalizaciones(resumen: ResumenActividad, esTutor: Boolean, mod
 }
 
 @Composable
-private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> Unit, alEliminar: () -> Unit) {
+private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> Unit, alEliminar: () -> Unit, alVerCondiciones: () -> Unit) {
     // Tarjeta con los mismos márgenes que el resto del perfil, como la de reseñas
     Column(
         Modifier
@@ -680,6 +724,7 @@ private fun Menu(esTutor: Boolean, alAbrirHistorial: () -> Unit, alSalir: () -> 
     }
     Column(Modifier.fillMaxWidth().padding(top = EspacioMinimo), horizontalAlignment = Alignment.CenterHorizontally) {
         val enlaces = LocalUriHandler.current
+        BotonTexto("Condiciones de uso", alVerCondiciones, color = TextoTercero)
         BotonTexto("Política de privacidad", { enlaces.openUri(URL_PRIVACIDAD) }, color = TextoTercero)
         BotonTexto("Eliminar mi cuenta", alEliminar, color = TextoTercero)
     }

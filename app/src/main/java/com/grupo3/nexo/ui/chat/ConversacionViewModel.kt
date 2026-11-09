@@ -25,6 +25,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -57,6 +59,10 @@ class ConversacionViewModel @Inject constructor(
         /** Sesión de la conversación: la próxima si hay una agendada; si no, la más reciente (RF8, RF9). */
         val sesion: Sesion? = null,
         val esTutor: Boolean = false,
+        /** Id del tutor cuando la otra persona lo es: la cabecera lleva a su perfil. */
+        val tutorId: String? = null,
+        /** Foto de la otra persona, si tiene. */
+        val fotoUrl: String? = null,
         /** Falló la lectura: la pantalla muestra el error con "Reintentar". */
         val error: Boolean = false
     )
@@ -87,7 +93,9 @@ class ConversacionViewModel @Inject constructor(
                 soloLectura = chat?.soloLectura ?: false,
                 mensajes = mensajes,
                 sesion = sesion,
-                esTutor = chat?.comoTutor ?: false
+                esTutor = chat?.comoTutor ?: false,
+                tutorId = tutor?.id?.takeIf { chat?.comoTutor == false },
+                fotoUrl = chat?.fotoUrl
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Estado())
@@ -124,5 +132,21 @@ class ConversacionViewModel @Inject constructor(
         if (limpio.isEmpty() || chatId.value.isEmpty() || estado.value.soloLectura) return
         // Solo se ignora el mismo texto mientras sale; otro mensaje distinto sigue su curso
         enCurso.lanzar(viewModelScope, "enviar:$limpio") { alTerminar(falloDe { enviarMensaje(chatId.value, limpio) }) }
+    }
+
+    private val _imagenSubiendo = MutableStateFlow<String?>(null)
+
+    /** Imagen (content://) que está subiendo ahora; el hilo la muestra como burbuja propia con progreso. */
+    val imagenSubiendo: StateFlow<String?> = _imagenSubiendo.asStateFlow()
+
+    /** Envía la foto con el texto escrito (puede ir vacío); `alTerminar(fallo)` permite devolver el texto a la caja. */
+    fun enviarImagen(imagen: String, texto: String, alTerminar: (Throwable?) -> Unit) {
+        if (chatId.value.isEmpty() || estado.value.soloLectura || _imagenSubiendo.value != null) return
+        _imagenSubiendo.value = imagen
+        enCurso.lanzar(viewModelScope, "imagen") {
+            val fallo = falloDe { enviarMensaje(chatId.value, texto.trim(), imagen) }
+            _imagenSubiendo.value = null
+            alTerminar(fallo)
+        }
     }
 }

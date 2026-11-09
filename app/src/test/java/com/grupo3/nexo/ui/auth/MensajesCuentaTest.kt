@@ -67,7 +67,7 @@ class MensajesCuentaTest {
     @Test
     fun `el aviso de una accion dice por que la rechazo el servidor, y solo sin conexion culpa a la red`() {
         val rechazo = avisoFallo("aceptar la solicitud", ErrorApi(CodigoError.SOLICITUD_NO_PENDIENTE, "x"))
-        assertEquals("Esta solicitud ya fue respondida.", rechazo)
+        assertEquals("Esta solicitud ya no está pendiente: pudo cancelarse o vencer.", rechazo)
         assertFalse(rechazo.contains("conexión"))
         assertFalse(avisoFallo("aceptar la solicitud", ErrorApi(CodigoError.ERROR_SERVIDOR, "x")).contains("conexión"))
         assertEquals(

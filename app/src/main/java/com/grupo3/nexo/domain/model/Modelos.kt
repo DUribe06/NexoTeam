@@ -114,7 +114,9 @@ data class Tutor(
     val enLinea: Boolean,
     val horario: List<FranjaTutor> = emptyList(),
     /** Recibidas como tutor en los últimos 90 días, de cualquier nivel. */
-    val penalizaciones: Int = 0
+    val penalizaciones: Int = 0,
+    /** Foto de perfil (Cloudinary o Google); null: se muestran las iniciales. */
+    val fotoUrl: String? = null
 ) {
     /** Modalidades que el tutor ofrece en al menos una franja. */
     val modalidades: Set<Modalidad> get() = horario.flatMapTo(mutableSetOf()) { it.modalidades }
@@ -213,9 +215,11 @@ val Solicitud.activa: Boolean get() = estado == EstadoSolicitud.PENDIENTE || est
 /** Cuántas solicitudes esperan respuesta. */
 fun List<Solicitud>.contarPendientes(): Int = count { it.estado == EstadoSolicitud.PENDIENTE }
 
-fun Solicitud.acciones(esTutor: Boolean): AccionesSolicitud = when {
+/** El servidor solo deja cancelar antes de la hora: una sesión que ya empezó solo conserva el chat. */
+fun Solicitud.acciones(esTutor: Boolean, ahora: LocalDateTime = LocalDateTime.now()): AccionesSolicitud = when {
     esTutor && estado == EstadoSolicitud.PENDIENTE -> AccionesSolicitud.RESPONDER
     esTutor && estado == EstadoSolicitud.ACEPTADA -> AccionesSolicitud.ABRIR_CHAT
+    !esTutor && estado == EstadoSolicitud.ACEPTADA && !LocalDateTime.of(fecha, hora).isAfter(ahora) -> AccionesSolicitud.ABRIR_CHAT
     !esTutor && estado == EstadoSolicitud.ACEPTADA -> AccionesSolicitud.ABRIR_CHAT_O_CANCELAR
     !esTutor && estado == EstadoSolicitud.PENDIENTE -> AccionesSolicitud.CANCELAR
     !esTutor && (estado == EstadoSolicitud.RECHAZADA || estado == EstadoSolicitud.EXPIRADA) -> AccionesSolicitud.VER_OTROS
@@ -306,7 +310,8 @@ data class Chat(
     /** La sesión ya terminó: el historial se conserva pero no admite mensajes nuevos (RF8). */
     val soloLectura: Boolean = false,
     /** true si la conversación es con un estudiante (el usuario actúa como tutor). */
-    val comoTutor: Boolean = false
+    val comoTutor: Boolean = false,
+    val fotoUrl: String? = null
 )
 
 data class Mensaje(
@@ -315,7 +320,9 @@ data class Mensaje(
     val texto: String,
     val hora: LocalDateTime,
     /** true si lo envía el usuario actual. */
-    val mio: Boolean
+    val mio: Boolean,
+    /** Foto o imagen adjunta; el texto puede venir vacío. */
+    val imagenUrl: String? = null
 )
 
 /** Horas que ofrece el calendario semanal del tutor. */
@@ -364,7 +371,9 @@ data class Usuario(
     /** Tarifa por hora como tutor, en pesos; null si aún no la fija. */
     val precioHora: Double? = null,
     /** False si la cuenta solo entra con Google. */
-    val tieneContrasena: Boolean = true
+    val tieneContrasena: Boolean = true,
+    /** La propia o la de Google; null: se muestran las iniciales. */
+    val fotoUrl: String? = null
 )
 
 /** Cifras del usuario en el modo actual, para el Perfil y el Historial. */

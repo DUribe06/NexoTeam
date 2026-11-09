@@ -26,6 +26,9 @@ import dagger.hilt.components.SingletonComponent
 abstract class AppModule {
 
     @Binds
+    abstract fun subidorImagenes(cloudinary: com.grupo3.nexo.data.remote.SubidorCloudinary): com.grupo3.nexo.domain.repository.SubidorImagenes
+
+    @Binds
     abstract fun tutores(remoto: TutorRepositoryRemoto): TutorRepository
 
     @Binds

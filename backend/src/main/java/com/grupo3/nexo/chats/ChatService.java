@@ -41,7 +41,8 @@ public class ChatService {
     /** Los no leídos solo cuentan lo que escribió la otra persona. */
     private static final String CONSULTA = """
         SELECT c.id, c.tutor_id, c.activo_hasta, c.ultimo_mensaje_en, o.id AS contraparte_id, o.nombre,
-               o.ultima_actividad_en, COALESCE(m.texto, '') AS ultimo_texto,
+               o.ultima_actividad_en, o.foto_google, o.foto_url,
+               COALESCE(NULLIF(m.texto, ''), CASE WHEN m.imagen_url IS NOT NULL THEN 'Foto' END, '') AS ultimo_texto,
                (SELECT COUNT(*) FROM mensajes n
                 WHERE n.chat_id = c.id
                   AND n.secuencia > CASE WHEN c.tutor_id = :yo THEN c.leido_hasta_tutor ELSE c.leido_hasta_estudiante END
@@ -124,7 +125,7 @@ public class ChatService {
         return new PaginaMensajes(pagina, hayMas);
     }
 
-    private static final String SELECCION_MENSAJE = "SELECT id, chat_id, texto, enviado_en, emisor FROM mensajes";
+    private static final String SELECCION_MENSAJE = "SELECT id, chat_id, texto, imagen_url, enviado_en, emisor FROM mensajes";
 
     /**
      * Reintentar con el mismo `idCliente` devuelve el mensaje ya guardado, incluso si entretanto el chat pasó a solo
@@ -151,10 +152,10 @@ public class ChatService {
                 "Estás enviando mensajes muy rápido; espera un momento", List.of(), 60);
         }
         return jdbc.sql("""
-                INSERT INTO mensajes (id, chat_id, emisor, id_cliente, texto) VALUES (?, ?, ?, ?, ?)
+                INSERT INTO mensajes (id, chat_id, emisor, id_cliente, texto, imagen_url) VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT (chat_id, emisor, id_cliente) DO NOTHING
-                RETURNING id, chat_id, texto, enviado_en, emisor
-                """).params(UUID.randomUUID(), lado.chat(), lado.emisor(), s.idCliente(), s.texto().trim())
+                RETURNING id, chat_id, texto, imagen_url, enviado_en, emisor
+                """).params(UUID.randomUUID(), lado.chat(), lado.emisor(), s.idCliente(), s.textoLimpio(), s.imagenUrl())
             .query((rs, n) -> leerMensaje(rs, lado.emisor())).optional()
             .orElseGet(() -> porIdCliente(lado, s.idCliente()).orElseThrow());
     }
@@ -240,11 +241,13 @@ public class ChatService {
             rs.getInt("no_leidos"),
             actividad != null && actividad.toInstant().isAfter(ahora.minus(Usuario.VENTANA_EN_LINEA)),
             activoHasta == null || !activoHasta.toInstant().isAfter(ahora),
-            rs.getObject("tutor_id", UUID.class).equals(yo));
+            rs.getObject("tutor_id", UUID.class).equals(yo),
+            Usuario.fotoUrl(rs.getString("foto_url"), rs.getString("foto_google")));
     }
 
     private static MensajeDto leerMensaje(ResultSet rs, String miLado) throws SQLException {
         return new MensajeDto(rs.getObject("id", UUID.class), rs.getObject("chat_id", UUID.class), rs.getString("texto"),
+            rs.getString("imagen_url"),
             HoraColombia.momento(rs.getObject("enviado_en", OffsetDateTime.class).toInstant()),
             rs.getString("emisor").equals(miLado));
     }

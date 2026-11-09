@@ -1,5 +1,9 @@
 package com.grupo3.nexo.ui.components
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.grupo3.nexo.BuildConfig
 import com.grupo3.nexo.ui.theme.TamanoAvatarNormal
 import com.grupo3.nexo.ui.theme.TamanoEstrella
@@ -95,8 +99,11 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -578,7 +585,9 @@ fun Campo(
     acciones: KeyboardActions = KeyboardActions.Default,
     lineasMaximas: Int = 1,
     /** Para contraseñas: muestra puntos en lugar del texto. */
-    oculto: Boolean = false
+    oculto: Boolean = false,
+    /** Para precios: muestra las cifras con punto de miles (20000 → 20.000) sin cambiar el valor. */
+    miles: Boolean = false
 ) {
     var enfocado by remember { mutableStateOf(false) }
     val colorBorde by animateColorAsState(
@@ -599,7 +608,11 @@ fun Campo(
         textStyle = CampoEntrada.copy(color = BosqueProfundo),
         cursorBrush = SolidColor(BosqueAcento),
         keyboardOptions = teclado,
-        visualTransformation = if (oculto) PasswordVisualTransformation() else VisualTransformation.None,
+        visualTransformation = when {
+            oculto -> PasswordVisualTransformation()
+            miles -> PuntoDeMiles
+            else -> VisualTransformation.None
+        },
         keyboardActions = acciones,
         modifier = modifier
             .fillMaxWidth()
@@ -783,7 +796,9 @@ fun Avatar(
     enLinea: Boolean? = null,
     anillo: Color? = null,
     /** Anuncia "En línea" o "Desconectado" cuando hay punto de estado (no solo el color). */
-    anunciarEstado: Boolean = true
+    anunciarEstado: Boolean = true,
+    /** Foto de perfil; mientras carga, si falla o si no hay, se ven las iniciales. */
+    fotoUrl: String? = null
 ) {
     val (oscuro, _) = tonoAvatar(nombre)
     Box(
@@ -805,6 +820,15 @@ fun Avatar(
                 color = SobreOscuro,
                 style = LocalTextStyle.current.merge(inicialesAvatar(tamano))
             )
+            if (!fotoUrl.isNullOrBlank()) {
+                // Encima de las iniciales: si la foto no carga, ellas quedan a la vista
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current).data(fotoUrl).crossfade(DuracionMedia).build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.matchParentSize()
+                )
+            }
         }
         if (enLinea != null) {
             val tamanoPunto = (tamano * 0.27f).coerceAtLeast(10.dp)
@@ -841,6 +865,11 @@ fun Estrellas(cantidad: Int, tamano: Dp = TamanoEstrella, modifier: Modifier = M
 /** Calificación compacta: estrella + valor con cifras tabulares. */
 @Composable
 fun Valoracion(valor: Double, modifier: Modifier = Modifier, color: Color = TextoPrimario, resenas: Int? = null) {
+    // Sin calificaciones, "0,0" parecería una mala nota
+    if (valor <= 0.0) {
+        Text("Nuevo", color = TextoSecundario, style = MaterialTheme.typography.labelMedium, modifier = modifier)
+        return
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.semantics(mergeDescendants = true) { }
@@ -1133,3 +1162,20 @@ private tailrec fun Context.buscarActividad(): Activity? = when (this) {
     else -> null
 }
 
+
+/** Agrupa de a tres cifras con punto, como se escriben los pesos: 1250000 → 1.250.000. */
+private object PuntoDeMiles : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val cifras = text.text
+        val conPuntos = cifras.reversed().chunked(3).joinToString(".").reversed()
+        val mapeo = object : OffsetMapping {
+            // Cada punto que queda antes de la posición corre el cursor un lugar
+            override fun originalToTransformed(offset: Int): Int =
+                offset + (1..offset).count { it < cifras.length && (cifras.length - it) % 3 == 0 }
+
+            override fun transformedToOriginal(offset: Int): Int =
+                conPuntos.take(offset).count { it != '.' }
+        }
+        return TransformedText(AnnotatedString(conPuntos), mapeo)
+    }
+}

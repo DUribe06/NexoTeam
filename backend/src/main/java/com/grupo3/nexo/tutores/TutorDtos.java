@@ -18,7 +18,8 @@ public final class TutorDtos {
 
     public record Tutor(UUID id, String nombre, String handle, String bio, String universidad, List<String> materias,
                         double calificacionPromedio, long totalResenas, int sesionesTotales, int estudiantes,
-                        double precioHora, boolean enLinea, List<FranjaTutor> horario, int penalizaciones) {
+                        double precioHora, boolean enLinea, List<FranjaTutor> horario, int penalizaciones,
+                        String fotoUrl) {
     }
 
     public record ResenaDto(UUID id, UUID tutorId, String autor, String handleAutor, String texto, int estrellas,

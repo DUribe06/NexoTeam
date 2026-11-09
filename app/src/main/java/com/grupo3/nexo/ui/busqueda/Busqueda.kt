@@ -37,10 +37,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
@@ -114,6 +117,8 @@ import com.grupo3.nexo.ui.theme.TextoTercero
 import com.grupo3.nexo.ui.theme.TinteBosque
 import com.grupo3.nexo.ui.theme.cambioContenido
 import com.grupo3.nexo.ui.theme.enfasisSeleccion
+import com.grupo3.nexo.ui.theme.DuracionLarga
+import kotlinx.coroutines.delay
 
 /**
  * Alias temporal: [AreaEstudio] pasó a `domain.model`. Solicitudes.kt aún lo importa desde aquí;
@@ -134,6 +139,17 @@ fun PantallaBusqueda(
     val focos = LocalFocusManager.current
     val opcionesArea = remember { listOf("Todas") + AreaEstudio.entries.map { it.etiqueta } }
     var mostrarFiltros by rememberSaveable { mutableStateOf(false) }
+    // Quien llega desde el buscador viene a escribir: el campo toma el foco y abre el teclado una sola vez.
+    // Con un área elegida se viene a ver resultados, y al volver de un perfil no se reabre el teclado.
+    val focoCampo = remember { FocusRequester() }
+    var focoInicialHecho by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!focoInicialHecho && estado.area == null && estado.consulta.isEmpty()) {
+            focoInicialHecho = true
+            delay(DuracionLarga.toLong())  // tras la entrada de la pantalla
+            focoCampo.requestFocus()
+        }
+    }
 
     Column(Modifier.fillMaxSize()) {
         CabeceraSeccion("Buscar tutores", alVolver = alVolver) {
@@ -154,7 +170,9 @@ fun PantallaBusqueda(
             limpiable = true,
             teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Search),
             acciones = KeyboardActions(onSearch = { focos.clearFocus() }),
-            modifier = Modifier.padding(start = EspacioMargen, end = EspacioMargen, top = EspacioCercano)
+            modifier = Modifier
+                .padding(start = EspacioMargen, end = EspacioMargen, top = EspacioCercano)
+                .focusRequester(focoCampo)
         )
 
         Pestanas(
@@ -178,7 +196,14 @@ fun PantallaBusqueda(
                 EstadoVacio(
                     icono = IconosNexo.SinResultados,
                     titulo = "Ningún tutor coincide",
-                    mensaje = "Amplía la búsqueda: prueba otra franja horaria, la otra modalidad o quita el área.",
+                    mensaje = when {
+                        // Solo con lo escrito: el problema es el texto, no los filtros
+                        estado.consulta.isNotBlank() && estado.area == null && estado.filtrosHoja == 0 ->
+                            "Nada coincide con «${estado.consulta.trim()}». Revisa cómo está escrito o busca por materia, tutor o universidad."
+                        estado.consulta.isNotBlank() ->
+                            "Nada coincide con «${estado.consulta.trim()}» y los filtros elegidos. Prueba con menos filtros."
+                        else -> "Amplía la búsqueda: prueba otra franja horaria, la otra modalidad o quita el área."
+                    },
                     accion = if (estado.hayFiltros) "Quitar todos los filtros" else "Ver todas las áreas",
                     alAccion = viewModel::limpiarTodo
                 )
@@ -242,7 +267,7 @@ private fun HojaFiltros(
     alLimpiar: () -> Unit,
     alCerrar: () -> Unit
 ) {
-    HojaNexo(titulo = "Filtros", subtitulo = "Encuentra a quien pueda cuando tú puedes.", alCerrar = alCerrar) {
+    HojaNexo(titulo = "Filtros", subtitulo = "Encuentra a quien pueda cuando tú puedas.", alCerrar = alCerrar) {
         RotuloGrupo("Modalidad", Modifier.padding(top = EspacioHolgado, bottom = EspacioAjustado))
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(EspacioCorto),
@@ -356,13 +381,13 @@ fun FilaTutor(tutor: Tutor, alAbrir: () -> Unit, modifier: Modifier = Modifier) 
             .semantics { stateDescription = if (tutor.enLinea) "En línea" else "Desconectado" }
             .padding(horizontal = EspacioNormal, vertical = EspacioCercano)
     ) {
-        Avatar(tutor.nombre, tamano = TamanoAvatarLista, enLinea = tutor.enLinea, anunciarEstado = false)
+        Avatar(tutor.nombre, tamano = TamanoAvatarLista, enLinea = tutor.enLinea, anunciarEstado = false, fotoUrl = tutor.fotoUrl)
         Spacer(Modifier.width(EspacioNormal))
         Column(Modifier.weight(1f)) {
             TextoLinea(tutor.nombre, MaterialTheme.typography.titleMedium, TextoPrimario)
             TextoLinea(tutor.materias.joinToString(" · "), MaterialTheme.typography.bodyMedium, TextoSecundario)
             Text(
-                listOf(universidadCorta(tutor.universidad), tutor.modalidades.descripcion()).joinToString(" · "),
+                listOf(universidadCorta(tutor.universidad), tutor.modalidades.descripcion()).filter { it.isNotBlank() }.joinToString(" · "),
                 color = TextoTercero,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 2,

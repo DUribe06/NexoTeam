@@ -165,7 +165,7 @@ val IconoCampoReposo = Bosque.copy(alpha = 0.45f)
 /** Texto de una opción sin seleccionar. */
 val TextoOpcionReposo = BosqueProfundo.copy(alpha = 0.78f)
 /** Velo bajo la barra de estado cuando el contenido se desplaza. */
-val VeloBarraEstado = Lienzo.copy(alpha = 0.96f)
+val VeloBarraEstado = Lienzo
 /** Velo de la foto del acceso: arriba, centro y abajo. */
 val VeloAccesoArriba = BosqueProfundo.copy(alpha = 0.60f)
 val VeloAccesoCentro = BosqueProfundo.copy(alpha = 0.25f)

@@ -2,10 +2,14 @@ package com.grupo3.nexo.auth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
 class GoogleApiTest extends PruebaAuthBase {
@@ -127,5 +131,49 @@ class GoogleApiTest extends PruebaAuthBase {
         em.clear();
         // Sin esto, volver a entrar devolvería la cuenta anonimizada
         conTerminos(TOKEN).andExpect(status().isOk()).andExpect(jsonPath("$.usuario.correo").value(CORREO));
+    }
+
+    // ---------- Foto de Google ----------
+
+    private static final String FOTO_GOOGLE = "https://lh3.googleusercontent.com/a/foto-valeria";
+    private static final String FOTO_PROPIA = "https://res.cloudinary.com/nexo/image/upload/v1/valeria.jpg";
+
+    private ResultActions yo(String acceso) throws Exception {
+        return mvc.perform(get("/api/usuarios/yo").header("Authorization", "Bearer " + acceso));
+    }
+
+    @Test
+    void guardaLaFotoDeGoogleYLaActualizaEnCadaInicio() throws Exception {
+        String acceso = JsonDe.campo(conTerminos(TOKEN + "|" + FOTO_GOOGLE).andExpect(status().isOk()), "$.tokenAcceso");
+        assertEquals(FOTO_GOOGLE, columna("foto_google"));
+        yo(acceso).andExpect(jsonPath("$.fotoUrl").value(FOTO_GOOGLE));
+
+        sinTerminos(TOKEN + "|" + FOTO_GOOGLE + "-nueva").andExpect(status().isOk());
+        assertEquals(FOTO_GOOGLE + "-nueva", columna("foto_google"));
+        // Un inicio sin foto no borra la que ya tenía
+        sinTerminos(TOKEN).andExpect(status().isOk());
+        assertEquals(FOTO_GOOGLE + "-nueva", columna("foto_google"));
+    }
+
+    @Test
+    void ignoraUnaFotoDeGoogleQueNoEsHttps() throws Exception {
+        conTerminos(TOKEN + "|http://inseguro.test/foto.jpg").andExpect(status().isOk());
+        assertNull(columna("foto_google"));
+    }
+
+    @Test
+    void laFotoPropiaGanaSobreLaDeGoogleYAlQuitarlaVuelveLaDeGoogle() throws Exception {
+        String acceso = JsonDe.campo(conTerminos(TOKEN + "|" + FOTO_GOOGLE).andExpect(status().isOk()), "$.tokenAcceso");
+        mvc.perform(put("/api/usuarios/yo/foto").header("Authorization", "Bearer " + acceso)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"url\":\"%s\"}".formatted(FOTO_PROPIA)))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.fotoUrl").value(FOTO_PROPIA));
+
+        // Volver a entrar con Google no la pisa
+        sinTerminos(TOKEN + "|" + FOTO_GOOGLE).andExpect(status().isOk());
+        yo(acceso).andExpect(jsonPath("$.fotoUrl").value(FOTO_PROPIA));
+
+        mvc.perform(delete("/api/usuarios/yo/foto").header("Authorization", "Bearer " + acceso))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.fotoUrl").value(FOTO_GOOGLE));
+        yo(acceso).andExpect(jsonPath("$.fotoUrl").value(FOTO_GOOGLE));
     }
 }

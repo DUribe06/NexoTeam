@@ -326,10 +326,16 @@ private fun TarjetaSolicitud(
             Spacer(Modifier.height(EspacioAjustado))
             Text(
                 buildAnnotatedString {
-                    append(if (esTutor) "Propone pagar " else "Propusiste ")
+                    append(
+                        when {
+                            solicitud.estado == EstadoSolicitud.ACEPTADA || solicitud.estado == EstadoSolicitud.FINALIZADA -> "Acordaron "
+                            esTutor -> "Propone pagar "
+                            else -> "Propusiste "
+                        }
+                    )
                     withStyle(SpanStyle(color = TextoPrimario, fontWeight = FontWeight.SemiBold)) { append(formatoPrecio(precio)) }
                     append(" la hora")
-                    if (esTutor && solicitud.estado == EstadoSolicitud.PENDIENTE) append(". Si aceptas, aceptas este precio.")
+                    if (esTutor && solicitud.estado == EstadoSolicitud.PENDIENTE) append(", en lugar de tu tarifa. Si aceptas, queda ese precio.")
                 },
                 color = TextoSecundario,
                 style = MaterialTheme.typography.bodyMedium

@@ -39,6 +39,8 @@ interface AuthRepository {
     suspend fun definirMaterias(materias: List<String>)
     /** Guarda universidad, carrera, descripción y tarifa del tutor; si falla, el perfil sigue igual. */
     suspend fun editarDatosTutor(universidad: String, carrera: String, bio: String, precioHora: Double?)
+    /** `url` de Cloudinary; null quita la propia y vuelve a la de Google (o a las iniciales). */
+    suspend fun cambiarFoto(url: String?)
     fun cerrarSesion()
 
     /** Si la contraseña no coincide o quedan tutorías agendadas lanza el error y la cuenta sigue igual. */

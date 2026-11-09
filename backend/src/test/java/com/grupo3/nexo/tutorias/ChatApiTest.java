@@ -218,4 +218,79 @@ class ChatApiTest extends PruebaTutoriasBase {
         // La otra persona sigue pudiendo escribir
         mensaje(ana, "Tranquila");
     }
+
+    // ---------- Imágenes y fotos ----------
+
+    private static final String IMAGEN = "https://res.cloudinary.com/nexo/image/upload/v1/ejercicio.jpg";
+
+    @Test
+    void unMensajePuedeSerSoloUnaImagen() throws Exception {
+        enviarComo(vale.token(), ruta(), "{\"texto\":\"\",\"imagenUrl\":\"%s\"}".formatted(IMAGEN))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.texto").value(""))
+            .andExpect(jsonPath("$.imagenUrl").value(IMAGEN))
+            .andExpect(jsonPath("$.mio").value(true));
+        // Sin el campo texto también vale
+        enviarComo(ana.token(), ruta(), "{\"imagenUrl\":\"%s\"}".formatted(IMAGEN)).andExpect(status().isCreated());
+        pedir(ruta(), vale.token())
+            .andExpect(jsonPath("$.mensajes[*].imagenUrl", contains(IMAGEN, IMAGEN)))
+            .andExpect(jsonPath("$.mensajes[*].texto", contains("", "")));
+    }
+
+    @Test
+    void unMensajePuedeLlevarTextoEImagen() throws Exception {
+        enviarComo(vale.token(), ruta(), "{\"texto\":\" Mira este \",\"imagenUrl\":\"%s\"}".formatted(IMAGEN))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.texto").value("Mira este"))
+            .andExpect(jsonPath("$.imagenUrl").value(IMAGEN));
+        pedir("/api/chats/" + chat, ana.token()).andExpect(jsonPath("$.ultimoMensaje").value("Mira este"));
+    }
+
+    @Test
+    void unMensajeSoloDeTextoNoLlevaImagen() throws Exception {
+        enviarComo(vale.token(), ruta(), "{\"texto\":\"Hola\"}").andExpect(status().isCreated())
+            .andExpect(jsonPath("$.imagenUrl").doesNotExist());
+    }
+
+    @Test
+    void sinTextoNiImagenNoHayMensaje() throws Exception {
+        enviarComo(vale.token(), ruta(), "{\"texto\":\"   \"}").andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.codigo").value("DATOS_INVALIDOS"));
+        enviarComo(vale.token(), ruta(), "{\"texto\":\"\",\"imagenUrl\":null}").andExpect(status().isBadRequest());
+        pedir(ruta(), vale.token()).andExpect(jsonPath("$.mensajes", hasSize(0)));
+    }
+
+    @Test
+    void laImagenSoloPuedeSerDeCloudinary() throws Exception {
+        for (String url : List.of("https://ejemplo.com/foto.jpg", "http://res.cloudinary.com/nexo/foto.jpg",
+                "https://res.cloudinary.com.malo.com/foto.jpg", "")) {
+            enviarComo(vale.token(), ruta(), "{\"texto\":\"Hola\",\"imagenUrl\":\"%s\"}".formatted(url))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.codigo").value("DATOS_INVALIDOS"));
+        }
+        pedir(ruta(), vale.token()).andExpect(jsonPath("$.mensajes", hasSize(0)));
+    }
+
+    @Test
+    void siElUltimoMensajeFueSoloUnaImagenLaBandejaDiceFoto() throws Exception {
+        mensaje(vale, "Hola");
+        enviarComo(ana.token(), ruta(), "{\"imagenUrl\":\"%s\"}".formatted(IMAGEN)).andExpect(status().isCreated());
+        pedir("/api/chats?modo=ESTUDIANTE", vale.token()).andExpect(jsonPath("$[0].ultimoMensaje").value("Foto"));
+        pedir("/api/chats?modo=TUTOR", ana.token()).andExpect(jsonPath("$[0].ultimoMensaje").value("Foto"));
+        pedir("/api/chats/" + chat, vale.token()).andExpect(jsonPath("$.ultimoMensaje").value("Foto"));
+    }
+
+    @Test
+    void laBandejaMuestraLaFotoDeLaOtraPersona() throws Exception {
+        String foto = "https://res.cloudinary.com/nexo/image/upload/v1/ana.jpg";
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/usuarios/yo/foto")
+                .header("Authorization", "Bearer " + ana.token())
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"url\":\"%s\"}".formatted(foto)))
+            .andExpect(status().isOk());
+        em.flush();
+        pedir("/api/chats?modo=ESTUDIANTE", vale.token()).andExpect(jsonPath("$[0].fotoUrl").value(foto));
+        pedir("/api/chats/" + chat, vale.token()).andExpect(jsonPath("$.fotoUrl").value(foto));
+        // Valeria no tiene foto: el campo se omite y la app muestra sus iniciales
+        pedir("/api/chats?modo=TUTOR", ana.token()).andExpect(jsonPath("$[0].fotoUrl").doesNotExist());
+        pedir("/api/tutores/" + ana.id(), vale.token()).andExpect(jsonPath("$.fotoUrl").value(foto));
+    }
 }

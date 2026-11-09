@@ -322,7 +322,8 @@ fun NexoApp() {
             }
             composable(Rutas.Conversacion.ruta) {
                 PantallaConversacion(
-                    alVolver = { controlador.popBackStack() }
+                    alVolver = { controlador.popBackStack() },
+                    alAbrirTutor = { id -> controlador.navigate(Rutas.TutorPerfil.crear(id)) }
                 )
             }
         }

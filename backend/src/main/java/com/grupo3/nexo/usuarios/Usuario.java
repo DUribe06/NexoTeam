@@ -93,6 +93,14 @@ public class Usuario {
     @Column(name = "calendario_creado_en")
     private Instant calendarioCreadoEn;
 
+    /** Enlace a la foto de la cuenta de Google; se actualiza en cada inicio con Google. */
+    @Column(name = "foto_google")
+    private String fotoGoogle;
+
+    /** La foto que subió en Nexo (en Cloudinary); gana sobre la de Google. */
+    @Column(name = "foto_url")
+    private String fotoPropia;
+
     /** Solo la escribe {@link UsuarioRepository#registrarActividad}: guardar la cuenta no debe pisarla con un valor viejo. */
     @Column(name = "ultima_actividad_en", insertable = false, updatable = false)
     private Instant ultimaActividadEn;
@@ -234,6 +242,21 @@ public class Usuario {
     public String getUniversidad() { return universidad; }
     public String getCarrera() { return carrera; }
     public String getBio() { return bio; }
+
+    /** La foto que se muestra: la propia o, si no subió ninguna, la de Google. Vacía: la app muestra las iniciales. */
+    public String getFotoUrl() { return fotoUrl(fotoPropia, fotoGoogle); }
+
+    public static String fotoUrl(String fotoPropia, String fotoGoogle) {
+        return fotoPropia != null ? fotoPropia : fotoGoogle;
+    }
+
+    public void cambiarFotoGoogle(String url) {
+        if (url != null && url.startsWith("https://") && url.length() <= 1000) {
+            this.fotoGoogle = url;
+        }
+    }
+
+    public void cambiarFotoPropia(String url) { this.fotoPropia = url; }
     public BigDecimal getPrecioHora() { return precioHora; }
     public int getIntentosFallidos() { return intentosFallidos; }
     public Instant getBloqueadoHasta() { return bloqueadoHasta; }

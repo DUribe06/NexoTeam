@@ -83,7 +83,8 @@ class VerificadorTokenGoogleNimbus implements VerificadorTokenGoogle {
         if (jwt.getSubject() == null || correo == null || !Boolean.TRUE.equals(jwt.getClaimAsBoolean("email_verified"))) {
             throw tokenInvalido();
         }
-        return new IdentidadGoogle(jwt.getSubject(), correo.trim().toLowerCase(Locale.ROOT), jwt.getClaimAsString("name"));
+        return new IdentidadGoogle(jwt.getSubject(), correo.trim().toLowerCase(Locale.ROOT), jwt.getClaimAsString("name"),
+            jwt.getClaimAsString("picture"));
     }
 
     private static ErrorNegocio tokenInvalido() {

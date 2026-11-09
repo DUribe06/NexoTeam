@@ -288,7 +288,7 @@ private fun ContenidoAcceso(
         ) { esRegistro ->
             Text(
                 if (esRegistro) "Acceso a la red colaborativa de tutorías."
-                else "Qué bueno verte de nuevo. Inicia sesión.",
+                else "Inicia sesión para encontrar o dar tutorías.",
                 color = TextoSecundario,
                 style = LocalTextStyle.current.merge(MaterialTheme.typography.bodyMedium),
                 textAlign = TextAlign.Center,
@@ -778,9 +778,12 @@ private fun CasillaCondiciones(aceptado: Boolean, alCambiar: (Boolean) -> Unit, 
     if (verCondiciones) HojaCondiciones(alCerrar = { verCondiciones = false })
 }
 
-/** Si cambia este texto, cambia también VERSION_TERMINOS en AuthRepositoryRemoto. */
+/**
+ * Si cambia este texto, cambia también VERSION_TERMINOS en AuthRepositoryRemoto.
+ * También se abre desde el Perfil: ahí la persona repasa las penalizaciones sin cerrar sesión.
+ */
 @Composable
-private fun HojaCondiciones(alCerrar: () -> Unit, textoBoton: String = "Entendido", alConfirmar: () -> Unit = alCerrar) {
+internal fun HojaCondiciones(alCerrar: () -> Unit, textoBoton: String = "Entendido", alConfirmar: () -> Unit = alCerrar) {
     HojaNexo(titulo = "Condiciones de uso", alCerrar = alCerrar) {
         Spacer(Modifier.height(EspacioNormal))
         listOf(

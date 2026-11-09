@@ -19,6 +19,10 @@ object IconosNexo {
         @Composable get() = ImageVector.vectorResource(R.drawable.ph_calendario)
     val CalendarioMarcado: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ph_calendario_check)
+    val Camara: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ph_camara)
+    val Imagen: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ph_imagen)
     val Campana: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ph_campana)
     val Candado: ImageVector

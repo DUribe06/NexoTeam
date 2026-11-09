@@ -64,7 +64,7 @@ private fun mensajeDeErrorApi(error: ErrorApi): String = when (error.codigo) {
     CodigoError.MATERIA_NO_OFRECIDA -> "El tutor ya no enseña esa materia. Elige otra."
     CodigoError.SOLICITUD_A_SI_MISMO -> "No puedes enviarte una solicitud a ti mismo."
     CodigoError.SOLICITUD_NO_ENCONTRADA -> "Esta solicitud ya no existe."
-    CodigoError.SOLICITUD_NO_PENDIENTE -> "Esta solicitud ya fue respondida."
+    CodigoError.SOLICITUD_NO_PENDIENTE -> "Esta solicitud ya no está pendiente: pudo cancelarse o vencer."
     CodigoError.SOLICITUD_EXPIRADA -> "Se venció el plazo para responder esta solicitud."
     CodigoError.SOLICITUD_NO_CANCELABLE -> "Ya no se puede cancelar: la solicitud se cerró o la sesión ya empezó."
     CodigoError.SESION_NO_ENCONTRADA -> "Esta sesión ya no existe."

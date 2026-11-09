@@ -44,6 +44,8 @@ public class InicioGoogleService {
         if (usuario.getEstadoCuenta() == EstadoCuenta.SUSPENDIDA) {
             throw new ErrorNegocio(HttpStatus.FORBIDDEN, "CUENTA_SUSPENDIDA", "Tu cuenta está suspendida");
         }
+        // La foto de Google siempre al día: si la cambia allá, aquí también (la que suba en Nexo sigue ganando)
+        usuario.cambiarFotoGoogle(identidad.foto());
         usuario.registrarLoginExitoso();
         return sesiones.iniciar(usuario);
     }

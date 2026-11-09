@@ -455,6 +455,48 @@ paths:
         "401":
           $ref: "#/components/responses/NoAutenticado"
 
+  /api/usuarios/yo/foto:
+    put:
+      tags: [Usuario]
+      summary: Pone la foto de perfil propia
+      description: |
+        La app sube la imagen a Cloudinary y envía aquí su dirección; el servidor solo la guarda. Solo se aceptan
+        direcciones `https://res.cloudinary.com/...`. La foto propia gana sobre la de Google.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SolicitudCambiarFoto"
+      responses:
+        "200":
+          description: Foto cambiada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilPropio"
+        "400":
+          $ref: "#/components/responses/DatosInvalidos"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+    delete:
+      tags: [Usuario]
+      summary: Quita la foto de perfil propia
+      description: Vuelve a verse la de Google si la cuenta entra con Google; si no, `fotoUrl` se omite y la app muestra las iniciales.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Foto quitada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PerfilPropio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+
   /api/usuarios/yo/eliminar:
     post:
       tags: [Usuario]
@@ -2201,6 +2243,11 @@ components:
             tieneContrasena:
               type: boolean
               description: Es false si la cuenta solo entra con Google
+            fotoUrl:
+              type: string
+              format: uri
+              description: Foto de perfil (la propia o, si no subió ninguna, la de Google); se omite si no tiene
+              example: "https://res.cloudinary.com/nexo/image/upload/v1/perfil.jpg"
             handle:
               type: string
               description: Nombre de usuario público; lo genera el servidor
@@ -2238,6 +2285,18 @@ components:
       properties:
         modo:
           $ref: "#/components/schemas/Rol"
+
+    SolicitudCambiarFoto:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+          maxLength: 1000
+          pattern: "^https://res\\.cloudinary\\.com/.+"
+          description: Dirección de la foto ya subida a Cloudinary por la app
+          example: "https://res.cloudinary.com/nexo/image/upload/v1/perfil.jpg"
 
     SolicitudEditarPerfilTutor:
       type: object
@@ -2455,6 +2514,11 @@ components:
           type: integer
           description: Penalizaciones recibidas como tutor en los últimos 90 días, de cualquier nivel
           example: 0
+        fotoUrl:
+          type: string
+          format: uri
+          description: Foto de perfil (la propia o, si no subió ninguna, la de Google); se omite si no tiene
+          example: "https://res.cloudinary.com/nexo/image/upload/v1/perfil.jpg"
 
     PaginaTutores:
       allOf:
@@ -2930,7 +2994,7 @@ components:
           example: Ana Torres
         ultimoMensaje:
           type: string
-          description: Vacío si aún no hay mensajes
+          description: Vacío si aún no hay mensajes; "Foto" si el último mensaje fue solo una imagen
         ultimoMensajeEn:
           type: string
           format: date-time
@@ -2949,6 +3013,11 @@ components:
         comoTutor:
           type: boolean
           description: "`true` si la conversación es con un estudiante (el usuario actúa como tutor)"
+        fotoUrl:
+          type: string
+          format: uri
+          description: Foto de perfil de la otra persona (la propia o, si no subió ninguna, la de Google); se omite si no tiene
+          example: "https://res.cloudinary.com/nexo/image/upload/v1/perfil.jpg"
 
     Mensaje:
       type: object
@@ -2962,7 +3031,13 @@ components:
           format: uuid
         texto:
           type: string
+          description: Vacío si el mensaje es solo una imagen
           example: Hola, ¿revisamos integrales el martes?
+        imagenUrl:
+          type: string
+          format: uri
+          description: Imagen adjunta (en Cloudinary); se omite si no tiene
+          example: "https://res.cloudinary.com/nexo/image/upload/v1/foto.jpg"
         enviadoEn:
           type: string
           format: date-time
@@ -2988,12 +3063,18 @@ components:
 
     SolicitudMensaje:
       type: object
-      required: [texto]
+      description: Texto, imagen o los dos; sin ninguno de los dos responde 400 (`DATOS_INVALIDOS`)
       properties:
         texto:
           type: string
-          minLength: 1
           maxLength: 2000
+          description: Se recorta; puede ir vacío si se adjunta una imagen
+        imagenUrl:
+          type: string
+          format: uri
+          maxLength: 1000
+          pattern: "^https://res\\.cloudinary\\.com/.+"
+          description: Dirección de la imagen ya subida a Cloudinary por la app
         idCliente:
           type: string
           format: uuid

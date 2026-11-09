@@ -99,9 +99,10 @@ fun PantallaDatosTutor(alVolver: () -> Unit, viewModel: DatosTutorViewModel = hi
                 Campo(
                     valor = tarifa,
                     alCambiar = { tarifa = soloCifras(it) },
-                    marcador = "Ej.: 25000",
+                    marcador = "Ej.: 25.000",
                     etiqueta = "Tarifa por hora en pesos",
                     limpiable = true,
+                    miles = true,
                     teclado = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
                 )
                 Ayuda(
@@ -115,7 +116,7 @@ fun PantallaDatosTutor(alVolver: () -> Unit, viewModel: DatosTutorViewModel = hi
                     alCambiar = { universidad = it.take(LARGO_MAXIMO_UNIVERSIDAD) },
                     marcador = "Ej.: Universidad Industrial de Santander",
                     etiqueta = "Universidad",
-                    teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next)
+                    teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next)
                 )
 
                 RotuloGrupo("Carrera", Modifier.padding(top = EspacioMedio))

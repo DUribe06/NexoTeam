@@ -69,6 +69,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.grupo3.nexo.domain.model.AreaEstudio
 import com.grupo3.nexo.domain.model.DiaSemana
 import com.grupo3.nexo.domain.model.FranjaTutor
 import com.grupo3.nexo.domain.model.Modalidad
@@ -316,13 +317,16 @@ fun PantallaTutorPerfil(
                                     .weight(1f)
                                     .semantics { heading() }
                             )
-                            Estrellas(Math.round(tutor.rating).toInt(), tamano = TamanoEstrella)
-                            Spacer(Modifier.width(EspacioFino))
-                            Text(
-                                "${formatoValoracion(tutor.rating)} · ${tutor.totalResenas} ${plural(tutor.totalResenas, "reseña", "reseñas")}",
-                                color = TextoSecundario,
-                                style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares)
-                            )
+                            // Sin reseñas, "0,0" parecería una nota real: el estado vacío de abajo ya lo explica
+                            if (tutor.totalResenas > 0) {
+                                Estrellas(Math.round(tutor.rating).toInt(), tamano = TamanoEstrella)
+                                Spacer(Modifier.width(EspacioFino))
+                                Text(
+                                    "${formatoValoracion(tutor.rating)} · ${tutor.totalResenas} ${plural(tutor.totalResenas, "reseña", "reseñas")}",
+                                    color = TextoSecundario,
+                                    style = MaterialTheme.typography.bodySmall.merge(CifrasTabulares)
+                                )
+                            }
                         }
                     }
                     when (cargaDe(cargando = false, vacia = estado.resenas.isEmpty())) {
@@ -489,7 +493,7 @@ private fun Identidad(tutor: Tutor, modifier: Modifier = Modifier) {
                 .background(Superficie, CircleShape)
                 .padding(EspacioMinimo)
         ) {
-            Avatar(tutor.nombre, tamano = TamanoAvatarPerfil)
+            Avatar(tutor.nombre, tamano = TamanoAvatarPerfil, fotoUrl = tutor.fotoUrl)
         }
         Spacer(Modifier.height(EspacioCercano))
         Text(
@@ -540,7 +544,7 @@ private fun Cifras(tutor: Tutor, modifier: Modifier = Modifier) {
     // Con letra muy grande las etiquetas se partirían a media palabra: una cifra por fila, sin filetes
     if (LocalDensity.current.fontScale > 1.4f) {
         Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(EspacioMedio)) {
-            Cifra(formatoValoracion(tutor.rating), "calificación", conEstrella = true, enLinea = true)
+            Cifra(if (tutor.rating > 0) formatoValoracion(tutor.rating) else "Nuevo", "calificación", conEstrella = tutor.rating > 0, enLinea = true)
             Cifra("${tutor.sesionesTotales}", "sesiones", enLinea = true)
             Cifra("${tutor.estudiantes}", "estudiantes", enLinea = true)
         }
@@ -551,7 +555,7 @@ private fun Cifras(tutor: Tutor, modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .height(IntrinsicSize.Min)
         ) {
-            Cifra(formatoValoracion(tutor.rating), "calificación", Modifier.weight(1f), conEstrella = true)
+            Cifra(if (tutor.rating > 0) formatoValoracion(tutor.rating) else "Nuevo", "calificación", Modifier.weight(1f), conEstrella = tutor.rating > 0)
             Box(Modifier.fillMaxHeight().padding(vertical = EspacioFino).width(1.dp).background(Divisor))
             Cifra("${tutor.sesionesTotales}", "sesiones", Modifier.weight(1f))
             Box(Modifier.fillMaxHeight().padding(vertical = EspacioFino).width(1.dp).background(Divisor))
@@ -715,7 +719,7 @@ private fun HojaSolicitud(
         Campo(
             valor = tema,
             alCambiar = { tema = it },
-            marcador = "Ej.: límites y continuidad",
+            marcador = ejemploTema(materia),
             teclado = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
         )
         if (intentoEnviar && temaFalta) {
@@ -794,9 +798,10 @@ private fun HojaSolicitud(
         Campo(
             valor = precio,
             alCambiar = { precio = soloCifras(it) },
-            marcador = "Precio por hora, ej.: 20000",
+            marcador = "Precio por hora, ej.: 20.000",
             etiqueta = "Proponer otro precio por hora",
             limpiable = true,
+            miles = true,
             teclado = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done)
         )
         val propuesto = precio.toDoubleOrNull()?.takeIf { it >= 1 }
@@ -894,9 +899,11 @@ private fun HorarioSemanal(horario: List<FranjaTutor>) {
                     .padding(horizontal = EspacioNormal, vertical = EspacioMedio)
             ) {
                 Text(dia.nombre, color = TextoPrimario, style = MaterialTheme.typography.titleSmall, modifier = Modifier.widthIn(min = 92.dp).padding(end = EspacioCorto))
+                // Dos por fila siempre: las franjas con un solo ícono son más angostas y dejaban filas de 3 y 1
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(EspacioFino),
                     verticalArrangement = Arrangement.spacedBy(EspacioFino),
+                    maxItemsInEachRow = 2,
                     modifier = Modifier.weight(1f)
                 ) {
                     franjas.forEach { f ->
@@ -988,4 +995,16 @@ private fun HojaReporte(nombre: String, alCerrar: () -> Unit, alEnviar: (String)
             modifier = Modifier.fillMaxWidth()
         )
     }
+}
+
+/** El ejemplo del tema sigue a la materia elegida: "límites" no orienta a quien pide Redacción. */
+private fun ejemploTema(materia: String): String = when (AreaEstudio.deMateria(materia)) {
+    AreaEstudio.MATEMATICAS -> "Ej.: límites y continuidad"
+    AreaEstudio.PROGRAMACION -> "Ej.: ciclos y funciones"
+    AreaEstudio.CIENCIAS -> "Ej.: leyes de Newton"
+    AreaEstudio.IDIOMAS -> "Ej.: estructura de un ensayo"
+    AreaEstudio.DATOS -> "Ej.: consultas con JOIN"
+    AreaEstudio.DISENO -> "Ej.: jerarquía visual"
+    AreaEstudio.NEGOCIOS -> "Ej.: estados financieros"
+    null -> "Ej.: el tema que quieres repasar"
 }
