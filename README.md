@@ -6,6 +6,12 @@ Proyecto de Ingeniería de Software de la Universidad Industrial de Santander (U
 
 Cómo se publica el servidor y se genera la app: [`backend/docs/despliegue.md`](backend/docs/despliegue.md).
 
+## Instalar la app
+
+Escanea el código con el teléfono Android para descargar `nexo.apk`, o usa el [enlace de descarga](https://github.com/DUribe06/NexoTeam/releases/latest/download/nexo.apk). Al abrir el archivo, Android pide permitir la instalación desde esa fuente.
+
+<img src="assets/qr-nexo.png" alt="Código QR para descargar Nexo" width="220">
+
 ## Cómo está armado
 
 | Parte | Tecnología | Dónde corre |
