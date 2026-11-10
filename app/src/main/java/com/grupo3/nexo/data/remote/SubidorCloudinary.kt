@@ -23,6 +23,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -50,7 +51,9 @@ class SubidorCloudinary @Inject constructor(
         val cuerpo = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("upload_preset", BuildConfig.CLOUDINARY_PRESET)
-            .addFormDataPart("file", "foto.jpg", jpeg.toRequestBody("image/jpeg".toMediaType()))
+            // El preset usa el nombre del archivo como identificador y no deja sobrescribir: con un nombre fijo, Cloudinary
+            // devolvía siempre la primera imagen que alguien subió. Cada subida lleva un nombre único.
+            .addFormDataPart("file", "${UUID.randomUUID()}.jpg", jpeg.toRequestBody("image/jpeg".toMediaType()))
             .build()
         val pedido = Request.Builder()
             .url("https://api.cloudinary.com/v1_1/${BuildConfig.CLOUDINARY_NUBE}/image/upload")
