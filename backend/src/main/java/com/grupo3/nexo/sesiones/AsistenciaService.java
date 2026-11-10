@@ -33,7 +33,8 @@ import com.grupo3.nexo.usuarios.UsuarioService;
 /**
  * Que los dos lleguen a una sesión presencial: el tutor envía el PIN al llegar, el estudiante se lo dice y el tutor lo
  * escribe. Lo que pasa si nadie lo hace a tiempo está en {@link TutoriasAlDia}. Quien va tarde puede pactar por chat una
- * nueva hora, o los dos pueden cancelar sin penalización.
+ * nueva hora. Cancelar de común acuerdo, sin penalización, vale para cualquier sesión programada, también las virtuales:
+ * es la única forma que tiene el tutor de cancelar.
  *
  * Todo toma la fila de la sesión con `FOR UPDATE`: así, un acuerdo no se cruza con la puesta al día ni con el PIN.
  */
@@ -174,7 +175,10 @@ public class AsistenciaService {
      */
     @Transactional
     public SesionTutoria proponer(UUID yo, String sesionId, SolicitudAcuerdo p) {
-        Fila s = presencialSinIniciar(yo, sesionId);
+        Fila s = sinIniciar(yo, sesionId);
+        if (p.tipo() == TipoAcuerdo.RETARDO) {
+            exigirPresencial(s);
+        }
         if (hayPropuesta(s.id())) {
             throw new ErrorNegocio(HttpStatus.CONFLICT, "ACUERDO_PENDIENTE", "Ya hay una propuesta sin responder");
         }
@@ -208,7 +212,7 @@ public class AsistenciaService {
     /** Solo la otra parte puede aceptar. Aceptar una cancelación la cierra sin penalización para nadie. */
     @Transactional
     public SesionTutoria aceptar(UUID yo, String sesionId) {
-        Fila s = presencialSinIniciar(yo, sesionId);
+        Fila s = sinIniciar(yo, sesionId);
         Propuesta p = propuesta(s.id());
         if (p.de().equals(yo)) {
             throw new ErrorNegocio(HttpStatus.FORBIDDEN, "ACUERDO_PROPIO", "Debe aceptarlo la otra persona");
@@ -233,7 +237,7 @@ public class AsistenciaService {
     /** El otro la rechaza; quien la propuso la retira. Después se puede proponer otra. */
     @Transactional
     public SesionTutoria rechazar(UUID yo, String sesionId) {
-        Fila s = presencialSinIniciar(yo, sesionId);
+        Fila s = sinIniciar(yo, sesionId);
         Propuesta p = propuesta(s.id());
         resolver(s.id(), "RECHAZADO");
         chats.anotar(s.estudiante(), s.tutor(), yo, p.de().equals(yo) ? "Retiré mi propuesta." : "No acepto la propuesta.");
@@ -262,16 +266,29 @@ public class AsistenciaService {
             .params(estado, sesion).update();
     }
 
-    private Fila presencialSinIniciar(UUID yo, String sesionId) {
-        Fila s = presencialProgramada(yo, sesionId);
+    /** Una virtual nunca se "inicia": admite acuerdos mientras siga programada. */
+    private Fila sinIniciar(UUID yo, String sesionId) {
+        Fila s = programada(yo, sesionId);
         if (s.iniciada()) {
             throw new ErrorNegocio(HttpStatus.CONFLICT, "SESION_YA_INICIADA", "La sesión ya empezó");
         }
         return s;
     }
 
-    /** Después de la puesta al día: si se venció justo ahora, responde que ya no está programada. */
     private Fila presencialProgramada(UUID yo, String sesionId) {
+        Fila s = programada(yo, sesionId);
+        exigirPresencial(s);
+        return s;
+    }
+
+    private static void exigirPresencial(Fila s) {
+        if (!Modalidad.PRESENCIAL.name().equals(s.modalidad())) {
+            throw new ErrorNegocio(HttpStatus.CONFLICT, "SESION_SIN_PIN", "Solo las sesiones presenciales usan PIN");
+        }
+    }
+
+    /** Después de la puesta al día: si se venció justo ahora, responde que ya no está programada. */
+    private Fila programada(UUID yo, String sesionId) {
         usuarios.cuentaEnSesion(yo);
         alDia.poner();
         UUID id = Ids.leer(sesionId).orElseThrow(AsistenciaService::noEncontrada);
@@ -296,9 +313,6 @@ public class AsistenciaService {
             .optional().orElseThrow(AsistenciaService::noEncontrada);
         if (!EstadoSesion.PROGRAMADA.name().equals(s.estado())) {
             throw new ErrorNegocio(HttpStatus.CONFLICT, "SESION_NO_PROGRAMADA", "Esta sesión ya no está programada");
-        }
-        if (!Modalidad.PRESENCIAL.name().equals(s.modalidad())) {
-            throw new ErrorNegocio(HttpStatus.CONFLICT, "SESION_SIN_PIN", "Solo las sesiones presenciales usan PIN");
         }
         return s;
     }

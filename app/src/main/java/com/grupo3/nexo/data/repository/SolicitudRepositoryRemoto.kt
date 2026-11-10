@@ -78,7 +78,8 @@ class SolicitudRepositoryRemoto @Inject constructor(
         hora: LocalTime,
         modalidad: Modalidad,
         mensaje: String,
-        precioPropuesto: Double?
+        precioPropuesto: Double?,
+        duracionHoras: Int
     ) {
         val enviada = errores.llamar {
             api.enviarSolicitud(
@@ -90,13 +91,17 @@ class SolicitudRepositoryRemoto @Inject constructor(
                     hora = hora.aTextoApi(),
                     modalidad = modalidad.aDto(),
                     mensaje = mensaje.takeIf { it.isNotBlank() },
-                    precioPropuesto = precioPropuesto
+                    precioPropuesto = precioPropuesto,
+                    duracionHoras = duracionHoras
                 )
             )
         }
         enviada.aDominio()?.let { poner(it) }
         solicitudes.refrescar()
     }
+
+    /** Una sesión se canceló por otro camino (un acuerdo por chat): su solicitud también cambió. */
+    internal suspend fun refrescar() = solicitudes.refrescar()
 
     private suspend fun poner(solicitud: Solicitud) = solicitudes.actualizar { lista ->
         if (lista.any { it.id == solicitud.id }) lista.map { if (it.id == solicitud.id) solicitud else it }

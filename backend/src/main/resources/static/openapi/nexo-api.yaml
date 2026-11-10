@@ -1523,7 +1523,7 @@ paths:
         "404":
           $ref: "#/components/responses/SesionNoEncontrada"
         "409":
-          description: Ya no está programada (`SESION_NO_PROGRAMADA`), es virtual (`SESION_SIN_PIN`), ya empezó (`SESION_YA_INICIADA`), hay otra propuesta (`ACUERDO_PENDIENTE`), ya tuvo retardo (`RETARDO_YA_ACORDADO`) o la hora no sirve (`RETARDO_NO_VALIDO`)
+          description: Ya no está programada (`SESION_NO_PROGRAMADA`), es un retardo en una virtual (`SESION_SIN_PIN`), ya empezó (`SESION_YA_INICIADA`), hay otra propuesta (`ACUERDO_PENDIENTE`), ya tuvo retardo (`RETARDO_YA_ACORDADO`) o la hora no sirve (`RETARDO_NO_VALIDO`)
           content:
             application/json:
               schema:
@@ -2708,6 +2708,11 @@ components:
           maximum: 10000000
           description: Precio por hora en pesos (COP) que el estudiante propone en lugar de la tarifa del tutor; opcional
           example: 20000
+        duracionHoras:
+          type: integer
+          enum: [1, 2]
+          default: 1
+          description: Cuántas horas dura la tutoría; sin valor, 1
 
     Solicitud:
       type: object
@@ -2783,6 +2788,11 @@ components:
           format: double
           description: Precio por hora que propuso el estudiante; se omite si aceptó la tarifa del tutor
           example: 20000
+        duracionHoras:
+          type: integer
+          enum: [1, 2]
+          description: Cuántas horas dura la tutoría
+          example: 1
 
     SolicitudRechazar:
       type: object

@@ -94,9 +94,21 @@ class AsistenciaApiTest extends PruebaTutoriasBase {
         String sesion = campo(tutoriaAceptada(vale, tutora, dia, "10:00"), "$.sesion.id");
         enviarComo(tutora.token(), "/api/sesiones/" + sesion + "/pin", "").andExpect(status().isConflict())
             .andExpect(jsonPath("$.codigo").value("SESION_SIN_PIN"));
-        enviarComo(vale.token(), "/api/sesiones/" + sesion + "/acuerdo", CANCELAR).andExpect(status().isConflict())
+        enviarComo(vale.token(), "/api/sesiones/" + sesion + "/acuerdo", RETARDO_30).andExpect(status().isConflict())
             .andExpect(jsonPath("$.codigo").value("SESION_SIN_PIN"));
         pedir("/api/sesiones/" + sesion, vale.token()).andExpect(jsonPath("$.limite").doesNotExist());
+    }
+
+    @Test
+    void unaVirtualTambienSeCancelaDeAcuerdoYLaPuedeProponerElTutor() throws Exception {
+        LocalDate dia = manana();
+        Cuenta tutora = tutor("Marta Gil", dia, "10:00");
+        String sesion = campo(tutoriaAceptada(vale, tutora, dia, "10:00"), "$.sesion.id");
+        enviarComo(tutora.token(), "/api/sesiones/" + sesion + "/acuerdo", CANCELAR).andExpect(status().isCreated());
+        enviarComo(vale.token(), "/api/sesiones/" + sesion + "/acuerdo/aceptar", "").andExpect(status().isOk())
+            .andExpect(jsonPath("$.estado").value("CANCELADA")).andExpect(jsonPath("$.cierre").value("ACORDADA"))
+            .andExpect(jsonPath("$.penalizacion").doesNotExist());
+        pedir("/api/solicitudes?modo=ESTUDIANTE", vale.token()).andExpect(jsonPath("$[0].estado").value("CANCELADA"));
     }
 
     @Test

@@ -48,12 +48,14 @@ public class SolicitudService {
 
     private static final int DIAS_SOLICITABLES = 14;
     private static final Duration PLAZO = Duration.ofHours(24);
-    private static final Duration DURACION_SESION = Duration.ofHours(1);
+    /** Lo que dura una tutoría si la solicitud no lo dice. */
+    private static final int HORAS_POR_DEFECTO = 1;
 
     private static final String CONSULTA = """
         SELECT so.id, so.tutor_id, t.nombre AS nombre_tutor, so.estudiante_id, e.nombre AS nombre_estudiante,
                so.materia, so.tema, so.inicio, so.modalidad, so.estado, so.mensaje, so.motivo_rechazo,
-               so.enviada_en, so.vence_en, so.precio_propuesto, fn_penalizaciones_recientes(so.estudiante_id, FALSE) AS penalizaciones_estudiante
+               so.enviada_en, so.vence_en, so.precio_propuesto, so.duracion_horas,
+               fn_penalizaciones_recientes(so.estudiante_id, FALSE) AS penalizaciones_estudiante
         FROM solicitudes so
         JOIN usuarios t ON t.id = so.tutor_id
         JOIN usuarios e ON e.id = so.estudiante_id
@@ -101,7 +103,8 @@ public class SolicitudService {
         LocalTime hora = LocalTime.parse(s.hora());
         validarHora(tutor.getId(), s.fecha(), hora, s.modalidad());
         Instant inicio = s.fecha().atTime(hora).atZone(HoraColombia.ZONA).toInstant();
-        validarHoraLibre(tutor.getId(), inicio);
+        int horas = s.duracionHoras() == null ? HORAS_POR_DEFECTO : s.duracionHoras();
+        validarHoraLibre(tutor.getId(), inicio, horas);
 
         // El índice uq_solicitudes_activa cubre las peticiones simultáneas; esto da el mismo error sin provocar el choque
         boolean repetida = jdbc.sql("""
@@ -118,10 +121,10 @@ public class SolicitudService {
         Instant vence = enviada.plus(PLAZO).isBefore(inicio) ? enviada.plus(PLAZO) : inicio;
         jdbc.sql("""
             INSERT INTO solicitudes (id, estudiante_id, tutor_id, materia, tema, inicio, modalidad, mensaje, enviada_en, vence_en,
-                                     precio_propuesto)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                     precio_propuesto, duracion_horas)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """).params(id, yo, tutor.getId(), materia, s.tema().trim(), momento(inicio), s.modalidad().name(),
-                s.mensaje() == null ? "" : s.mensaje().trim(), momento(enviada), momento(vence), s.precioPropuesto()).update();
+                s.mensaje() == null ? "" : s.mensaje().trim(), momento(enviada), momento(vence), s.precioPropuesto(), horas).update();
         return buscar(id).orElseThrow();
     }
 
@@ -144,11 +147,11 @@ public class SolicitudService {
         }
     }
 
-    private void validarHoraLibre(UUID tutor, Instant inicio) {
+    private void validarHoraLibre(UUID tutor, Instant inicio, int horas) {
         boolean ocupada = jdbc.sql("""
             SELECT EXISTS (SELECT 1 FROM sesiones
                            WHERE (tutor_id = ? OR estudiante_id = ?) AND estado = 'PROGRAMADA' AND inicio < ? AND fin > ?)
-            """).params(tutor, tutor, momento(inicio.plus(DURACION_SESION)), momento(inicio)).query(Boolean.class).single();
+            """).params(tutor, tutor, momento(inicio.plus(Duration.ofHours(horas))), momento(inicio)).query(Boolean.class).single();
         if (ocupada) {
             throw horaNoDisponible();
         }
@@ -198,7 +201,7 @@ public class SolicitudService {
         s.exigirTutor(yo, "aceptarla");
         s.exigirPendiente();
         penalizaciones.exigirSinPausa(yo);
-        Instant fin = s.inicio().plus(DURACION_SESION);
+        Instant fin = s.inicio().plus(Duration.ofHours(s.duracionHoras()));
         // Primero el chat: la sesión lo referencia. Sus choques de horario llegan como HORA_NO_DISPONIBLE (ManejadorErrores)
         UUID chat = chats.habilitar(s.estudianteId(), yo);
         cambiarEstado(s.id(), EstadoSolicitud.ACEPTADA, null);
@@ -239,7 +242,8 @@ public class SolicitudService {
     }
 
     /** Lo necesario para decidir una respuesta, con la fila ya bloqueada hasta el final de la transacción. */
-    private record Bloqueada(UUID id, UUID tutorId, UUID estudianteId, EstadoSolicitud estado, Instant inicio) {
+    private record Bloqueada(UUID id, UUID tutorId, UUID estudianteId, EstadoSolicitud estado, Instant inicio,
+                             int duracionHoras) {
 
         void exigirTutor(UUID yo, String accion) {
             if (!tutorId.equals(yo)) {
@@ -259,13 +263,13 @@ public class SolicitudService {
 
     private Bloqueada bloquear(UUID yo, String solicitudId) {
         return Ids.leer(solicitudId).flatMap(id -> jdbc.sql("""
-                SELECT id, tutor_id, estudiante_id, estado, inicio FROM solicitudes
+                SELECT id, tutor_id, estudiante_id, estado, inicio, duracion_horas FROM solicitudes
                 WHERE id = ? AND (tutor_id = ? OR estudiante_id = ?)
                 FOR UPDATE
                 """).params(id, yo, yo)
                 .query((rs, n) -> new Bloqueada(rs.getObject("id", UUID.class), rs.getObject("tutor_id", UUID.class),
                     rs.getObject("estudiante_id", UUID.class), EstadoSolicitud.valueOf(rs.getString("estado")),
-                    rs.getObject("inicio", OffsetDateTime.class).toInstant()))
+                    rs.getObject("inicio", OffsetDateTime.class).toInstant(), rs.getInt("duracion_horas")))
                 .optional())
             .orElseThrow(SolicitudService::noEncontrada);
     }
@@ -296,6 +300,6 @@ public class SolicitudService {
             rs.getString("mensaje"), rs.getString("motivo_rechazo"),
             HoraColombia.momento(rs.getObject("enviada_en", OffsetDateTime.class).toInstant()),
             HoraColombia.momento(rs.getObject("vence_en", OffsetDateTime.class).toInstant()),
-            rs.getInt("penalizaciones_estudiante"), rs.getBigDecimal("precio_propuesto"));
+            rs.getInt("penalizaciones_estudiante"), rs.getBigDecimal("precio_propuesto"), rs.getInt("duracion_horas"));
     }
 }

@@ -41,6 +41,8 @@ class SesionRepositoryRemotoTest {
     private val almacen = AlmacenEnMemoria(sesionDePrueba())
     private lateinit var tutores: TutorRepositoryRemoto
     private lateinit var repositorio: SesionRepositoryRemoto
+    private lateinit var chats: ChatRepositoryRemoto
+    private lateinit var solicitudes: SolicitudRepositoryRemoto
 
     @Before
     fun preparar() {
@@ -50,7 +52,9 @@ class SesionRepositoryRemotoTest {
         val errores = ErroresApi(jsonDePrueba)
         val contexto = ContextoRemoto(almacen)
         tutores = TutorRepositoryRemoto(api, errores, contexto)
-        repositorio = SesionRepositoryRemoto(api, errores, tutores, contexto)
+        chats = ChatRepositoryRemoto(api, errores, contexto, 60_000)
+        repositorio = SesionRepositoryRemoto(api, errores, tutores, chats, { solicitudes }, contexto)
+        solicitudes = SolicitudRepositoryRemoto(api, errores, repositorio, chats, contexto)
         rutas.responder("GET", "/api/sesiones", "[${sesion()}]")
         rutas.responder("GET", "/api/usuarios/yo/resumen", resumen(1))
     }
@@ -142,6 +146,24 @@ class SesionRepositoryRemotoTest {
         repositorio.proponerAcuerdo("se-1", TipoAcuerdo.RETARDO, 30)
         val cuerpo = rutas.pedidas("POST", "/api/sesiones/se-1/acuerdo").single().cuerpoTexto()
         assertTrue(cuerpo, cuerpo.contains("\"tipo\":\"RETARDO\"") && cuerpo.contains("\"minutos\":30"))
+    }
+
+    @Test
+    fun `aceptar una cancelacion acordada pone al dia solicitudes y chats`() = enPrueba {
+        rutas.responder("GET", "/api/sesiones", "[${sesion("PROGRAMADA")}]")
+        rutas.responder("GET", "/api/solicitudes", "[]")
+        rutas.responder("GET", "/api/chats", "[]")
+        repositorio.obtenerSesiones().first()
+        solicitudes.obtenerSolicitudes().first()
+        chats.obtenerChats().first()
+        val antesSolicitudes = rutas.pedidas("GET", "/api/solicitudes").size
+        val antesChats = rutas.pedidas("GET", "/api/chats").size
+        rutas.responder("POST", "/api/sesiones/se-1/acuerdo/aceptar", sesion("CANCELADA", extra = ""","cierre":"ACORDADA""""))
+
+        repositorio.aceptarAcuerdo("se-1")
+
+        assertEquals(antesSolicitudes + 1, rutas.pedidas("GET", "/api/solicitudes").size)
+        assertEquals(antesChats + 1, rutas.pedidas("GET", "/api/chats").size)
     }
 
     @Test

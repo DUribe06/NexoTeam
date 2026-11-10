@@ -16,6 +16,7 @@ import com.grupo3.nexo.domain.model.Solicitud
 import com.grupo3.nexo.domain.model.TipoAcuerdo
 import com.grupo3.nexo.domain.repository.SesionRepository
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +38,9 @@ class SesionRepositoryRemoto @Inject constructor(
     private val api: NexoApi,
     private val errores: ErroresApi,
     private val tutores: TutorRepositoryRemoto,
+    private val chats: ChatRepositoryRemoto,
+    // Las solicitudes ya dependen de este repositorio: se piden al usarlas para no cerrar el círculo
+    private val solicitudes: Provider<SolicitudRepositoryRemoto>,
     contexto: ContextoRemoto
 ) : SesionRepository {
 
@@ -102,7 +106,16 @@ class SesionRepositoryRemoto @Inject constructor(
             refrescar()
             throw e
         }
-        nueva.aDominio()?.let { actual -> sesiones.actualizar { lista -> lista.map { if (it.id == actual.id) actual else it } } }
+        val actual = nueva.aDominio() ?: return
+        sesiones.actualizar { lista -> lista.map { if (it.id == actual.id) actual else it } }
+        // Cancelar de común acuerdo también cancela la solicitud y puede dejar el chat en solo lectura
+        if (!actual.proxima) {
+            coroutineScope {
+                launch { resumen.refrescar() }
+                launch { solicitudes.get().refrescar() }
+                launch { chats.refrescarChats() }
+            }
+        }
     }
 
     internal suspend fun refrescar() = coroutineScope {
