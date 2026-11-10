@@ -317,7 +317,8 @@ private fun TarjetaSolicitud(
             verticalArrangement = Arrangement.spacedBy(EspacioMinimo)
         ) {
             Dato(IconosNexo.Calendario, formatoFecha(solicitud.fecha))
-            Dato(IconosNexo.Reloj, formatoHora(solicitud.hora))
+            // La duración solo se nombra cuando no es la habitual de una hora
+            Dato(IconosNexo.Reloj, formatoHora(solicitud.hora) + if (solicitud.duracionHoras > 1) " · ${formatoHoras(solicitud.duracionHoras.toDouble())}" else "")
             Dato(solicitud.modalidad.icono, solicitud.modalidad.etiqueta)
         }
 

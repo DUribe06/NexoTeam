@@ -5,6 +5,7 @@ import java.time.LocalTime
 import kotlinx.coroutines.CancellationException
 import com.grupo3.nexo.domain.model.PRECIO_MAXIMO
 import com.grupo3.nexo.domain.model.EstadoSolicitud
+import com.grupo3.nexo.domain.model.DURACIONES_SOLICITABLES
 import com.grupo3.nexo.domain.model.Modalidad
 import com.grupo3.nexo.domain.model.Rol
 import com.grupo3.nexo.domain.model.Solicitud
@@ -113,12 +114,14 @@ class EnviarSolicitudUseCase @Inject constructor(
         hora: LocalTime,
         modalidad: Modalidad,
         mensaje: String,
-        precioPropuesto: Double? = null
+        precioPropuesto: Double? = null,
+        duracionHoras: Int = 1
     ) {
         require(tema.isNotBlank()) { "Indica el tema a reforzar" }
         require(precioPropuesto == null || precioPropuesto in 1.0..PRECIO_MAXIMO) { "El precio propuesto no es válido" }
+        require(duracionHoras in DURACIONES_SOLICITABLES) { "La duración no es válida" }
         // Proponer la misma tarifa del tutor no es una propuesta
         val propuesta = precioPropuesto?.takeIf { it != tutor.precioHora }
-        repositorio.enviar(tutor.id, materia, tema.trim(), fecha, hora, modalidad, mensaje.trim(), propuesta)
+        repositorio.enviar(tutor.id, materia, tema.trim(), fecha, hora, modalidad, mensaje.trim(), propuesta, duracionHoras)
     }
 }

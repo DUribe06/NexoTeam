@@ -13,6 +13,8 @@ import com.grupo3.nexo.usuarios.Modalidad;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -28,7 +30,8 @@ public final class SolicitudDtos {
     public record SolicitudDto(UUID id, UUID tutorId, String nombreTutor, UUID estudianteId, String nombreEstudiante,
                                String materia, String tema, LocalDate fecha, String hora, Modalidad modalidad,
                                EstadoSolicitud estado, String mensaje, String motivoRechazo, OffsetDateTime enviada,
-                               OffsetDateTime venceEn, int penalizacionesEstudiante, BigDecimal precioPropuesto) {
+                               OffsetDateTime venceEn, int penalizacionesEstudiante, BigDecimal precioPropuesto,
+                               int duracionHoras) {
     }
 
     public record SolicitudNueva(@NotBlank String tutorId,
@@ -38,7 +41,9 @@ public final class SolicitudDtos {
                                  @NotNull @Pattern(regexp = "^([01][0-9]|2[0-3]):[0-5][0-9]$") String hora,
                                  @NotNull Modalidad modalidad,
                                  @Size(max = 500) String mensaje,
-                                 @DecimalMin("1") @DecimalMax("10000000") @Digits(integer = 8, fraction = 2) BigDecimal precioPropuesto) {
+                                 @DecimalMin("1") @DecimalMax("10000000") @Digits(integer = 8, fraction = 2) BigDecimal precioPropuesto,
+                                 /** 1 o 2 horas; sin valor, 1. */
+                                 @Min(1) @Max(2) Integer duracionHoras) {
     }
 
     public record SolicitudRechazar(@Size(max = 300) String motivo) {

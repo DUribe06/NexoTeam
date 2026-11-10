@@ -95,6 +95,12 @@ data class FranjaTutor(
 val List<FranjaTutor>.porDia: List<Pair<DiaSemana, List<FranjaTutor>>>
     get() = groupBy { it.dia }.toSortedMap(compareBy { it.numero }).map { (dia, franjas) -> dia to franjas.sortedBy { it.hora } }
 
+/**
+ * Duraciones que se pueden pedir. El calendario va de dos en dos horas: una tutoría de 2 h termina justo cuando empieza
+ * la siguiente hora publicada.
+ */
+val DURACIONES_SOLICITABLES = listOf(1, 2)
+
 /** Tope de la tarifa y del precio propuesto, el mismo que valida el servidor. */
 const val PRECIO_MAXIMO = 10_000_000.0
 
@@ -198,7 +204,9 @@ data class Solicitud(
     /** Del estudiante como estudiante, en los últimos 90 días; ayuda al tutor a decidir. */
     val penalizacionesEstudiante: Int = 0,
     /** Precio por hora que propuso el estudiante; null si aceptó la tarifa del tutor. Al aceptar, el tutor acepta este precio. */
-    val precioPropuesto: Double? = null
+    val precioPropuesto: Double? = null,
+    /** Horas que durará la tutoría: 1 o 2. */
+    val duracionHoras: Int = 1
 )
 
 /** Horas que quedan para que el tutor responda, contando minutos completos; 0 o menos si el plazo ya venció. */

@@ -28,7 +28,8 @@ data class SolicitudDto(
     val enviada: String,
     val venceEn: String,
     val penalizacionesEstudiante: Int = 0,
-    val precioPropuesto: Double? = null
+    val precioPropuesto: Double? = null,
+    val duracionHoras: Int = 1
 )
 
 @Serializable
@@ -41,7 +42,9 @@ data class SolicitudNueva(
     val modalidad: ModalidadDto,
     val mensaje: String? = null,
     /** Precio por hora que propone el estudiante; null si acepta la tarifa del tutor. */
-    val precioPropuesto: Double? = null
+    val precioPropuesto: Double? = null,
+    /** 1 o 2 horas; el servidor asume 1 si no llega. */
+    val duracionHoras: Int = 1
 )
 
 @Serializable

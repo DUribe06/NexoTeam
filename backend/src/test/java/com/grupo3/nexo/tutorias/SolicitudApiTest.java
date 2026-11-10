@@ -147,6 +147,26 @@ class SolicitudApiTest extends PruebaTutoriasBase {
     }
 
     @Test
+    void unaSolicitudDeDosHorasCreaUnaSesionDeDosHoras() throws Exception {
+        String dosHoras = solicitud(ana, dia, "10:00").replaceFirst("\\}$", ",\"duracionHoras\":2}");
+        String id = campo(enviarComo(vale.token(), "/api/solicitudes", dosHoras)
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.duracionHoras").value(2))
+            .andReturn().getResponse().getContentAsString(), "$.id");
+        enviarComo(ana.token(), "/api/solicitudes/" + id + "/aceptar", "")
+            .andExpect(status().isOk()).andExpect(jsonPath("$.sesion.duracionHoras").value(2.0));
+    }
+
+    @Test
+    void laDuracionEsDeUnaODosHorasYSinDecirlaEsUna() throws Exception {
+        enviarComo(vale.token(), "/api/solicitudes", solicitud(ana, dia, "10:00"))
+            .andExpect(status().isCreated()).andExpect(jsonPath("$.duracionHoras").value(1));
+        for (String horas : new String[] {"0", "3"}) {
+            String cuerpo = solicitud(ana, dia, "12:00").replaceFirst("\\}$", ",\"duracionHoras\":" + horas + "}");
+            codigo(enviarComo(vale.token(), "/api/solicitudes", cuerpo), 400, "DATOS_INVALIDOS");
+        }
+    }
+
+    @Test
     void soloElTutorRespondeYSoloElEstudianteCancela() throws Exception {
         String id = enviarSolicitud(vale, ana, dia, "10:00");
         codigo(enviarComo(vale.token(), "/api/solicitudes/" + id + "/aceptar", ""), 403, "NO_ES_TUTOR");

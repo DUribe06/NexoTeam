@@ -19,13 +19,20 @@ class AcuerdosTest {
     )
 
     @Test
-    fun `solo una presencial de hoy sin empezar admite acuerdos`() {
+    fun `cualquier sesion programada sin empezar admite cancelar de acuerdo`() {
+        assertTrue(sesion().admiteAcuerdo())
+        assertTrue(sesion(Modalidad.VIRTUAL).admiteAcuerdo())
+        assertFalse(sesion().copy(iniciada = true).admiteAcuerdo())
+        assertFalse(sesion().copy(estado = EstadoSesion.CANCELADA).admiteAcuerdo())
+    }
+
+    @Test
+    fun `solo una presencial de hoy sin empezar admite retardo`() {
         val hoy = inicio.toLocalDate()
-        assertTrue(sesion().admiteAcuerdo(hoy))
-        assertFalse(sesion().admiteAcuerdo(hoy.plusDays(1)))
-        assertFalse(sesion(Modalidad.VIRTUAL).admiteAcuerdo(hoy))
-        assertFalse(sesion().copy(iniciada = true).admiteAcuerdo(hoy))
-        assertFalse(sesion().copy(estado = EstadoSesion.CANCELADA).admiteAcuerdo(hoy))
+        assertTrue(sesion().admiteRetardo(hoy))
+        assertFalse(sesion().admiteRetardo(hoy.plusDays(1)))
+        assertFalse(sesion(Modalidad.VIRTUAL).admiteRetardo(hoy))
+        assertFalse(sesion().copy(iniciada = true).admiteRetardo(hoy))
     }
 
     @Test

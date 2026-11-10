@@ -43,9 +43,12 @@ private val MINUTOS_DE_RETARDO = listOf(15, 30, 45, 60)
 /** Minutos que quedan para llegar después de la nueva hora: también debe caber en la sesión. */
 private const val TOLERANCIA_MINUTOS = 10
 
-/** Solo una presencial de hoy que no ha empezado: es lo único que el retardo puede salvar. */
-internal fun Sesion.admiteAcuerdo(hoy: LocalDate): Boolean =
-    proxima && modalidad == Modalidad.PRESENCIAL && !iniciada && fecha == hoy
+/** Cualquier sesión programada que no ha empezado se puede cancelar de común acuerdo: presencial o virtual, hoy o después. */
+internal fun Sesion.admiteAcuerdo(): Boolean = proxima && !iniciada
+
+/** Solo una presencial de hoy: es lo único que el retardo puede salvar. */
+internal fun Sesion.admiteRetardo(hoy: LocalDate): Boolean =
+    admiteAcuerdo() && modalidad == Modalidad.PRESENCIAL && fecha == hoy
 
 /** Las horas que aún sirven para un retardo: en el futuro y con tiempo antes de que termine la sesión. */
 internal fun Sesion.minutosDeRetardo(ahora: LocalDateTime): List<Int> =
@@ -60,7 +63,8 @@ internal fun TiraAcuerdo(sesion: Sesion, alAcordar: () -> Unit, alAceptar: () ->
     val (titulo, detalle) = when {
         acuerdo == null && sesion.horaPactada != null -> "Nueva hora: ${formatoHora(sesion.horaPactada)}" to
             (if (sesion.retardoMio == true) "Pactaste un retardo: no llegar a esa hora penaliza más." else "$nombre pactó un retardo: no llegar a esa hora penaliza más.")
-        acuerdo == null -> "¿Alguien va tarde?" to "Acuérdenlo aquí para evitar la penalización."
+        acuerdo == null && sesion.admiteRetardo(LocalDate.now()) -> "¿Alguien va tarde?" to "Acuérdenlo aquí para evitar la penalización."
+        acuerdo == null -> "¿No pueden asistir?" to "Si los dos están de acuerdo, se cancela sin penalización."
         acuerdo.propuestoPorMi && acuerdo.tipo == TipoAcuerdo.RETARDO -> "Propusiste empezar a las $nuevaHora" to "Esperando la respuesta de $nombre."
         acuerdo.propuestoPorMi -> "Propusiste cancelar la sesión" to "Esperando la respuesta de $nombre."
         acuerdo.tipo == TipoAcuerdo.RETARDO -> "$nombre propone empezar a las $nuevaHora" to "Si aceptas, no llegar a esa hora penaliza más."
@@ -101,7 +105,7 @@ internal fun TiraAcuerdo(sesion: Sesion, alAcordar: () -> Unit, alAceptar: () ->
 internal fun HojaAcuerdo(sesion: Sesion, alCerrar: () -> Unit, alElegir: (Int?) -> Unit) {
     val nombre = sesion.conQuien.substringBefore(' ')
     HojaNexo(titulo = "Acordar con $nombre", alCerrar = alCerrar, subtitulo = "Solo cuenta si $nombre acepta. Quedará escrito en el chat.") {
-        val opciones = if (sesion.horaPactada == null) sesion.minutosDeRetardo(LocalDateTime.now()) else emptyList()
+        val opciones = if (sesion.horaPactada == null && sesion.admiteRetardo(LocalDate.now())) sesion.minutosDeRetardo(LocalDateTime.now()) else emptyList()
         if (opciones.isNotEmpty()) {
             Text(
                 "Voy tarde, empezamos a las",

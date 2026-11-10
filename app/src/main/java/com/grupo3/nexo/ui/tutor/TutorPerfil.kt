@@ -74,7 +74,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.grupo3.nexo.domain.model.AreaEstudio
 import com.grupo3.nexo.domain.model.DiaSemana
 import com.grupo3.nexo.domain.model.FranjaTutor
+import com.grupo3.nexo.domain.model.DURACIONES_SOLICITABLES
 import com.grupo3.nexo.domain.model.Modalidad
+import com.grupo3.nexo.domain.model.horaFin
 import com.grupo3.nexo.domain.model.Resena
 import com.grupo3.nexo.domain.model.Tutor
 import com.grupo3.nexo.domain.model.porDia
@@ -711,7 +713,8 @@ data class DatosSolicitud(
     val modalidad: Modalidad,
     val mensaje: String,
     /** Precio por hora que propone el estudiante; null si acepta la tarifa del tutor. */
-    val precioPropuesto: Double? = null
+    val precioPropuesto: Double? = null,
+    val duracionHoras: Int = 1
 )
 
 private val DiaSolicitable.abreviatura: String get() = DiaSemana.desde(fecha.dayOfWeek.value).abreviatura
@@ -732,6 +735,7 @@ private fun HojaSolicitud(
     var modalidad by rememberSaveable { mutableStateOf<Modalidad?>(null) }
     var mensaje by rememberSaveable { mutableStateOf("") }
     var precio by rememberSaveable { mutableStateOf("") }
+    var duracion by rememberSaveable { mutableIntStateOf(DURACIONES_SOLICITABLES.first()) }
     var intentoEnviar by rememberSaveable { mutableStateOf(false) }
 
     val dia = dias.getOrNull(indiceDia)
@@ -810,6 +814,26 @@ private fun HojaSolicitud(
                 }
             }
 
+            RotuloGrupo("Duración", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))
+            Row(horizontalArrangement = Arrangement.spacedBy(EspacioCorto), modifier = Modifier.selectableGroup()) {
+                DURACIONES_SOLICITABLES.forEach { horas ->
+                    FiltroOpcion(
+                        "$horas ${plural(horas, "hora", "horas")}",
+                        horas == duracion,
+                        { duracion = horas },
+                        conMarca = false
+                    )
+                }
+            }
+            if (horaElegida != null) {
+                Text(
+                    "De ${formatoHora(horaElegida)} a ${formatoHora(horaFin(horaElegida, duracion.toDouble()))}.",
+                    color = TextoSecundario,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = EspacioMargen, top = EspacioFino)
+                )
+            }
+
             RotuloGrupo("Modalidad", Modifier.padding(top = EspacioMargen, bottom = EspacioAjustado))
             Row(horizontalArrangement = Arrangement.spacedBy(EspacioCorto)) {
                 Modalidad.entries.forEach { m ->
@@ -864,7 +888,7 @@ private fun HojaSolicitud(
             alClicar = {
                 intentoEnviar = true
                 if (!temaFalta && dia != null && horaElegida != null && modalidadElegida != null) {
-                    alEnviar(DatosSolicitud(materia, tema.trim(), dia.fecha, horaElegida, modalidadElegida, mensaje.trim(), precio.toDoubleOrNull()?.takeIf { it >= 1 }))
+                    alEnviar(DatosSolicitud(materia, tema.trim(), dia.fecha, horaElegida, modalidadElegida, mensaje.trim(), precio.toDoubleOrNull()?.takeIf { it >= 1 }, duracion))
                 }
             },
             modifier = Modifier.fillMaxWidth()

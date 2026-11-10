@@ -35,7 +35,7 @@ erDiagram
 | `tutor_disponibilidad` | Semana publicada (día, hora, modalidad) | Las 7 horas del calendario |
 | `reportes` | Reportes a un tutor (RF11) | Uno abierto por persona y tutor |
 | `solicitudes` | Pedido de tutoría (RF5, RF6) | Plazo: 24 h, o el inicio si llega antes |
-| `sesiones` | Tutoría aceptada (RF10) | Una por solicitud; dura 1 h al crearla desde la API |
+| `sesiones` | Tutoría aceptada (RF10) | Una por solicitud; dura lo que pidió la solicitud (`duracion_horas`, 1 o 2 h) |
 | `chats` | Conversación por par estudiante–tutor (RF8) | `activo_hasta`: cierre automático al terminar la última sesión |
 | `mensajes` | Mensajes de un chat | `secuencia` sin huecos: es el cursor de la API. No se editan ni se borran |
 | `calificaciones` | Calificación mutua y reseñas (RF4, RF9) | Una reseña es la calificación `ESTUDIANTE_A_TUTOR` |

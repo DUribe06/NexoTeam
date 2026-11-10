@@ -575,7 +575,7 @@ fun PantallaConversacion(
             if (cargaMensajes == Carga.CARGANDO || cargaMensajes == Carga.ERROR) return@Column
 
             // Quien va tarde lo acuerda aquí, antes de que se venza la hora
-            estado.sesion?.takeIf { it.admiteAcuerdo(LocalDate.now()) }?.let { sesion ->
+            estado.sesion?.takeIf { it.admiteAcuerdo() }?.let { sesion ->
                 TiraAcuerdo(
                     sesion = sesion,
                     alAcordar = { acordando = true },
@@ -684,7 +684,7 @@ fun PantallaConversacion(
 
     imagenAmpliada?.let { url -> ImagenCompleta(url, alCerrar = { imagenAmpliada = null }) }
 
-    val sesionPorAcordar = estado.sesion?.takeIf { it.admiteAcuerdo(LocalDate.now()) }
+    val sesionPorAcordar = estado.sesion?.takeIf { it.admiteAcuerdo() }
     if (acordando && sesionPorAcordar != null) {
         HojaAcuerdo(
             sesion = sesionPorAcordar,
